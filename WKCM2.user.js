@@ -59,13 +59,14 @@ let CMouterHTML = /* html */`<div id="wkcm" class="cm">
 <div id="cm-reading" class="cm-content"> </div>
 </div>`;
 
+// CSS
 let CMcss = /* css */`
 .cm-header{
 text-align: left;
 }
 .cm-content{
     padding: 20px;
-    width: 40%;
+    width: 47%; height: 100%; min-height: 300px;
     text-align: left;
 }
 #cm-meaning{
@@ -95,18 +96,88 @@ ul.multi-character-grid .commnem-badge:before, ul.multi-character-grid .commnem-
 .commnem-badge:before { background-color: #71aa00; text-shadow: 0 2px 0 #1a5300; }
 .commnem-badge-req:before { background-color: #e1aa00; text-shadow: 0 2px 0 #7a5300 }`;
 
+let textareaCSS = /* css */`
+.cm-format-btn
+{
+    text-align: center;
+    width: 35px !important; height: 30px !important;
+    font-size: 20px !important;
+    line-height: 30px !important;
+    color: white;
+    border-radius: 3px;
+    margin-left: 5px;
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+    /* background-color: #f5f5f5; */
+    /* background-image: -moz-linear-gradient(top, #fff, #e6e6e6); background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
+    background-image: -webkit-linear-gradient(top, #fff, #e6e6e6); background-image: -o-linear-gradient(top, #fff, #e6e6e6);
+    background-image: linear-gradient(to bottom, #fff, #e6e6e6); background-repeat: repeat-x; width: 10px; height: 10px; margin: 0 !important; */
+    /* padding: 7px 13px 13px 7px; */
+
+    line-height: 1; float: left;
+}
+
+.cm-format-btn.kanji, .cm-format-btn.radical, .cm-format-btn.vocabulary, .cm-format-btn.reading
+{
+    font-weight: bold;
+    text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
+    box-sizing: border-box; transition: text-shadow 0.15s linear; box-shadow: 0 -3px 0 rgb(0 0 0 / 20%) inset,
+}
+
+.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-strike
+{
+    background-color: #f5f5f5;
+    background-image: -moz-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
+    background-image: -webkit-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -o-linear-gradient(top, #7a7a7a, #4a4a4a);
+    background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a); background-repeat: repeat-x; width: 10px; height: 10px; margin: 0
+    background-image: -webkit-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -o-linear-gradient(top, #7a7a7a, #707070);
+    background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a); background-repeat: repeat-x; width: 10px; height: 10px;
+}
+
+.cm-form form
+{
+    min-height: 300px;
+}
+.cm-form fieldset
+{
+    padding: 1px;
+    height: 110px;
+}
+.cm-text
+{
+overflow: auto; word-wrap: break-word; resize: none; height: calc(100% - 30px); width: 98%;
+}
+.counter-note
+{
+    padding: 0px; margin: 0px; margin-right: 10px; margin-top: 2px;
+}
+.cm-mnem-text
+{
+    float:left;
+    width: calc(100% - 120px); height: 100%; min-height: 150px;
+}
+
+.cm-form-submit, .cm-form-cancel { margin-top: 0px; background-image: linear-gradient(to bottom, #555, #464646) }
+`;
+
+let cmuserbuttonsCSS = /* css */`
+.cm-user-buttons { position: absolute; margin-top: -20px }
+.cm-info { margin-top: 20px; margin-left: 65px }
+`
+
 let CMcontentCSS = /* css */`
-.cm-prev, .cm-next, .cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight { cursor: pointer !important }
+.cm-prev, .cm-next, .cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel { cursor: pointer !important }
 .cm-prev, .cm-next { font-size: 50px; margin: 0px 0px 0px 0px; padding: 15px 10px 0px 0px;}
 .cm-prev{float:left}
 .cm-next{float:right}
-.cm-mnem-text{float:left; width: calc(100% - 120px); height: calc(100% - 200px)}
+
 .cm-prev.disabled, .cm-next.disabled { opacity: 0.25 }
 .cm-prev span, .cm-next span
 {
     background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgb(85, 85, 85)), to(rgb(70, 70, 70))); -webkit-background-clip: text;
 }
-.cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight
+
+.cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel
 {
     text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; background-repeat: repeat-x; cursor: help; padding: 1px 4px; color: #fff;
     text-shadow: 0 1px 0 rgba(0,0,0,0.2); white-space: nowrap; -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px;
@@ -115,13 +186,13 @@ let CMcontentCSS = /* css */`
 .cm-upvote-highlight { background-image: linear-gradient(to bottom, #5c5, #46ad46) }
 
 .cm-downvote-highlight { background-image: linear-gradient(to bottom, #c55, #ad4646) }
-.cm-user-buttons { position: absolute; margin-top: -34px }
+
 .cm-delete-highlight, .cm-edit-highlight { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
 .cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 0 }
 .cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
 .cm-delete-highlight.disabled, .cm-edit-highlight.disabled { display: none; pointer-events: none }
-.cm-submit-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #555, #464646) }
-.cm-submit-highlight.disabled { color: #8b8b8b !important }
+.cm-submit-highlight, .cm-form-submit, .cm-form-cancel { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #555, #464646) }
+.cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
 .cm-req-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}
 
 .cm-info { display: inline-block }
@@ -132,7 +203,35 @@ let CMcontentCSS = /* css */`
 .cm-score-num.neg { color: #c55 }
 
 
+
+.cm-nomnem { margin-top: -10px !important } .cm-form fieldset { clear: left }
+
+.cm-format { margin: 0 !important }
+
+
+.cm-format-bold, .cm-format-underline, .cm-format-strike { padding-left: 10px; padding-right: 10px }
+
+.cm-format-voc {  }
+
+
+.cm-delete-text { position: absolute; opacity: 0; text-align: center }
+.cm-delete-text h3 { margin: 0 }
+
+
+
 `;
+`
+.cm-format-btn { background-color: #f5f5f5;
+background-image: -moz-linear-gradient(top, #fff, #e6e6e6); background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
+background-image: -webkit-linear-gradient(top, #fff, #e6e6e6); background-image: -o-linear-gradient(top, #fff, #e6e6e6);
+background-image: linear-gradient(to bottom, #fff, #e6e6e6); background-repeat: repeat-x; width: 10px; height: 10px; margin: 0 !important;
+padding: 7px 13px 13px 7px  ; line-height: 1; float: left }
+
+.cm-format-btn.active { background-color:#e6e6e6; background-color:#d9d9d9; background-image:none; outline:0;
+-webkit-box-shadow:inset 0 2px 4px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.05);-moz-box-shadow:inset 0 2px 4px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.05);
+box-shadow:inset 0 2px 4px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.05) }
+`
+
 
 // data
 let CMDummyData = {
@@ -185,7 +284,7 @@ function addGlobalStyle(css) {
     if (!head) { return; }
     style = document.createElement('style');
     style.type = 'text/css';
-    style.innerHTML = css.replace(/;/g, ' !important;');
+    style.innerHTML = css;//css.replace(/;/g, ' !important;');
     head.appendChild(style);
 }
 
@@ -196,16 +295,19 @@ function init()
 {
     addGlobalStyle(CMcss);
     addGlobalStyle(CMcontentCSS);
+    addGlobalStyle(textareaCSS);
+    addGlobalStyle(cmuserbuttonsCSS);
+
 
     if (CMIsReview)
     {
         CMType = document.getElementById("character").className;
         // initCMReview();
         addHTMLinID('item-info', CMouterHTML);
-        
+
         document.getElementById("cm-meaning").innerHTML = getContentIframe("m", CMType);
         document.getElementById("cm-reading").innerHTML = getContentIframe("r", CMType);
-        
+
     } else if (CMIsLesson)
     {
         CMType = document.getElementById("character").className;
@@ -213,7 +315,10 @@ function init()
         addHTMLinID('supplement-info', CMouterHTML);
 
         document.getElementById("cm-meaning").innerHTML = getContentIframe("m", CMType);
+        document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
         document.getElementById("cm-reading").innerHTML = getContentIframe("r", CMType);
+        document.getElementById("cm-iframe-reading").srcdoc = getCMForm("reading");
+
     } else if (CMIsList)
     {
         addGlobalStyle(CMlistCss);
@@ -252,13 +357,13 @@ function getContentIframe(mnemType, itemType)
     if (itemType === "radical" && mnemType === "r")
         return ""
      */
-    
+
     let CMMnemType = (mnemType === "m") ? "meaning" : "reading";
     // TODO implement
     let CMItem = null;
     let CMLen = 1;
     let CMPage = 1;
-    
+
     // TODO: fix dynamic resizing of iframe
     // create iframe
     let CMIframeClass = "cm-mnem-text";
@@ -285,7 +390,7 @@ function getContentIframe(mnemType, itemType)
         // score
         '<div class="cm-score">Score: <span id="cm-' + CMMnemType +
         '-score-num" class="cm-score-num' + '">' + // cm-score-num (pos/nev/"") based on score
-        '0' /*TODO: add score*/ + '</span></div><div class="cm-upvote-highlight">Upvote</div><div class="cm-downvote-highlight">Downvote</div>' +
+        '0' /*TODO: add score*/ + '</span></div><div class="cm-upvote-highlight">Upvote ▲</div><div class="cm-downvote-highlight">Downvote ▼</div>' +
         // edit button
         '<div id="cm-' + CMMnemType + '-user-buttons" class="cm-user-buttons"><div class="cm-edit-highlight'/*class+( disabled) if not by user */ + '">Edit</div>' +
         // delete button
@@ -297,6 +402,36 @@ function getContentIframe(mnemType, itemType)
     // TODO: add case for no CM available
     return CMContent;
 }
+
+function getCMForm(mnemType)
+{
+    var CMForm = '<form id="cm-' + mnemType + '-form" class="cm-form cm-mnem-text" onsubmit="return false"><div id="cm-' + mnemType + '-format" class="cm-format">' +
+        '<div class="btn cm-format-btn cm-format-bold"><b>b</b></div>' +
+        '<div class="btn cm-format-btn cm-format-italic"><i>i</i></div>' +
+        '<div class="btn cm-format-btn cm-format-underline"><u>u</u></div>' +
+        '<div class="btn cm-format-btn cm-format-strike"><s>s</s></div>' +
+        '<div class="btn cm-format-btn cm-format-reading reading highlight-reading">読</div>' +
+        '<div class="btn cm-format-btn cm-format-rad radical">部</div>' +
+        '<div class="btn cm-format-btn cm-format-kan kanji" >漢</div>' +
+        '<div class="btn cm-format-btn cm-format-voc vocabulary">語</div></div><fieldset>' +
+        // textarea
+        '<textarea id="cm-' + mnemType + '-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemn' +
+        'ic"></textarea>' +
+        '<div class="flex items-center"><span id="cm-' + mnemType + '-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>' +
+        '<button type="submit" class="ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>' +
+        '<button type="button" class="btn-cancel ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>'
+
+        '</fieldset></form>';
+    return CMForm;
+    '<button id="cm-' + mnemType +'-form-cancel" class="cm-form-cancel">Cancel</button>' +
+            '<button id="cm-' + mnemType + '-form-submit" class="cm-form-submit disabled" type="button">Submit</button><span class="counter-note"' +
+        'title="Characters Remaining">5000 ✏️</span>'
+}
+
+function getIframeSrcdoc()
+{
+
+}
 // Init Functions
 
 function initCMLesson()
@@ -306,7 +441,7 @@ function initCMLesson()
     // CMType = (($("#main-info").attr("class") !== "radical") ? (($("#main-info").attr("class") == "kanji") ? "k" : "v") : "r");
 
     // addHTMLinID('supplement-info', CMLoadingHTML)
-    
+
 
 }
 
@@ -333,5 +468,3 @@ function getCMBadge(isRecent, isReq) {
     // TODO: get rid of jquery
     return $('<span lang="ja" ' + ((isRecent) ? ' style="top: ' + ((CMType == "k") ? '2.25em" ' : '1em" ') : '') + 'class="item-badge commnem-badge' + ((isReq) ? "-req" : "") + '"></span>');
 }
-
-
