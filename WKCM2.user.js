@@ -263,6 +263,7 @@ if (CMIsReview || CMIsLesson)
 
     window.addEventListener('load', function() {
         init();
+
     }, false);
 
 }
@@ -288,6 +289,45 @@ function addGlobalStyle(css) {
     head.appendChild(style);
 }
 
+function setCMType()
+{
+    if (document.getElementById("character"))
+    {
+        CMType = document.getElementById("character").className;
+    }
+    else if(document.getElementById("main-info"))
+    {
+        CMType = document.getElementById("main-info").className;
+    }
+    else
+    {
+        // wait, until site is completely loaded
+        setTimeout(function()
+                   {
+                       // console.log("setCMType recursive call");
+                       setCMType();
+                   }, 10);
+    }
+
+    /*
+    try
+    {
+        CMType = document.getElementById("character").className;
+    }
+    catch(err)
+    {
+        console.log(err);
+        // sometimes this class is in the parent tag instead ???
+        if (err instanceof TypeError)
+        {
+            CMType = document.getElementById("main-info").className;
+            console.log(CMType);
+        }
+    }*/
+    return CMType;
+
+}
+
 /**
  * Initializes all elements. Does not add functionality yet
  * */
@@ -298,26 +338,31 @@ function init()
     addGlobalStyle(textareaCSS);
     addGlobalStyle(cmuserbuttonsCSS);
 
+    setCMType();
 
     if (CMIsReview)
     {
-        CMType = document.getElementById("character").className;
         // initCMReview();
         addHTMLinID('item-info', CMouterHTML);
 
-        document.getElementById("cm-meaning").innerHTML = getContentIframe("m", CMType);
-        document.getElementById("cm-reading").innerHTML = getContentIframe("r", CMType);
+        document.getElementById("cm-meaning").innerHTML = getCMdivContent("m", CMType);
+        document.getElementById("cm-reading").innerHTML = getCMdivContent("r", CMType);
+
+        initButtons("meaning");
+        initButtons("reading");
 
     } else if (CMIsLesson)
     {
-        CMType = document.getElementById("character").className;
         // initCMLesson();
         addHTMLinID('supplement-info', CMouterHTML);
 
-        document.getElementById("cm-meaning").innerHTML = getContentIframe("m", CMType);
-        document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
-        document.getElementById("cm-reading").innerHTML = getContentIframe("r", CMType);
-        document.getElementById("cm-iframe-reading").srcdoc = getCMForm("reading");
+        document.getElementById("cm-meaning").innerHTML = getCMdivContent("m", CMType);
+        // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
+        document.getElementById("cm-reading").innerHTML = getCMdivContent("r", CMType);
+        // document.getElementById("cm-iframe-reading").outerHTML = getCMForm("reading");
+        
+        initButtons("meaning");
+        initButtons("reading");
 
     } else if (CMIsList)
     {
@@ -337,6 +382,45 @@ function init()
 
 }
 
+
+// Button initialization ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+
+/**
+ * Initializes Button functionality with EventListener click
+ * */
+function initButtons(mnemType)
+{
+    mnemType = getFullMnemType(mnemType);
+
+    initInteractionButtons(mnemType);
+    initEditButtons(mnemType);
+    
+
+    
+}
+
+function initInteractionButtons(mnemType)
+{
+    let editDiv = document.getElementById("cm-" + mnemType + "-edit");
+    if (editDiv)
+        editDiv.addEventListener("click", function() {editCM(mnemType);}, false);
+
+}
+
+function initEditButtons(mnemType)
+{
+    let saveDiv = document.getElementById("cm-" + mnemType + "-save");
+    if (saveDiv)
+        saveDiv.addEventListener("click", function() {editSaveCM(mnemType);}, false);
+
+    let cancelDiv = document.getElementById("cm-" + mnemType + "-cancel");
+    if (cancelDiv)
+        cancelDiv.addEventListener("click", function() {editCancelCM(mnemType);}, false);
+
+}
+
+// Button initialization ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
 /**
  * Adds the given HTML to an element with id. Checks, if the element with id exists.
  * */
@@ -347,61 +431,131 @@ function addHTMLinID(id, html, position="beforeend")
         ele.insertAdjacentHTML(position, html)
 }
 
+function getFullMnemType(mnemType)
+{
+    let CMMnemType = ""
+    if (mnemType === "m")
+        CMMnemType = "meaning";
+    else if (mnemType === "r")
+        CMMnemType = "reading";
+    else if (mnemType === "meaning" || mnemType === "reading")
+        CMMnemType = mnemType;
+    else
+        throw new TypeError("mnemType in getFullMnemType is not valid. Value: " + mnemType);
+    return CMMnemType;
+}
+
 /**
- * Creates the initial HTML code for the individual Mnemonic types, including Iframes.
+ * Creates emty Iframe for CM user content later on
+ * @param mnemType m, r or meaning, reading
+ * */
+function getInitialIframe(mnemType)
+{
+    let CMMnemType = getFullMnemType(mnemType);
+
+    let CMIframeId = "cm-iframe-" + CMMnemType;
+    let CMIframeClass = "cm-mnem-text";
+    let CMinitialIframe = "<html><head></head><body><div>Loading Community Mnemonic ...</div></body></html>";
+    let CMUserContentIframe = "<iframe class='" + CMIframeClass + "' id='" + CMIframeId + "' srcdoc=\""+ CMinitialIframe + " \" src=''"+// width='700' height='150' " +
+        "sandbox scrolling='no' frameBorder='0' >" +
+        "</iframe>";
+    return CMUserContentIframe;
+}
+
+/**
+ * Creates the initial HTML code for the individual Mnemonic types, including Iframes. But also all Buttons.
  * Does not include content
  */
-function getContentIframe(mnemType, itemType)
+function getCMdivContent(mnemType, itemType)
 {
     /* // Radicals only have "meaning"
     if (itemType === "radical" && mnemType === "r")
         return ""
      */
 
-    let CMMnemType = (mnemType === "m") ? "meaning" : "reading";
+    mnemType = getFullMnemType(mnemType);
     // TODO implement
     let CMItem = null;
     let CMLen = 1;
     let CMPage = 1;
 
-    // TODO: fix dynamic resizing of iframe
-    // create iframe
-    let CMIframeClass = "cm-mnem-text";
-    // CMIframeClass += " cm-mnem-text-" + CMMnemType;
-    let CMIframeId = "cm-iframe-" + CMMnemType;
+    let CMUserContentIframe = getInitialIframe(mnemType);
 
-    let CMinitialIframe = "<html><head></head><body><div>Loading Community Mnemonic ...</div></body></html>";
-    let CMUserContentIframe = "<iframe class='" + CMIframeClass + "' id='" + CMIframeId + "' srcdoc=\""+ CMinitialIframe + " \" src=''"+// width='700' height='150' " +
-        "sandbox scrolling='no' frameBorder='0' >" +
-        "</iframe>";
-
-    let CMtypeHeader = "<h2>" + CMMnemType.charAt(0).toUpperCase() + CMMnemType.slice(1) + " Mnemonic</h2>"
+    let CMtypeHeader = "<h2>" + mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic</h2>"
     // TODO: only execute if CM available
     let CMContent =
         CMtypeHeader +
         // left arrow
-        '<div id="cm-' + CMMnemType + '-prev" class="cm-prev' + ((CMLen > 1 && CMPage > 0) ? "" : " disabled") + '"><span>◄</span></div>' +
+        '<div id="cm-' + mnemType + '-prev" class="cm-prev' + ((CMLen > 1 && CMPage > 0) ? "" : " disabled") + '"><span>◄</span></div>' +
         // sandboxed iframe with user Mnemonic
         CMUserContentIframe +
         // right arrow
-        '<div id="cm-' + CMMnemType + '-next" class="cm-next' + ((CMLen > 1 && CMPage < CMLen - 1) ? "" : " disabled") + '"><span>►</span></div>' +
+        '<div id="cm-' + mnemType + '-next" class="cm-next' + ((CMLen > 1 && CMPage < CMLen - 1) ? "" : " disabled") + '"><span>►</span></div>' +
         // Voting and submit buttons
-        '<div id="cm-' + CMMnemType + '-info" class="cm-info">' +
+        '<div id="cm-' + mnemType + '-info" class="cm-info">' +
         // score
-        '<div class="cm-score">Score: <span id="cm-' + CMMnemType +
+        '<div class="cm-score">Score: <span id="cm-' + mnemType +
         '-score-num" class="cm-score-num' + '">' + // cm-score-num (pos/nev/"") based on score
-        '0' /*TODO: add score*/ + '</span></div><div class="cm-upvote-highlight">Upvote ▲</div><div class="cm-downvote-highlight">Downvote ▼</div>' +
+        '0' /*TODO: add score*/ + '</span></div><div id="cm-' + mnemType + '-upvote" class="cm-upvote-highlight">Upvote ▲</div><div id="cm-' + mnemType + '-downvote" class="cm-downvote-highlight">Downvote ▼</div>' +
+        // button div
+        '<div id="cm-' + mnemType + '-user-buttons" class="cm-user-buttons">' +
         // edit button
-        '<div id="cm-' + CMMnemType + '-user-buttons" class="cm-user-buttons"><div class="cm-edit-highlight'/*class+( disabled) if not by user */ + '">Edit</div>' +
+        '<div id="cm-' + mnemType + '-edit" class="cm-edit-highlight'/*class+( disabled) if not by user */ + '"' +
+        '>Edit</div>' +
         // delete button
-        '<div class="cm-delete-highlight' + /*class+( disabled) if not by user */
+        '<div id="cm-' + mnemType + '-delete" class="cm-delete-highlight' + /*class+( disabled) if not by user */
         '">Delete</div></div><br />' +
         // submit button
-        '<div id="cm-' + CMMnemType + '-submit" class="cm-submit-highlight">Submit Yours</div></div>';
+        '<div id="cm-' + mnemType + '-submit" class="cm-submit-highlight">Submit Yours</div></div>';
 
     // TODO: add case for no CM available
     return CMContent;
 }
+
+// Button functionality ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+function editCM(mnemType)
+{
+    // TODO: check if CM by user
+
+    let iframe = document.getElementById("cm-iframe-" + mnemType);
+    if (iframe)
+    {
+        iframe.outerHTML = getCMForm("meaning");
+        initEditButtons(mnemType);
+
+    }
+    else
+        return
+
+    // TODO: gray out button
+}
+
+function editSaveCM(mnemType)
+{
+    // TODO: check if CM by user
+
+    let editForm = document.getElementById("cm-" + mnemType + "-form");
+    if (editForm)
+    {
+        editForm.outerHTML = getInitialIframe(mnemType);
+        initEditButtons(mnemType);
+    }
+    else
+        return
+}
+
+function editCancelCM(mnemType)
+{
+    // TODO: check if CM by user
+
+    let editForm = document.getElementById("cm-" + mnemType + "-form");
+    if (editForm)
+        editForm.outerHTML = getInitialIframe(mnemType);
+    else
+        return
+}
+
+// Button functionality ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 function getCMForm(mnemType)
 {
@@ -418,14 +572,15 @@ function getCMForm(mnemType)
         '<textarea id="cm-' + mnemType + '-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemn' +
         'ic"></textarea>' +
         '<div class="flex items-center"><span id="cm-' + mnemType + '-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>' +
-        '<button type="submit" class="ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>' +
-        '<button type="button" class="btn-cancel ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>'
+        '<button type="submit" id="cm-' + mnemType + '-save" class="ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>' +
+        '<button type="button" id="cm-' + mnemType + '-cancel" class="btn-cancel ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>'
 
         '</fieldset></form>';
     return CMForm;
+    /*
     '<button id="cm-' + mnemType +'-form-cancel" class="cm-form-cancel">Cancel</button>' +
             '<button id="cm-' + mnemType + '-form-submit" class="cm-form-submit disabled" type="button">Submit</button><span class="counter-note"' +
-        'title="Characters Remaining">5000 ✏️</span>'
+        'title="Characters Remaining">5000 ✏️</span>'*/
 }
 
 function getIframeSrcdoc()
