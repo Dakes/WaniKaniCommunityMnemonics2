@@ -83,6 +83,11 @@ text-align: left;
     overflow: auto;
     text-align: center;
 }
+
+.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
 `;
 
 let CMlistCss = /* css */`
@@ -115,6 +120,8 @@ let textareaCSS = /* css */`
     /* padding: 7px 13px 13px 7px; */
 
     line-height: 1; float: left;
+
+    cursor: pointer;
 }
 
 .cm-format-btn.kanji, .cm-format-btn.radical, .cm-format-btn.vocabulary, .cm-format-btn.reading
@@ -190,7 +197,6 @@ let CMcontentCSS = /* css */`
 .cm-delete-highlight, .cm-edit-highlight { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
 .cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 0 }
 .cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
-.cm-delete-highlight.disabled, .cm-edit-highlight.disabled { display: none; pointer-events: none }
 .cm-submit-highlight, .cm-form-submit, .cm-form-cancel { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #555, #464646) }
 .cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
 .cm-req-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}
@@ -394,28 +400,36 @@ function initButtons(mnemType)
 
     initInteractionButtons(mnemType);
     initEditButtons(mnemType);
-    
 
-    
+}
+
+function addClickEvent(id, func, params)
+{
+    let div = document.getElementById(id);
+    if (div)
+        div.addEventListener("click", function() {func(...params);}, false);
 }
 
 function initInteractionButtons(mnemType)
 {
-    let editDiv = document.getElementById("cm-" + mnemType + "-edit");
-    if (editDiv)
-        editDiv.addEventListener("click", function() {editCM(mnemType);}, false);
 
+    addClickEvent("cm-" + mnemType + "-edit", editCM, [mnemType]);
+    addClickEvent("cm-" + mnemType + "-submit", submitCM, [mnemType]);
 }
 
 function initEditButtons(mnemType)
 {
-    let saveDiv = document.getElementById("cm-" + mnemType + "-save");
-    if (saveDiv)
-        saveDiv.addEventListener("click", function() {editSaveCM(mnemType);}, false);
 
-    let cancelDiv = document.getElementById("cm-" + mnemType + "-cancel");
-    if (cancelDiv)
-        cancelDiv.addEventListener("click", function() {editCancelCM(mnemType);}, false);
+    addClickEvent("cm-" + mnemType + "-save", editSaveCM, [mnemType]);
+    addClickEvent("cm-" + mnemType + "-cancel", editCancelCM, [mnemType]);
+    addClickEvent("cm-format-" + mnemType + "-bold", insertTag, [mnemType, "b"]);
+    addClickEvent("cm-format-" + mnemType + "-italic", insertTag, [mnemType, "i"]);
+    addClickEvent("cm-format-" + mnemType + "-underline", insertTag, [mnemType, "u"]);
+    addClickEvent("cm-format-" + mnemType + "-strike", insertTag, [mnemType, "s"]);
+    addClickEvent("cm-format-" + mnemType + "-reading", insertTag, [mnemType, "read"]);
+    addClickEvent("cm-format-" + mnemType + "-rad", insertTag, [mnemType, "rad"]);
+    addClickEvent("cm-format-" + mnemType + "-kan", insertTag, [mnemType, "kan"]);
+    addClickEvent("cm-format-" + mnemType + "-voc", insertTag, [mnemType, "voc"]);
 
 }
 
@@ -512,20 +526,70 @@ function getCMdivContent(mnemType, itemType)
     return CMContent;
 }
 
+function addClass(id, className="disabled")
+{
+    let ele = document.getElementById(id);
+    if(!ele)
+        return false;
+    ele.classList.add(className);
+    return true;
+}
+
+function removeClass(id, className="disabled")
+{
+    let ele = document.getElementById(id);
+    if(!ele)
+        return false;
+    ele.classList.remove(className);
+    return true;
+}
+
+function getSelectedText(textArea)
+{
+    let text =textArea.value;
+    let indexStart=textArea.selectionStart;
+    let indexEnd=textArea.selectionEnd;
+    return text.substring(indexStart, indexEnd);
+}
+
 // Button functionality ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 function editCM(mnemType)
 {
     // TODO: check if CM by user
 
     let iframe = document.getElementById("cm-iframe-" + mnemType);
-    if (iframe)
-    {
-        iframe.outerHTML = getCMForm("meaning");
-        initEditButtons(mnemType);
+    if (!iframe)
+        return;
 
-    }
-    else
-        return
+    iframe.outerHTML = getCMForm(mnemType);
+    addClass("cm-" + mnemType + "-edit");
+    addClass("cm-" + mnemType + "-delete");
+    addClass("cm-" + mnemType + "-upvote");
+    addClass("cm-" + mnemType + "-downvote");
+    addClass("cm-" + mnemType + "-submit");
+    
+    initEditButtons(mnemType);
+
+    // TODO: gray out button
+}
+
+function submitCM(mnemType)
+{
+    // "Submit Yours" Button
+    // TODO: check if CM by user
+
+    let iframe = document.getElementById("cm-iframe-" + mnemType);
+    if (!iframe)
+        return;
+
+    iframe.outerHTML = getCMForm(mnemType);
+    addClass("cm-" + mnemType + "-edit");
+    addClass("cm-" + mnemType + "-delete");
+    addClass("cm-" + mnemType + "-upvote");
+    addClass("cm-" + mnemType + "-downvote");
+    addClass("cm-" + mnemType + "-submit");
+
+    initEditButtons(mnemType);
 
     // TODO: gray out button
 }
@@ -535,13 +599,17 @@ function editSaveCM(mnemType)
     // TODO: check if CM by user
 
     let editForm = document.getElementById("cm-" + mnemType + "-form");
-    if (editForm)
-    {
-        editForm.outerHTML = getInitialIframe(mnemType);
-        initEditButtons(mnemType);
-    }
-    else
-        return
+    if (!editForm)
+        return;
+
+    // TODO: submit text to DB
+    editForm.outerHTML = getInitialIframe(mnemType);
+    removeClass("cm-" + mnemType + "-edit");
+    removeClass("cm-" + mnemType + "-delete");
+    removeClass("cm-" + mnemType + "-upvote");
+    removeClass("cm-" + mnemType + "-downvote");
+    removeClass("cm-" + mnemType + "-submit");
+    initEditButtons(mnemType);
 }
 
 function editCancelCM(mnemType)
@@ -549,25 +617,57 @@ function editCancelCM(mnemType)
     // TODO: check if CM by user
 
     let editForm = document.getElementById("cm-" + mnemType + "-form");
-    if (editForm)
-        editForm.outerHTML = getInitialIframe(mnemType);
-    else
+    console.log(mnemType);
+    if (!editForm)
         return
+    editForm.outerHTML = getInitialIframe(mnemType);
+    removeClass("cm-" + mnemType + "-edit");
+    removeClass("cm-" + mnemType + "-delete");
+    removeClass("cm-" + mnemType + "-upvote");
+    removeClass("cm-" + mnemType + "-downvote");
+    removeClass("cm-" + mnemType + "-submit");
+    
 }
+
+/*
+ * Insert the tag "tag" at current cursor position, or around highlighted text. 
+ */
+function insertTag(mnemType, tag)
+{
+    let textarea = document.getElementById("cm-" + mnemType + "-text");
+    if (!textarea)
+        return
+
+    let selectedText = getSelectedText(textarea);
+
+    let insertText = "[" + tag + "]" + selectedText + "[/" + tag + "]"
+    
+    if (textarea.setRangeText)
+    {
+        //if setRangeText function is supported by current browser
+        textarea.setRangeText(insertText);
+    } else
+    {
+        textarea.focus()
+        document.execCommand('insertText', false /*no UI*/, insertText);
+    }
+    
+}
+
 
 // Button functionality ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 function getCMForm(mnemType)
 {
     var CMForm = '<form id="cm-' + mnemType + '-form" class="cm-form cm-mnem-text" onsubmit="return false"><div id="cm-' + mnemType + '-format" class="cm-format">' +
-        '<div class="btn cm-format-btn cm-format-bold"><b>b</b></div>' +
-        '<div class="btn cm-format-btn cm-format-italic"><i>i</i></div>' +
-        '<div class="btn cm-format-btn cm-format-underline"><u>u</u></div>' +
-        '<div class="btn cm-format-btn cm-format-strike"><s>s</s></div>' +
-        '<div class="btn cm-format-btn cm-format-reading reading highlight-reading">読</div>' +
-        '<div class="btn cm-format-btn cm-format-rad radical">部</div>' +
-        '<div class="btn cm-format-btn cm-format-kan kanji" >漢</div>' +
-        '<div class="btn cm-format-btn cm-format-voc vocabulary">語</div></div><fieldset>' +
+        '<div id="cm-format-' + mnemType + '-bold" class="btn cm-format-btn cm-format-bold"><b>b</b></div>' +
+        '<div id="cm-format-' + mnemType + '-italic" class="btn cm-format-btn cm-format-italic"><i>i</i></div>' +
+        '<div id="cm-format-' + mnemType + '-underline" class="btn cm-format-btn cm-format-underline"><u>u</u></div>' +
+        '<div id="cm-format-' + mnemType + '-strike" class="btn cm-format-btn cm-format-strike"><s>s</s></div>' +
+        '<div id="cm-format-' + mnemType + '-reading" class="btn cm-format-btn cm-format-reading reading highlight-reading">読</div>' +
+        '<div id="cm-format-' + mnemType + '-rad" class="btn cm-format-btn cm-format-rad radical">部</div>' +
+        '<div id="cm-format-' + mnemType + '-kan" class="btn cm-format-btn cm-format-kan kanji" >漢</div>' +
+        '<div id="cm-format-' + mnemType + '-voc" class="btn cm-format-btn cm-format-voc vocabulary">語</div></div><fieldset>' +
         // textarea
         '<textarea id="cm-' + mnemType + '-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemn' +
         'ic"></textarea>' +
