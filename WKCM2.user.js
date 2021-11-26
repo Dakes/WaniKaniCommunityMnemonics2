@@ -16,9 +16,11 @@
 /* This script is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) license
 *  Details: http://creativecommons.org/licenses/by-nc/4.0/ */
 
-console.log("WKCM2 log start ==========")
 
 let WKCM2_version = "0.1";
+let scriptName = 'WKCM2';
+let scriptNameLong = 'WaniKani Community Mnemonics 2';
+
 
 // if current page is Review page
 let CMIsReview = (window.location.pathname.indexOf("/review/") > -1);
@@ -43,12 +45,12 @@ let CMIsItem = false;
 
 
 // global variables
-let CMUserClass = "user-summary__username";
-let CMUser;
-let CMChar = "";
-let CMType = ""; // k, v, r (kanji, vocabluary, radical)
+let WKUser;
 
-// colors
+// google sheets apps script url, for sheet access
+let sheetAppsScriptURL = "https://script.google.com/macros/s/AKfycbw-A6MH6YB80nzK3xfKEegBcddSCx9-gpzH--024sv0XboDLqI7qdbh6dqD5sqKKoYW_A/exec";
+
+// colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
 let CMColorMnemAvail = "#71aa00";
 
@@ -101,6 +103,7 @@ ul.multi-character-grid .commnem-badge:before, ul.multi-character-grid .commnem-
 .commnem-badge:before { background-color: #71aa00; text-shadow: 0 2px 0 #1a5300; }
 .commnem-badge-req:before { background-color: #e1aa00; text-shadow: 0 2px 0 #7a5300 }`;
 
+// TODO: on click "invert" gradient, to give sick clicky feel
 let textareaCSS = /* css */`
 .cm-format-btn
 {
@@ -208,60 +211,15 @@ let CMcontentCSS = /* css */`
 .cm-score-num.pos { color: #5c5 }
 .cm-score-num.neg { color: #c55 }
 
-
-
 .cm-nomnem { margin-top: -10px !important } .cm-form fieldset { clear: left }
 
 .cm-format { margin: 0 !important }
 
-
 .cm-format-bold, .cm-format-underline, .cm-format-strike { padding-left: 10px; padding-right: 10px }
-
-.cm-format-voc {  }
-
 
 .cm-delete-text { position: absolute; opacity: 0; text-align: center }
 .cm-delete-text h3 { margin: 0 }
-
-
-
 `;
-`
-.cm-format-btn { background-color: #f5f5f5;
-background-image: -moz-linear-gradient(top, #fff, #e6e6e6); background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
-background-image: -webkit-linear-gradient(top, #fff, #e6e6e6); background-image: -o-linear-gradient(top, #fff, #e6e6e6);
-background-image: linear-gradient(to bottom, #fff, #e6e6e6); background-repeat: repeat-x; width: 10px; height: 10px; margin: 0 !important;
-padding: 7px 13px 13px 7px  ; line-height: 1; float: left }
-
-.cm-format-btn.active { background-color:#e6e6e6; background-color:#d9d9d9; background-image:none; outline:0;
--webkit-box-shadow:inset 0 2px 4px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.05);-moz-box-shadow:inset 0 2px 4px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.05);
-box-shadow:inset 0 2px 4px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.05) }
-`
-
-
-// data
-let CMDummyData = {
-    "女": {
-        "meaning_mne": "meaning mnemonic content",
-        "reading_mne": "reading mnemonic content",
-        "rating": 3,
-        "author": "Dakes"
-    }
-};
-
-
-// fetch username
-if(CMIsReview || CMIsLesson)
-    CMUser = window.WaniKani.username;
-else
-    try
-    {
-        CMUser = document.getElementsByClassName(CMUserClass)[0].innerHTML;
-    }
-    catch(err)
-    {
-        throw new Error("CM Warning: CMUser not set. \n" + err);
-    }
 
 
 if (CMIsReview || CMIsLesson)
@@ -282,10 +240,30 @@ else // (CMIsReview || CMIsLesson)
         //checkCMNewestVersion(0);
 }
 
+
+function checkWKOF()
+{
+    var wkof_version_needed = '1.0.53';
+    if (!window.wkof)
+    {
+        if (confirm(scriptName + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?'))
+            window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
+        return;
+    }
+    if (wkof.version.compare_to(wkof_version_needed) === 'older')
+    {
+        if (confirm(scriptName + ' requires Wanikani Open Framework version '+wkof_version_needed+'.\nDo you want to be forwarded to the update page?'))
+            window.location.href = 'https://greasyfork.org/en/scripts/38582-wanikani-open-framework';
+        return;
+    }
+
+}
+
 /**
  * Adds css in the head
  * */
-function addGlobalStyle(css) {
+function addGlobalStyle(css)
+{
     var head, style;
     head = document.getElementsByTagName('head')[0];
     if (!head) { return; }
@@ -295,80 +273,220 @@ function addGlobalStyle(css) {
     head.appendChild(style);
 }
 
-function setCMType()
+
+// Get infos from page ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+
+/**
+ * wraps getElementById, but waits, until element is available. "Waiting on demand"
+ * */
+function getEleByIdWait(id, recursions=0)
 {
-    if (document.getElementById("character"))
+    let maxWaitTime = 3000;
+    let recursionTime = 10;
+    let ele = document.getElementById(id);
+    if (ele != null)
     {
-        CMType = document.getElementById("character").className;
-    }
-    else if(document.getElementById("main-info"))
-    {
-        CMType = document.getElementById("main-info").className;
+        // console.log("getEleByIdWait: return: ", id);
+        return ele;
     }
     else
     {
+        if (recursions > maxWaitTime/recursionTime)
+        {
+            console.log("WKCM2: getEleByIdWait, recursion limit reached element with id:" + id + " not found. ");
+            return null;
+        }
+        
         // wait, until site is completely loaded
         setTimeout(function()
                    {
-                       // console.log("setCMType recursive call");
-                       setCMType();
-                   }, 10);
+                       ele = getEleByIdWait(id, recursions++);
+                       // console.log("getEleByIdWait recursive call");
+                       return ele;
+                   }, recursionTime);
     }
-
-    /*
-    try
-    {
-        CMType = document.getElementById("character").className;
-    }
-    catch(err)
-    {
-        console.log(err);
-        // sometimes this class is in the parent tag instead ???
-        if (err instanceof TypeError)
-        {
-            CMType = document.getElementById("main-info").className;
-            console.log(CMType);
-        }
-    }*/
-    return CMType;
 
 }
+
+function setUsername()
+{
+    if (window.wkof)
+    {
+        WKUser = wkof.user["username"]
+        return WKUser;
+    }
+
+    let CMUserClass = "user-summary__username";
+
+    if(CMIsReview || CMIsLesson)
+        WKUser = window.WaniKani.username;
+    else
+        try
+        {
+            WKUser = document.getElementsByClassName(CMUserClass)[0].innerHTML;
+        }
+        catch(err)
+        {
+            throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
+        }
+    return WKUser;
+}
+
+function getUsername()
+{
+    return setUsername();
+}
+
+function getItem()
+{
+    // $.jStorage.get("l/currentLesson")["characters"]
+    // TODO: add max recursion depth???
+    let item = null;
+    item = $.jStorage.get("l/currentLesson")["characters"];
+    if (item == null)
+        console.log("WKCM2: getItem, item is null");
+    return item;
+
+    // TODO: add support for list page
+
+    /*
+    let charDiv = getEleByIdWait("character");
+
+    if (charDiv != null)
+        item = charDiv.textContent;
+    // throw new Error("WKCM2: Item was not retrieved correctly in getItem");
+
+    // only return if set and not empty string
+    if (typeof item === "string" && item !== "")
+    {
+        // console.log("getItem return: ", item);
+        return item;
+    }
+    else
+    {
+        console.log("WKCM2: getItem, no Item returned. ");
+        // wait, until site is completely loaded
+        // TODO: abort recursion after set number of iterations
+        setTimeout(function()
+                   {
+                       // console.log("setCMType recursive call");
+                       item = getItem();
+                       return item;
+                   }, 10);
+        // return null
+    }
+    */
+}
+
+/**
+ * Returns radical, kanji or vocabulary
+ * */
+function getItemType()
+{
+    // TODO: add max recursion depth???
+    let itemType = $.jStorage.get("l/currentLesson")["type"];
+    if (typeof itemType === "string")
+        itemType = itemType.toLowerCase()
+    if (itemType == null)
+        console.log("WKCM2: getItemType, itemType null");
+    // in reviews it is in div id=character
+    /*
+    if (CMIsReview)
+    {
+        let char = getEleByIdWait("character")
+        if (char != null)
+        {
+            if (char.className != "")
+                itemType = char.className;
+        }
+
+    } else if (CMIsLesson)
+    {
+        let mainInfo = getEleByIdWait("main-info");
+        if(mainInfo != null)
+        {
+            itemType = mainInfo.className;
+        }
+        if (typeof itemType === "string" && itemType !== "")
+        {
+            return itemType;
+        }
+        else
+        {
+            console.log("WKCM2: getItemType, no ItemType returned. ");
+            // wait, until site is completely loaded
+            setTimeout(function()
+                       {
+                           itemType = getItemType();
+                           return itemType;
+                       }, 10);
+        }
+    }
+    */
+    return itemType;
+}
+// Get infos from page ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 /**
  * Initializes all elements. Does not add functionality yet
  * */
 function init()
 {
+    checkWKOF();
+    
     addGlobalStyle(CMcss);
     addGlobalStyle(CMcontentCSS);
     addGlobalStyle(textareaCSS);
     addGlobalStyle(cmuserbuttonsCSS);
 
-    setCMType();
+    // setInterval(function()
+    //                {
+    //                    // console.log("setCMType recursive call");
+    //                    console.log("item: ", getItem());
+    //                }, 500);
+
+    
 
     if (CMIsReview)
     {
         // initCMReview();
         addHTMLinID('item-info', CMouterHTML);
 
-        document.getElementById("cm-meaning").innerHTML = getCMdivContent("m", CMType);
-        document.getElementById("cm-reading").innerHTML = getCMdivContent("r", CMType);
+        getEleByIdWait("cm-meaning").innerHTML = getCMdivContent("m");
+        getEleByIdWait("cm-reading").innerHTML = getCMdivContent("r");
 
         initButtons("meaning");
         initButtons("reading");
 
     } else if (CMIsLesson)
     {
+        let type = getItemType();
+        let item = getItem();
+        // console.log("init: type: ", type);
+        // console.log("init: item: ", item);
+
+        if (item == null)
+        {
+            
+        }
+
         // initCMLesson();
         addHTMLinID('supplement-info', CMouterHTML);
 
-        document.getElementById("cm-meaning").innerHTML = getCMdivContent("m", CMType);
+        getEleByIdWait("cm-meaning").innerHTML = getCMdivContent("m");
         // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
-        document.getElementById("cm-reading").innerHTML = getCMdivContent("r", CMType);
+        getEleByIdWait("cm-reading").innerHTML = getCMdivContent("r");
         // document.getElementById("cm-iframe-reading").outerHTML = getCMForm("reading");
         
         initButtons("meaning");
         initButtons("reading");
+
+        let characterDiv = getEleByIdWait("character");
+        if (characterDiv != null)
+            characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
+        else
+            console.log("character div NOT FOUND");
+
 
     } else if (CMIsList)
     {
@@ -400,9 +518,11 @@ function initButtons(mnemType)
 
     initInteractionButtons(mnemType);
     initEditButtons(mnemType);
-
 }
 
+/**
+ * Adds a Event Listener for a click event to the element with id.
+ * */
 function addClickEvent(id, func, params)
 {
     let div = document.getElementById(id);
@@ -460,6 +580,21 @@ function getFullMnemType(mnemType)
 }
 
 /**
+ * converts kanji -> k etc.
+ * */
+function getShortItemType(type)
+{
+    if (type === "kanji" || type === "k")
+        return "k"
+    else if (type === "vocabulary" || type === "v")
+        return "v"
+    else if (type === "radical" || type === "r")
+        return "r"
+    else
+        throw new Error("WKCM2: getShortItemType got wrong ItemType: "+type);
+}
+
+/**
  * Creates emty Iframe for CM user content later on
  * @param mnemType m, r or meaning, reading
  * */
@@ -469,9 +604,9 @@ function getInitialIframe(mnemType)
 
     let CMIframeId = "cm-iframe-" + CMMnemType;
     let CMIframeClass = "cm-mnem-text";
-    let CMinitialIframe = "<html><head></head><body><div>Loading Community Mnemonic ...</div></body></html>";
-    let CMUserContentIframe = "<iframe class='" + CMIframeClass + "' id='" + CMIframeId + "' srcdoc=\""+ CMinitialIframe + " \" src=''"+// width='700' height='150' " +
-        "sandbox scrolling='no' frameBorder='0' >" +
+    let CMinitialIframe = getIframeSrcdoc("Loading Community Mnemonic ...");
+    let CMUserContentIframe = "<iframe sandbox referrerpolicy='no-referrer' scrolling='no' frameBorder='0' class='" + CMIframeClass + "' id='" + CMIframeId + "' srcdoc=\""+ CMinitialIframe + " \" "+// width='700' height='150' " +
+        "" +
         "</iframe>";
     return CMUserContentIframe;
 }
@@ -480,7 +615,7 @@ function getInitialIframe(mnemType)
  * Creates the initial HTML code for the individual Mnemonic types, including Iframes. But also all Buttons.
  * Does not include content
  */
-function getCMdivContent(mnemType, itemType)
+function getCMdivContent(mnemType)
 {
     /* // Radicals only have "meaning"
     if (itemType === "radical" && mnemType === "r")
@@ -514,10 +649,10 @@ function getCMdivContent(mnemType, itemType)
         // button div
         '<div id="cm-' + mnemType + '-user-buttons" class="cm-user-buttons">' +
         // edit button
-        '<div id="cm-' + mnemType + '-edit" class="cm-edit-highlight'/*class+( disabled) if not by user */ + '"' +
+        '<div id="cm-' + mnemType + '-edit" class="cm-edit-highlight disabled'/*class+( disabled) if not by user */ + '"' +
         '>Edit</div>' +
         // delete button
-        '<div id="cm-' + mnemType + '-delete" class="cm-delete-highlight' + /*class+( disabled) if not by user */
+        '<div id="cm-' + mnemType + '-delete" class="cm-delete-highlight disabled' + /*class+( disabled) if not by user */
         '">Delete</div></div><br />' +
         // submit button
         '<div id="cm-' + mnemType + '-submit" class="cm-submit-highlight">Submit Yours</div></div>';
@@ -562,8 +697,10 @@ function editCM(mnemType)
         return;
 
     iframe.outerHTML = getCMForm(mnemType);
-    addClass("cm-" + mnemType + "-edit");
-    addClass("cm-" + mnemType + "-delete");
+
+    // TODO: update disabled class on buttons
+    // addClass("cm-" + mnemType + "-edit");
+    // addClass("cm-" + mnemType + "-delete");
     addClass("cm-" + mnemType + "-upvote");
     addClass("cm-" + mnemType + "-downvote");
     addClass("cm-" + mnemType + "-submit");
@@ -683,17 +820,14 @@ function getCMForm(mnemType)
         'title="Characters Remaining">5000 ✏️</span>'*/
 }
 
-function getIframeSrcdoc()
-{
 
-}
+
 // Init Functions
-
 function initCMLesson()
 {
     // CMChar = decodeURIComponent(document.getElementById("character").textContent);
     // maybe change to kan, voc, rad
-    // CMType = (($("#main-info").attr("class") !== "radical") ? (($("#main-info").attr("class") == "kanji") ? "k" : "v") : "r");
+    // getItemType() = (($("#main-info").attr("class") !== "radical") ? (($("#main-info").attr("class") == "kanji") ? "k" : "v") : "r");
 
     // addHTMLinID('supplement-info', CMLoadingHTML)
 
@@ -721,5 +855,299 @@ function getCMLegend(isReq) {
  * */
 function getCMBadge(isRecent, isReq) {
     // TODO: get rid of jquery
-    return $('<span lang="ja" ' + ((isRecent) ? ' style="top: ' + ((CMType == "k") ? '2.25em" ' : '1em" ') : '') + 'class="item-badge commnem-badge' + ((isReq) ? "-req" : "") + '"></span>');
+    return $('<span lang="ja" ' + ((isRecent) ? ' style="top: ' + ((getItemType() == "k") ? '2.25em" ' : '1em" ') : '') + 'class="item-badge commnem-badge' + ((isReq) ? "-req" : "") + '"></span>');
 }
+
+// Update Mnemnic content displayed ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+function updateCM(mnemType=["meaning", "reading"], index=0)
+{
+    // sick recursive execution, until mnemType is string
+    if (typeof mnemType === "object")
+    {
+        for (let ele of mnemType)
+        {
+            updateCM(ele, index);
+        }
+    }
+    else if (typeof mnemType === "string")
+    {
+        let item = getItem();
+        let type = getItemType();
+        // TODO: function typeShorten
+        getMnemonic(item, type).then(mnemJson => updateCMelements(mnemType, type, mnemJson, index));
+        
+    }
+}
+
+/**
+ * gets all stylesheets in link tags WaniKani uses, for use in iframes.
+ * Memoizes result. 
+ * */
+function getWKcss()
+{
+    if (typeof getWKcss.css == "undefined")
+    {
+        getWKcss.css = [];
+        let allLinks = document.querySelectorAll("head link");
+        for (const link of allLinks)
+        {
+            if (link.rel !== "stylesheet")
+                continue;
+            getWKcss.css.push(link);
+        }
+    }
+    return getWKcss.css;
+}
+
+function replaceMarkup(text, list)
+{
+    for (const ele of list)
+    {
+        text = text.replaceAll("["+ ele +"]", "<"+ ele +">");
+        text = text.replaceAll("[/"+ ele +"]", "</"+ ele +">");
+    }
+    return text;
+}
+
+function getIframeSrcdoc(text)
+{
+    if (typeof text != "string")
+    {
+        console.log("WKCM2 Error: getIframeSrcdoc, did not get text, but: " + typeof text);
+        text = "";
+    }
+
+    let cssLinks = getWKcss();
+    let cssString = "";
+    for (const l of cssLinks)
+        cssString = cssString + l.outerHTML;
+    // override style to fix some oddities
+    cssString = cssString + /*css*/`<style>
+body
+{
+    font-size: 100% !important;
+    font-weight: 300 !important;
+    line-height: 1.5 !important;
+    background-color: #fff !important;
+}
+</style>`;
+    
+
+    // TODO: replace markup
+    // replace " by '
+    text = text.replaceAll('"', "'");
+    text = replaceMarkup(text, ["b", "i", "u", "s", "br"]);
+
+    text = text.replaceAll("[/span]", `</span>`);
+    text = text.replaceAll("[kan]", `<span class="highlight-kanji">`);
+    text = text.replaceAll("[/kan]", `</span>`);
+    text = text.replaceAll("[voc]", `<span class="highlight-vocabulary">`);
+    text = text.replaceAll("[/voc]", `</span>`);
+    text = text.replaceAll("[rad]", `<span class="highlight-radical">`);
+    text = text.replaceAll("[/rad]", `</span>`);
+    text = text.replaceAll("[read]", `<span class="highlight-reading">`);
+    text = text.replaceAll("[/read]", `</span>`);
+    
+
+
+    let srcdoc = `<html><head>${cssString}</head><body><div class="col2">${text}</div></body></html>`;
+    return srcdoc;
+}
+
+function getNoMnemMsg()
+{
+    let msg = `No Community Mnemonic for this item exists yet. <br>Be the first to submit one.`;
+    return msg;
+}
+
+/**
+ * function that is doing the updating of the iframe contents.
+ * Getting called in updateCM from data promise to reduce clutter in nested .then()
+ * */
+function updateCMelements(mnemType, type, mnemJson, index)
+{
+    // if mnemJson is undefined or null, no mnemonic exists for this item/type combo. 
+
+    // TODO: handle no mnemonic available. Special Message
+    let iframe = getEleByIdWait("cm-iframe-" + mnemType);
+    // TODO: generate proper mnemonic content with user link and everything. Replace markup.
+    if (iframe != null)
+    {
+        if (mnemJson != null)
+        {
+            // TODO: NEXT handle multiple mnems
+            // TODO: NEXT handle request !
+            // TODO: NEXT handle empty for just one m/r
+            let meaningLen = mnemJson["Meaning_User"].length;
+            let readingLen = mnemJson["Reading_User"].length;
+            iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem"][index]);
+           
+        }
+        else
+        {
+            iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+        }
+    }
+}
+
+// Update Mnemnic content displayed ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+// Sheet access ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+/**
+ * Fetch data from Sheet. Returned as json. 
+ * @param item required. kanji or vocabluary string
+ * @param type k, v, r or empty string to fetch all for that item
+ * */
+async function fetchData(item, type)
+{
+    let shortType = getShortItemType(type);
+    let url = sheetAppsScriptURL + `?item=${item}&type=${shortType}&exec=get`;
+    // console.log(url);
+    // url = "https://script.google.com/macros/s/AKfycbw-A6MH6YB80nzK3xfKEegBcddSCx9-gpzH--024sv0XboDLqI7qdbh6dqD5sqKKoYW_A/exec?item=血&type=v&exec=get";
+    let data = null;
+    // TODO: handle case of malformed URL
+    // let response = await fetch(url);
+    // data = await response.json();
+    /*
+    data = fetch(url)
+        .then(res => res.json())
+        .then(out => {return out[0];/*data = out*/    /*    });
+
+    // data = data[0];
+    console.log("fetchData: ", data);
+
+
+    if (data == null || Object.keys(data).length === 0)
+    {
+        console.log("WKCM2: Warning fetchData got empty data from Data Spreadsheet");
+        return null;
+    }
+
+    return data;
+                                                      */
+
+    return fetch(url)
+        .then((response)=>response.json())
+        .then((responseJson)=>
+            {
+                if (responseJson[0] == null)
+                    return null;
+                else
+                    return responseJson[0]
+            }
+        );
+
+    // return;
+
+}
+
+// Sheet access ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+
+// Data caching ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+function getCacheId(item, type)
+{
+    type = getShortItemType(type);
+    return "wkcm2-" + type + item;
+}
+// Data caching ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+// Local data management ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+/**
+ * Abstraction layer from direct data fetch, to make use of caches to make the script more responsive. 
+ * */
+function getData(item, type)
+{
+    let identifier = getCacheId(item, type);
+    console.log("identifier: ", identifier);
+    
+    // TODO: implement cache and error handling
+    // get from wkof cache
+    // const data = fetchData(item, type).then(value => {
+    let data = wkof.file_cache.load(identifier).then(value  =>
+        {
+            // cache hit
+            // return from cache
+            // console.log("getData: fullfilled:", value);
+            console.log("Cache hit: ", value);
+            return value;
+        }, reason =>
+        {
+            // cache miss
+            // fetch data from db, put cache and return
+            console.log("Cache miss: ", reason);
+            fetchData(item, type).then(responseJson =>
+                {
+                    // fetch worked
+                    wkof.file_cache.save(identifier, responseJson).then(updateCM());
+                    return responseJson;
+                }, reason =>
+                {
+                    // fetch failed
+                    // TODO: handle failed fetch
+                    console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
+                });
+
+        }
+    );
+    
+    // console.log("getData 2: ", data);
+    // TODO: NEXT put data in cache. Then after promise fulfilled rerun and use from cache
+    
+    // let data = fetchData(item, type).then(result => {
+    //     return result;
+    // });
+
+    // const printData = async () => {
+    //     const a = await data;
+    //     console.log("printData", a);
+    // };
+
+    // printData();
+    return data;
+}
+
+function getMnemonic(item, type)
+{
+    // item = "血";
+    // type = "v";
+    return getData(item, type).then(splitData);
+
+    /*
+    if (dataPromise == null)
+        return null;
+    // TODO: make cache go brrrrrrr
+    return dataPromise.then(json =>
+        {
+            splitData(json);
+        }
+    );*/
+
+    // return splitData(data);
+    
+}
+
+/**
+ * Takes data as json. Splits single user and mnemonic strings at Group Separator into array.
+ * JSON now contains array instead, even if only one user/mnem contained.
+ * If Mnemonic is requested ONLY contains "!" string NO array.
+ * */
+function splitData(data)
+{
+    // if undefined or null, no mnemonic exist
+    if (data == null || typeof data === 'undefined' || Object.keys(data).length === 0)
+    {
+        return null;
+    }
+
+    // TODO: currently only for single mnems. Apply to whole data
+    if (data["Meaning_Mnem"] !== "!" && typeof data["Meaning_Mnem"] === "string")
+        data["Meaning_Mnem"] = data["Meaning_Mnem"].replaceAll("␝", "").split("\x1D");
+    if (data["Reading_Mnem"] !== "!" && typeof data["Reading_Mnem"] === "string")
+        data["Reading_Mnem"] = data["Reading_Mnem"].replaceAll("␝", "").split("\x1D");
+    data["Meaning_User"] = data["Meaning_User"].replaceAll("␝", "").split("\x1D");
+    data["Reading_User"] = data["Reading_User"].replaceAll("␝", "").split("\x1D");
+
+    return data;
+}
+// Local data management ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲

@@ -12,6 +12,7 @@ This is a complete from scratch reimplementation of the original's features.
 - To protect from XSS attacks, instead of HTML tags a custom markup syntax is used for highlighting. 
 - *All* HTML tags will be removed during insert into the DB spreadsheet. 
 - Content will be displayed within Iframes to further narrow down the possibilities for XSS exploits.
+- Caches data from spreadsheet to make the script more responsive. 
 - Old legacy Mnemonics that were by users "c" or "ript:void(0)" (caused by bug) are displayed as Anonymous. 
 
 ## Roadmap
@@ -40,11 +41,14 @@ This is a complete from scratch reimplementation of the original's features.
 
 ### 1.0
 - Sheet apps script regularly cleans database from HTML tags
+- Sheet apps script deletes Mnemonics with rating of -5 or below
 - At least the same functionality of WKCM
 
 ### 1.1
 - display of user stats, like written mnemonics or received votes
+- "Hall of Fame" with most active users
 
 ## Other TODO
 - build a small tool that lets people bulk export their notes so that I can import them to the existing data set.  
 - Maybe do something with Timestamp in DB??
+- Think about adding a "Request Deletion" Button
