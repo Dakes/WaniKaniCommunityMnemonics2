@@ -6,7 +6,7 @@ This is a complete from scratch reimplementation of the original's features.
 
 ## Differences compared to WKCM
 - It works
-- Completely new implementation
+- Completely new implementation; Maintainable
 - Possibility to add Meaning mnemonics for Radicals. 
 - Both Reading and Meaning Mnemonics now always get displayed next to each other, no matter what tab is activated.
 - To protect from XSS attacks, instead of HTML tags a custom markup syntax is used for highlighting. 
@@ -22,6 +22,7 @@ This is a complete from scratch reimplementation of the original's features.
 - GUI elements in place
 - Adapted old Data to new Markup
 - sheet apps script can fetch data
+- Mnemonics get fetched, cached and displayed
 
 ### 0.1
 - Works in Lessons and Reviews

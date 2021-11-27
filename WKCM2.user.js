@@ -92,6 +92,7 @@ text-align: left;
 }
 `;
 
+let requestColor = "#e1aa00";
 let CMlistCss = /* css */`
 .commnem-badge, .commnem-badge-req { position: absolute; left: 0 }
 .commnem-badge:before, .commnem-badge-req:before {
@@ -101,7 +102,7 @@ line-height: 2.2em; -webkit-box-shadow: 0 -2px 0 rgba(0,0,0,0.2) inset,0 0 10px 
 -webkit-border-radius: 50%; -moz-border-radius: 50%; border-radius: 50%; z-index: 999 }
 ul.multi-character-grid .commnem-badge:before, ul.multi-character-grid .commnem-badge-req:before { top: 1.1em; left: -1.1em; font-size: 11px; text-align: center }
 .commnem-badge:before { background-color: #71aa00; text-shadow: 0 2px 0 #1a5300; }
-.commnem-badge-req:before { background-color: #e1aa00; text-shadow: 0 2px 0 #7a5300 }`;
+.commnem-badge-req:before { background-color: #e1aa00; text-shadow: 0 2px 0 ${requestColor} }`;
 
 // TODO: on click "invert" gradient, to give sick clicky feel
 let textareaCSS = /* css */`
@@ -909,7 +910,18 @@ function replaceMarkup(text, list)
     return text;
 }
 
-function getIframeSrcdoc(text)
+function getUserProfileLink(user)
+{
+    // Don't give Anonymous a profile link
+    if (typeof user != "string" || user == "")
+        return "";
+    if (user == "Anonymous")
+        return `<a>Anonymous</a>`;
+    else
+        return `<a href="https://www.wanikani.com/users/${user}" target="_blank" >${user}</a>`;
+}
+
+function getIframeSrcdoc(text, user=null)
 {
     if (typeof text != "string")
     {
@@ -930,6 +942,13 @@ body
     line-height: 1.5 !important;
     background-color: #fff !important;
 }
+.request
+{
+    background-color: ${requestColor} !important;
+    display: inline !important;
+    border-radius: 3px !important;
+    padding: 1px !important;
+}
 </style>`;
     
 
@@ -948,9 +967,16 @@ body
     text = text.replaceAll("[read]", `<span class="highlight-reading">`);
     text = text.replaceAll("[/read]", `</span>`);
     
+    let userMsg = "";
+    // user can be null, if it is a system message
+    if (user != null && typeof user === "string" && user != "")
+    {
+        userMsg = "by " + getUserProfileLink(user);
+        
+    }
 
 
-    let srcdoc = `<html><head>${cssString}</head><body><div class="col2">${text}</div></body></html>`;
+    let srcdoc = `<html><head>${cssString}</head><body><div class="col2">${text}</div><div id="user-link">${userMsg}</div></body></html>`;
     return srcdoc;
 }
 
@@ -960,11 +986,27 @@ function getNoMnemMsg()
     return msg;
 }
 
+function getMnemRequestedMsg(users)
+{
+    // TODO: make request color darker red, the more users requested
+    let len = users.length;
+    let msg = `A Mnemonic was <div class="request">requested</div> for this item. <br><div class="request">Help the community by being the first to submit one!</div>`;
+    if (len === 1)
+        msg = `A Mnemonic was <div class="request">requested</div> by user <div class="request">${users[0]}</div>. <br>Help them by being the first to submit one! `;
+    else if (len > 1)
+        msg = `A Mnemonic was <div class="request">requested</div> by the users <div class="request">${users.slice(0, -1).join(', ')+' and '+users.slice(-1)}</div>. <br>Help them by being the first to submit one! `;
+    return msg;
+}
+
 /**
  * function that is doing the updating of the iframe contents.
  * Getting called in updateCM from data promise to reduce clutter in nested .then()
+ * @param mnemType reading or meaning
+ * @param type kanji, vocabulary or radical
+ * @param mnemJson json containing data from the DB: {Type: 'k', Item: '活', Meaning_Mnem: '', Reading_Mnem: '!', Meaning_Score: '', …}
+ * @param index Index of mnemonic and user in case of multiple. 
  * */
-function updateCMelements(mnemType, type, mnemJson, index)
+function updateCMelements(mnemType, type, mnemJson, index=0)
 {
     // if mnemJson is undefined or null, no mnemonic exists for this item/type combo. 
 
@@ -976,12 +1018,18 @@ function updateCMelements(mnemType, type, mnemJson, index)
         if (mnemJson != null)
         {
             // TODO: NEXT handle multiple mnems
-            // TODO: NEXT handle request !
-            // TODO: NEXT handle empty for just one m/r
-            let meaningLen = mnemJson["Meaning_User"].length;
-            let readingLen = mnemJson["Reading_User"].length;
-            iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem"][index]);
-           
+            let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
+            let userSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_User";
+            let len = mnemJson[userSelector].length;
+            if (len > 1)
+                console.log("ALERT MORE THAN ONE MNEM ============================");
+            // if it is "!" without array, Mnemonic is requested, multiple users possible
+            if (mnemJson[mnemSelector] == "!")
+                iframe.srcdoc = getIframeSrcdoc(getMnemRequestedMsg(mnemJson[userSelector]));
+            else if (mnemJson[mnemSelector][0] === "" || mnemJson[mnemSelector] === "")
+                iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+            else
+                iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemSelector][index], mnemJson[userSelector][index]);
         }
         else
         {
@@ -1059,8 +1107,7 @@ function getCacheId(item, type)
 function getData(item, type)
 {
     let identifier = getCacheId(item, type);
-    console.log("identifier: ", identifier);
-    
+
     // TODO: implement cache and error handling
     // get from wkof cache
     // const data = fetchData(item, type).then(value => {
