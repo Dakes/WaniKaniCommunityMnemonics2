@@ -340,43 +340,23 @@ function getUsername()
 
 function getItem()
 {
-    // $.jStorage.get("l/currentLesson")["characters"]
-    // TODO: add max recursion depth???
-    let item = null;
-    item = $.jStorage.get("l/currentLesson")["characters"];
-    if (item == null)
-        console.log("WKCM2: getItem, item is null");
-    return item;
-
     // TODO: add support for list page
-
-    /*
-    let charDiv = getEleByIdWait("character");
-
-    if (charDiv != null)
-        item = charDiv.textContent;
-    // throw new Error("WKCM2: Item was not retrieved correctly in getItem");
-
-    // only return if set and not empty string
-    if (typeof item === "string" && item !== "")
+    let item = null;
+    try
     {
-        // console.log("getItem return: ", item);
-        return item;
+        // $.jStorage.get("l/currentLesson")["characters"]
+        // TODO: add max recursion depth???
+
+        item = $.jStorage.get("l/currentLesson")["characters"];
+        if (item == null)
+            console.log("WKCM2: getItem, item is null");
+
     }
-    else
+    catch (err)
     {
-        console.log("WKCM2: getItem, no Item returned. ");
-        // wait, until site is completely loaded
-        // TODO: abort recursion after set number of iterations
-        setTimeout(function()
-                   {
-                       // console.log("setCMType recursive call");
-                       item = getItem();
-                       return item;
-                   }, 10);
-        // return null
+        setTimeout(function(){item = getItem();}, 10);
     }
-    */
+    return item;
 }
 
 /**
@@ -385,45 +365,22 @@ function getItem()
 function getItemType()
 {
     // TODO: add max recursion depth???
-    let itemType = $.jStorage.get("l/currentLesson")["type"];
-    if (typeof itemType === "string")
-        itemType = itemType.toLowerCase()
-    if (itemType == null)
-        console.log("WKCM2: getItemType, itemType null");
-    // in reviews it is in div id=character
-    /*
-    if (CMIsReview)
+    let itemType = null;
+    try
     {
-        let char = getEleByIdWait("character")
-        if (char != null)
-        {
-            if (char.className != "")
-                itemType = char.className;
-        }
-
-    } else if (CMIsLesson)
-    {
-        let mainInfo = getEleByIdWait("main-info");
-        if(mainInfo != null)
-        {
-            itemType = mainInfo.className;
-        }
-        if (typeof itemType === "string" && itemType !== "")
-        {
-            return itemType;
-        }
-        else
-        {
-            console.log("WKCM2: getItemType, no ItemType returned. ");
-            // wait, until site is completely loaded
-            setTimeout(function()
-                       {
-                           itemType = getItemType();
-                           return itemType;
-                       }, 10);
-        }
+        itemType = $.jStorage.get("l/currentLesson")["type"];
+        if (typeof itemType === "string")
+            itemType = itemType.toLowerCase()
+        if (itemType == null)
+            console.log("WKCM2: getItemType, itemType null");
+        return itemType;
     }
-    */
+    // in case it has not loaded far enough wait and try again.
+    catch (err)
+    {
+        setTimeout(function(){itemType = getItemType();}, 10);
+    }
+
     return itemType;
 }
 // Get infos from page ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -998,6 +955,18 @@ function getMnemRequestedMsg(users)
     return msg;
 }
 
+function setScore(mnemType, score)
+{
+    let scoreEle = getEleByIdWait("cm-" + mnemType + "-score-num");
+    if (scoreEle)
+    {
+        if (score)
+            scoreEle.innerText = score;
+        else
+            scoreEle.innerText = "0";
+    }
+}
+
 /**
  * function that is doing the updating of the iframe contents.
  * Getting called in updateCM from data promise to reduce clutter in nested .then()
@@ -1009,7 +978,9 @@ function getMnemRequestedMsg(users)
 function updateCMelements(mnemType, type, mnemJson, index=0)
 {
     // if mnemJson is undefined or null, no mnemonic exists for this item/type combo. 
-
+    //reset score
+    setScore(mnemType, 0);
+    
     // TODO: handle no mnemonic available. Special Message
     let iframe = getEleByIdWait("cm-iframe-" + mnemType);
     // TODO: generate proper mnemonic content with user link and everything. Replace markup.
@@ -1020,16 +991,23 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
             // TODO: NEXT handle multiple mnems
             let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
             let userSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_User";
+            let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
             let len = mnemJson[userSelector].length;
+
             if (len > 1)
                 console.log("ALERT MORE THAN ONE MNEM ============================");
+            
             // if it is "!" without array, Mnemonic is requested, multiple users possible
             if (mnemJson[mnemSelector] == "!")
                 iframe.srcdoc = getIframeSrcdoc(getMnemRequestedMsg(mnemJson[userSelector]));
             else if (mnemJson[mnemSelector][0] === "" || mnemJson[mnemSelector] === "")
                 iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+            // default case. Mnem available
             else
+            {
                 iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemSelector][index], mnemJson[userSelector][index]);
+                setScore(mnemType, mnemJson[scoreSelector][index]);
+            }
         }
         else
         {
@@ -1192,6 +1170,14 @@ function splitData(data)
         data["Meaning_Mnem"] = data["Meaning_Mnem"].replaceAll("␝", "").split("\x1D");
     if (data["Reading_Mnem"] !== "!" && typeof data["Reading_Mnem"] === "string")
         data["Reading_Mnem"] = data["Reading_Mnem"].replaceAll("␝", "").split("\x1D");
+
+    // if (typeof data["Reading_Score"] == "number")
+    //     data["Reading_Score"] = data["Reading_Score"].toString()
+    data["Reading_Score"] = data["Reading_Score"].toString().replaceAll("␝", "").split("\x1D");
+    // if (typeof data["Meaning_Score"] == "number")
+    //     data["Meaning_Score"] = data["Meaning_Score"].toString()
+    data["Meaning_Score"] = data["Meaning_Score"].toString().replaceAll("␝", "").split("\x1D");
+    
     data["Meaning_User"] = data["Meaning_User"].replaceAll("␝", "").split("\x1D");
     data["Reading_User"] = data["Reading_User"].replaceAll("␝", "").split("\x1D");
 
