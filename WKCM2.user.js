@@ -2,13 +2,14 @@
 // @name        WKCM2
 // @namespace   wkcm
 // @description This script allows WaniKani members to contribute their own mnemonics which appear on any page that includes item info.
-// @exclude		*.wanikani.com
-// @exclude		*.wanikani.com/level/radicals*
+// @exclude     *.wanikani.com
 // @include     *.wanikani.com/level/*
 // @include     *.wanikani.com/kanji*
 // @include     *.wanikani.com/vocabulary*
+// @include     *.wanikani.com/radicals*
 // @include     *.wanikani.com/review/session
 // @include     *.wanikani.com/lesson/session
+// @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
 // @version     0.1
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
@@ -36,7 +37,7 @@ if (!CMIsReview && !CMIsLesson)
         // true if on a level page
         new RegExp("level\/[0-9]{1,2}$", "i").test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
         // true if on a /kanji?difficulty=pleasant site
-        new RegExp("[kanji|vocabulary].[difficulty=[A-Z]$|$]", "i").test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2))
+        new RegExp("[kanji|vocabulary|radicals].[difficulty=[A-Z]$|$]", "i").test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2))
     );
 }
 
@@ -53,6 +54,7 @@ let sheetAppsScriptURL = "https://script.google.com/macros/s/AKfycbw-A6MH6YB80nz
 // colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
 let CMColorMnemAvail = "#71aa00";
+let requestColor = "#e1aa00";
 
 // HTML
 let CMouterHTML = /* html */`<div id="wkcm" class="cm">
@@ -92,7 +94,6 @@ text-align: left;
 }
 `;
 
-let requestColor = "#e1aa00";
 let CMlistCss = /* css */`
 .commnem-badge, .commnem-badge-req { position: absolute; left: 0 }
 .commnem-badge:before, .commnem-badge-req:before {
@@ -177,7 +178,7 @@ let cmuserbuttonsCSS = /* css */`
 `
 
 let CMcontentCSS = /* css */`
-.cm-prev, .cm-next, .cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel { cursor: pointer !important }
+.cm-prev, .cm-next, .cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel, .cm-small-button { cursor: pointer !important }
 .cm-prev, .cm-next { font-size: 50px; margin: 0px 0px 0px 0px; padding: 15px 10px 0px 0px;}
 .cm-prev{float:left}
 .cm-next{float:right}
@@ -188,7 +189,7 @@ let CMcontentCSS = /* css */`
     background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgb(85, 85, 85)), to(rgb(70, 70, 70))); -webkit-background-clip: text;
 }
 
-.cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel
+.cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel, .cm-small-button
 {
     text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; background-repeat: repeat-x; cursor: help; padding: 1px 4px; color: #fff;
     text-shadow: 0 1px 0 rgba(0,0,0,0.2); white-space: nowrap; -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px;
@@ -198,9 +199,10 @@ let CMcontentCSS = /* css */`
 
 .cm-downvote-highlight { background-image: linear-gradient(to bottom, #c55, #ad4646) }
 
-.cm-delete-highlight, .cm-edit-highlight { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
-.cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 0 }
+.cm-delete-highlight, .cm-edit-highlight, .cm-small-button { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
+.cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 10px }
 .cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
+.cm-request-highlight { background-image: linear-gradient(to bottom, ${requestColor}, #d57602) }
 .cm-submit-highlight, .cm-form-submit, .cm-form-cancel { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #555, #464646) }
 .cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
 .cm-req-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}
@@ -492,6 +494,8 @@ function initInteractionButtons(mnemType)
 {
 
     addClickEvent("cm-" + mnemType + "-edit", editCM, [mnemType]);
+    addClickEvent("cm-" + mnemType + "-delete", deleteCM, [mnemType]);
+    addClickEvent("cm-" + mnemType + "-request", requestCM, [mnemType]);
     addClickEvent("cm-" + mnemType + "-submit", submitCM, [mnemType]);
 }
 
@@ -589,33 +593,24 @@ function getCMdivContent(mnemType)
     let CMUserContentIframe = getInitialIframe(mnemType);
 
     let CMtypeHeader = "<h2>" + mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic</h2>"
-    // TODO: only execute if CM available
     let CMContent =
         CMtypeHeader +
         // left arrow
-        '<div id="cm-' + mnemType + '-prev" class="cm-prev' + ((CMLen > 1 && CMPage > 0) ? "" : " disabled") + '"><span>◄</span></div>' +
-        // sandboxed iframe with user Mnemonic
-        CMUserContentIframe +
-        // right arrow
-        '<div id="cm-' + mnemType + '-next" class="cm-next' + ((CMLen > 1 && CMPage < CMLen - 1) ? "" : " disabled") + '"><span>►</span></div>' +
-        // Voting and submit buttons
-        '<div id="cm-' + mnemType + '-info" class="cm-info">' +
-        // score
-        '<div class="cm-score">Score: <span id="cm-' + mnemType +
-        '-score-num" class="cm-score-num' + '">' + // cm-score-num (pos/nev/"") based on score
-        '0' /*TODO: add score*/ + '</span></div><div id="cm-' + mnemType + '-upvote" class="cm-upvote-highlight">Upvote ▲</div><div id="cm-' + mnemType + '-downvote" class="cm-downvote-highlight">Downvote ▼</div>' +
-        // button div
-        '<div id="cm-' + mnemType + '-user-buttons" class="cm-user-buttons">' +
-        // edit button
-        '<div id="cm-' + mnemType + '-edit" class="cm-edit-highlight disabled'/*class+( disabled) if not by user */ + '"' +
-        '>Edit</div>' +
-        // delete button
-        '<div id="cm-' + mnemType + '-delete" class="cm-delete-highlight disabled' + /*class+( disabled) if not by user */
-        '">Delete</div></div><br />' +
-        // submit button
-        '<div id="cm-' + mnemType + '-submit" class="cm-submit-highlight">Submit Yours</div></div>';
+        `<div id="cm-${mnemType}-prev" class="cm-prev disabled"><span>◄</span></div>
+        ${CMUserContentIframe}
+        <div id="cm-${mnemType}-next" class="cm-next disabled"><span>►</span></div>
+        <div id="cm-${mnemType}-info" class="cm-info">
+        <div class="cm-score">Score: <span id="cm-
+${mnemType}-score-num" class="cm-score-num">0</span></div>
+        <div id="cm-${mnemType}-upvote" class="cm-upvote-highlight disabled">Upvote ▲</div><div id="cm-
+${mnemType}-downvote" class="cm-downvote-highlight disabled">Downvote ▼</div>
+        <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
+        <div id="cm-${mnemType}-edit" class="cm-edit-highlight cm-small-button disabled" >Edit</div>
+        <div id="cm-${mnemType}-delete" class="cm-delete-highlight cm-small-button disabled">Delete</div>
+        <div id="cm-${mnemType}-request" class="cm-request-highlight cm-small-button disabled">Request</div>
+        </div><br>
+        <div id="cm-${mnemType}-submit" class="cm-submit-highlight">Submit Yours</div></div>`;
 
-    // TODO: add case for no CM available
     return CMContent;
 }
 
@@ -646,6 +641,17 @@ function getSelectedText(textArea)
 }
 
 // Button functionality ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+
+function deactivateButtons()
+{
+    removeClass(`cm-${mnemType}-edit`);
+    removeClass(`cm-${mnemType}-delete`);
+    removeClass(`cm-${mnemType}-request`);
+    removeClass(`cm-${mnemType}-upvote`);
+    removeClass(`cm-${mnemType}-downvote`);
+    removeClass(`cm-${mnemType}-submit`);
+}
+
 function editCM(mnemType)
 {
     // TODO: check if CM by user
@@ -666,6 +672,16 @@ function editCM(mnemType)
     initEditButtons(mnemType);
 
     // TODO: gray out button
+}
+
+function deleteCM(mnemType)
+{
+
+}
+
+function requestCM(mnemType)
+{
+    
 }
 
 function submitCM(mnemType)
@@ -699,11 +715,7 @@ function editSaveCM(mnemType)
 
     // TODO: submit text to DB
     editForm.outerHTML = getInitialIframe(mnemType);
-    removeClass("cm-" + mnemType + "-edit");
-    removeClass("cm-" + mnemType + "-delete");
-    removeClass("cm-" + mnemType + "-upvote");
-    removeClass("cm-" + mnemType + "-downvote");
-    removeClass("cm-" + mnemType + "-submit");
+    deactivateButtons()
     initEditButtons(mnemType);
 }
 
@@ -716,11 +728,9 @@ function editCancelCM(mnemType)
     if (!editForm)
         return
     editForm.outerHTML = getInitialIframe(mnemType);
-    removeClass("cm-" + mnemType + "-edit");
-    removeClass("cm-" + mnemType + "-delete");
-    removeClass("cm-" + mnemType + "-upvote");
-    removeClass("cm-" + mnemType + "-downvote");
-    removeClass("cm-" + mnemType + "-submit");
+
+
+    updateCM();
     
 }
 
@@ -772,10 +782,6 @@ function getCMForm(mnemType)
 
         '</fieldset></form>';
     return CMForm;
-    /*
-    '<button id="cm-' + mnemType +'-form-cancel" class="cm-form-cancel">Cancel</button>' +
-            '<button id="cm-' + mnemType + '-form-submit" class="cm-form-submit disabled" type="button">Submit</button><span class="counter-note"' +
-        'title="Characters Remaining">5000 ✏️</span>'*/
 }
 
 
@@ -817,23 +823,33 @@ function getCMBadge(isRecent, isReq) {
 }
 
 // Update Mnemnic content displayed ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-function updateCM(mnemType=["meaning", "reading"], index=0)
+/**
+ * @param mnemJson needed to bypass recursive getMnemonic call, once data got loaded. False because can be null, when no mnem available.
+ * @param mnemType array by default to make calling the function more convenient. Will be executed for both values in array.
+ * @param index index of Mnem to use
+ * */
+function updateCM(mnemType=["meaning", "reading"], mnemJson=false, index=0)
 {
-    // sick recursive execution, until mnemType is string
-    if (typeof mnemType === "object")
+    // sick recursive execution, to only require one fetch of data for each item. 
+    
+    let type = getItemType();
+
+    if (mnemJson != false)
     {
+        if (typeof mnemType === "string")
+            mnemType = [mnemType];
         for (let ele of mnemType)
-        {
-            updateCM(ele, index);
-        }
+            updateCMelements(ele, type, mnemJson, index);
     }
-    else if (typeof mnemType === "string")
+    else
     {
-        let item = getItem();
-        let type = getItemType();
         // TODO: function typeShorten
-        getMnemonic(item, type).then(mnemJson => updateCMelements(mnemType, type, mnemJson, index));
-        
+        let item = getItem();
+        getMnemonic(item, type).then((mnemJson) =>
+            {
+                console.log(mnemJson);
+                updateCM(mnemType, mnemJson, index);
+            });
     }
 }
 
@@ -909,8 +925,7 @@ body
 </style>`;
     
 
-    // TODO: replace markup
-    // replace " by '
+    // replace " by ' / \"
     text = text.replaceAll('"', "'");
     text = replaceMarkup(text, ["b", "i", "u", "s", "br"]);
 
@@ -978,7 +993,7 @@ function setScore(mnemType, score)
 function updateCMelements(mnemType, type, mnemJson, index=0)
 {
     // if mnemJson is undefined or null, no mnemonic exists for this item/type combo. 
-    //reset score
+    //reset score display
     setScore(mnemType, 0);
     
     // TODO: handle no mnemonic available. Special Message
@@ -1028,30 +1043,8 @@ async function fetchData(item, type)
 {
     let shortType = getShortItemType(type);
     let url = sheetAppsScriptURL + `?item=${item}&type=${shortType}&exec=get`;
-    // console.log(url);
-    // url = "https://script.google.com/macros/s/AKfycbw-A6MH6YB80nzK3xfKEegBcddSCx9-gpzH--024sv0XboDLqI7qdbh6dqD5sqKKoYW_A/exec?item=血&type=v&exec=get";
     let data = null;
     // TODO: handle case of malformed URL
-    // let response = await fetch(url);
-    // data = await response.json();
-    /*
-    data = fetch(url)
-        .then(res => res.json())
-        .then(out => {return out[0];/*data = out*/    /*    });
-
-    // data = data[0];
-    console.log("fetchData: ", data);
-
-
-    if (data == null || Object.keys(data).length === 0)
-    {
-        console.log("WKCM2: Warning fetchData got empty data from Data Spreadsheet");
-        return null;
-    }
-
-    return data;
-                                                      */
-
     return fetch(url)
         .then((response)=>response.json())
         .then((responseJson)=>
@@ -1062,9 +1055,6 @@ async function fetchData(item, type)
                     return responseJson[0]
             }
         );
-
-    // return;
-
 }
 
 // Sheet access ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -1104,7 +1094,7 @@ function getData(item, type)
             fetchData(item, type).then(responseJson =>
                 {
                     // fetch worked
-                    wkof.file_cache.save(identifier, responseJson).then(updateCM());
+                    wkof.file_cache.save(identifier, responseJson);
                     return responseJson;
                 }, reason =>
                 {
@@ -1112,23 +1102,8 @@ function getData(item, type)
                     // TODO: handle failed fetch
                     console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
                 });
-
         }
     );
-    
-    // console.log("getData 2: ", data);
-    // TODO: NEXT put data in cache. Then after promise fulfilled rerun and use from cache
-    
-    // let data = fetchData(item, type).then(result => {
-    //     return result;
-    // });
-
-    // const printData = async () => {
-    //     const a = await data;
-    //     console.log("printData", a);
-    // };
-
-    // printData();
     return data;
 }
 
