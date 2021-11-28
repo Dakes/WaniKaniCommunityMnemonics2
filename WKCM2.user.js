@@ -289,7 +289,6 @@ function getEleByIdWait(id, recursions=0)
     let ele = document.getElementById(id);
     if (ele != null)
     {
-        // console.log("getEleByIdWait: return: ", id);
         return ele;
     }
     else
@@ -304,7 +303,6 @@ function getEleByIdWait(id, recursions=0)
         setTimeout(function()
                    {
                        ele = getEleByIdWait(id, recursions++);
-                       // console.log("getEleByIdWait recursive call");
                        return ele;
                    }, recursionTime);
     }
@@ -313,12 +311,20 @@ function getEleByIdWait(id, recursions=0)
 
 function setUsername()
 {
-    if (window.wkof)
+    try
     {
-        WKUser = wkof.user["username"]
-        return WKUser;
+        if (window.wkof)
+        {
+            WKUser = window.wkof.user["username"];
+            return WKUser;
+        }
+    }
+    catch (err)
+    {
+        console.log("WKCM2: setUsername, wkof.user  ", err);
     }
 
+    // backup method
     let CMUserClass = "user-summary__username";
 
     if(CMIsReview || CMIsLesson)
@@ -393,6 +399,9 @@ function getItemType()
 function init()
 {
     checkWKOF();
+    setUsername();
+    if (WKUser == null || typeof WKUser != "string" || WKUser == "")
+        throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
     
     addGlobalStyle(CMcss);
     addGlobalStyle(CMcontentCSS);
@@ -900,6 +909,7 @@ function getUserProfileLink(user)
 
 function getIframeSrcdoc(text, user=null)
 {
+    // TODO: regenerating everything makes display slower, due to CSS loading. Maybe modify srcdoc body instead?
     if (typeof text != "string")
     {
         console.log("WKCM2 Error: getIframeSrcdoc, did not get text, but: " + typeof text);
@@ -986,6 +996,9 @@ function setScore(mnemType, score)
     }
 }
 
+/**
+ * Disables or enables the arrows for prev and next mnem. Depending on amount of mnems available and active one.
+ * */
 function toggleArrows(mnemType, length, index)
 {
     let left = `cm-${mnemType}-prev`;
@@ -1006,11 +1019,36 @@ function toggleArrows(mnemType, length, index)
 }
 
 /**
+ * Enable/Disable all buttons that depend on the Mnemonic being by the user, or not.
+ * @param owner boolean. Owner of mnem: True, else False
+ * */
+function toggleUserButtons(mnemType, owner)
+{
+    if (owner == true)
+    {
+        removeClass(`cm-${mnemType}-edit`);
+        removeClass(`cm-${mnemType}-delete`);
+        addClass(`cm-${mnemType}-request`);
+        addClass(`cm-${mnemType}-upvote`);
+        addClass(`cm-${mnemType}-downvote`);
+        addClass(`cm-${mnemType}-submit`);
+    }
+    else if (owner == false)
+    {
+        addClass(`cm-${mnemType}-edit`);
+        addClass(`cm-${mnemType}-delete`);
+        addClass(`cm-${mnemType}-request`);
+        removeClass(`cm-${mnemType}-upvote`);
+        removeClass(`cm-${mnemType}-downvote`);
+    }
+}
+
+/**
  * function that is doing the updating of the iframe contents.
  * Getting called in updateCM from data promise to reduce clutter in nested .then()
  * @param mnemType reading or meaning
  * @param type kanji, vocabulary or radical
- * @param mnemJson json containing data from the DB: {Type: 'k', Item: '活', Meaning_Mnem: '', Reading_Mnem: '!', Meaning_Score: '', …}
+ * @param mnemJson json containing data from the DB: {Type: 'k', Item: '活', Meaning_Mnem: '', Reading_Mnem: '!', Meaning_Score: '', ...}
  * @param index Index of mnemonic and user in case of multiple. 
  * */
 function updateCMelements(mnemType, type, mnemJson, index=0)
@@ -1026,39 +1064,55 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
 
     // TODO: NEXT activate/deactivate buttons
     disableButtons(mnemType);
+    removeClass(`cm-${mnemType}-submit`);
 
     let iframe = getEleByIdWait("cm-iframe-" + mnemType);
-    if (iframe != null)
+    if (iframe == null)
+        return;
+    
+    if (mnemJson != null)
     {
-        if (mnemJson != null)
+        let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
+        let userSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_User";
+        let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
+        let len = mnemJson[mnemSelector].length;
+        if (len < index+1)
+            index = len-1;
+        else if (index < 0)
+            index = 0;
+
+        toggleArrows(mnemType, len, index);
+
+        // if it is "!" without array, Mnemonic is requested, multiple users possible
+        if (mnemJson[mnemSelector] == "!")
         {
-            let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
-            let userSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_User";
-            let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
-            let len = mnemJson[userSelector].length;
-            if (len < index+1)
-                index = len-1;
-            else if (index < 0)
-                index = 0;
-
-            toggleArrows(mnemType, len, index);
-
-            // if it is "!" without array, Mnemonic is requested, multiple users possible
-            if (mnemJson[mnemSelector] == "!")
-                iframe.srcdoc = getIframeSrcdoc(getMnemRequestedMsg(mnemJson[userSelector]));
-            else if (mnemJson[mnemSelector][0] === "" || mnemJson[mnemSelector] === "")
-                iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
-            // default case. Mnem available
-            else
-            {
-                iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemSelector][index], mnemJson[userSelector][index]);
-                setScore(mnemType, mnemJson[scoreSelector][index]);
-            }
+            iframe.srcdoc = getIframeSrcdoc(getMnemRequestedMsg(mnemJson[userSelector]));
+            removeClass(`cm-${mnemType}-request`);
         }
-        else
+        // no mnem available for current item
+        else if (mnemJson[mnemSelector][0] === "" || mnemJson[mnemSelector] === "")
         {
             iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+            removeClass(`cm-${mnemType}-request`);
         }
+        // default case. Mnem available
+        else
+        {
+            iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemSelector][index], mnemJson[userSelector][index]);
+            setScore(mnemType, mnemJson[scoreSelector][index]);
+            console.log(mnemJson[userSelector][index], WKUser);
+            toggleUserButtons(mnemType, mnemJson[userSelector][index] == WKUser);
+            // disable submit button if user already submitted one mnem
+            if (mnemJson[userSelector].includes(WKUser))
+                addClass(`cm-${mnemType}-submit`);
+
+        }
+    }
+    // no mnem available for both items
+    else
+    {
+        iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+        removeClass(`cm-${mnemType}-request`);
     }
 }
 
@@ -1105,6 +1159,7 @@ function getCacheId(item, type)
  * */
 function getData(item, type)
 {
+    // TODO: NEXT redownload item after cache hit, after timeout
     let identifier = getCacheId(item, type);
 
     // TODO: implement cache and error handling
