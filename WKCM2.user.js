@@ -10,7 +10,7 @@
 // @include     *.wanikani.com/review/session
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
-// @version     0.1
+// @version     0.0.1
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 
@@ -399,14 +399,6 @@ function init()
     addGlobalStyle(textareaCSS);
     addGlobalStyle(cmuserbuttonsCSS);
 
-    // setInterval(function()
-    //                {
-    //                    // console.log("setCMType recursive call");
-    //                    console.log("item: ", getItem());
-    //                }, 500);
-
-    
-
     if (CMIsReview)
     {
         // initCMReview();
@@ -422,8 +414,6 @@ function init()
     {
         let type = getItemType();
         let item = getItem();
-        // console.log("init: type: ", type);
-        // console.log("init: item: ", item);
 
         if (item == null)
         {
@@ -493,10 +483,12 @@ function addClickEvent(id, func, params)
 function initInteractionButtons(mnemType)
 {
 
-    addClickEvent("cm-" + mnemType + "-edit", editCM, [mnemType]);
-    addClickEvent("cm-" + mnemType + "-delete", deleteCM, [mnemType]);
-    addClickEvent("cm-" + mnemType + "-request", requestCM, [mnemType]);
-    addClickEvent("cm-" + mnemType + "-submit", submitCM, [mnemType]);
+    addClickEvent(`cm-${mnemType}-edit`,    editCM,     [mnemType]);
+    addClickEvent(`cm-${mnemType}-delete`,  deleteCM,   [mnemType]);
+    addClickEvent(`cm-${mnemType}-request`, requestCM,  [mnemType]);
+    addClickEvent(`cm-${mnemType}-submit`,  submitCM,   [mnemType]);
+    addClickEvent(`cm-${mnemType}-prev`,    prevCM,     [mnemType]);
+    addClickEvent(`cm-${mnemType}-next`,    nextCM,     [mnemType]);
 }
 
 function initEditButtons(mnemType)
@@ -600,10 +592,9 @@ function getCMdivContent(mnemType)
         ${CMUserContentIframe}
         <div id="cm-${mnemType}-next" class="cm-next disabled"><span>►</span></div>
         <div id="cm-${mnemType}-info" class="cm-info">
-        <div class="cm-score">Score: <span id="cm-
-${mnemType}-score-num" class="cm-score-num">0</span></div>
-        <div id="cm-${mnemType}-upvote" class="cm-upvote-highlight disabled">Upvote ▲</div><div id="cm-
-${mnemType}-downvote" class="cm-downvote-highlight disabled">Downvote ▼</div>
+        <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
+        <div id="cm-${mnemType}-upvote" class="cm-upvote-highlight disabled">Upvote ▲</div>
+        <div id="cm-${mnemType}-downvote" class="cm-downvote-highlight disabled">Downvote ▼</div>
         <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
         <div id="cm-${mnemType}-edit" class="cm-edit-highlight cm-small-button disabled" >Edit</div>
         <div id="cm-${mnemType}-delete" class="cm-delete-highlight cm-small-button disabled">Delete</div>
@@ -617,7 +608,7 @@ ${mnemType}-downvote" class="cm-downvote-highlight disabled">Downvote ▼</div>
 function addClass(id, className="disabled")
 {
     let ele = document.getElementById(id);
-    if(!ele)
+    if(ele == null)
         return false;
     ele.classList.add(className);
     return true;
@@ -642,14 +633,16 @@ function getSelectedText(textArea)
 
 // Button functionality ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
-function deactivateButtons()
+function disableButtons(mnemType)
 {
-    removeClass(`cm-${mnemType}-edit`);
-    removeClass(`cm-${mnemType}-delete`);
-    removeClass(`cm-${mnemType}-request`);
-    removeClass(`cm-${mnemType}-upvote`);
-    removeClass(`cm-${mnemType}-downvote`);
-    removeClass(`cm-${mnemType}-submit`);
+    addClass(`cm-${mnemType}-edit`);
+    addClass(`cm-${mnemType}-delete`);
+    addClass(`cm-${mnemType}-request`);
+    addClass(`cm-${mnemType}-upvote`);
+    addClass(`cm-${mnemType}-downvote`);
+    addClass(`cm-${mnemType}-submit`);
+    addClass(`cm-${mnemType}-prev`);
+    addClass(`cm-${mnemType}-next`);
 }
 
 function editCM(mnemType)
@@ -671,7 +664,6 @@ function editCM(mnemType)
     
     initEditButtons(mnemType);
 
-    // TODO: gray out button
 }
 
 function deleteCM(mnemType)
@@ -694,15 +686,29 @@ function submitCM(mnemType)
         return;
 
     iframe.outerHTML = getCMForm(mnemType);
-    addClass("cm-" + mnemType + "-edit");
-    addClass("cm-" + mnemType + "-delete");
-    addClass("cm-" + mnemType + "-upvote");
-    addClass("cm-" + mnemType + "-downvote");
-    addClass("cm-" + mnemType + "-submit");
+    addClass(`cm-${mnemType}-edit`);
+    addClass(`cm-${mnemType}-delete`);
+    addClass(`cm-${mnemType}-upvote`);
+    addClass(`cm-${mnemType}-downvote`);
+    addClass(`cm-${mnemType}-submit`);
 
     initEditButtons(mnemType);
+    disableButtons(mnemType);
 
-    // TODO: gray out button
+}
+
+function prevCM(mnemType)
+{
+    let btn = document.getElementById(`cm-${mnemType}-prev`);
+    let idx = Number(btn.dataset.currentIndex);
+    updateCM(mnemJson=false, mnemType=mnemType, index=idx-1);
+}
+
+function nextCM(mnemType)
+{
+    let btn = document.getElementById(`cm-${mnemType}-prev`);
+    let idx = Number(btn.dataset.currentIndex);
+    updateCM(mnemJson=false, mnemType=mnemType, index=idx+1);
 }
 
 function editSaveCM(mnemType)
@@ -715,7 +721,7 @@ function editSaveCM(mnemType)
 
     // TODO: submit text to DB
     editForm.outerHTML = getInitialIframe(mnemType);
-    deactivateButtons()
+    disableButtons(mnemType);
     initEditButtons(mnemType);
 }
 
@@ -724,9 +730,8 @@ function editCancelCM(mnemType)
     // TODO: check if CM by user
 
     let editForm = document.getElementById("cm-" + mnemType + "-form");
-    console.log(mnemType);
     if (!editForm)
-        return
+        return;
     editForm.outerHTML = getInitialIframe(mnemType);
 
 
@@ -828,10 +833,10 @@ function getCMBadge(isRecent, isReq) {
  * @param mnemType array by default to make calling the function more convenient. Will be executed for both values in array.
  * @param index index of Mnem to use
  * */
-function updateCM(mnemType=["meaning", "reading"], mnemJson=false, index=0)
+function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
 {
     // sick recursive execution, to only require one fetch of data for each item. 
-    
+
     let type = getItemType();
 
     if (mnemJson != false)
@@ -847,8 +852,7 @@ function updateCM(mnemType=["meaning", "reading"], mnemJson=false, index=0)
         let item = getItem();
         getMnemonic(item, type).then((mnemJson) =>
             {
-                console.log(mnemJson);
-                updateCM(mnemType, mnemJson, index);
+                updateCM(mnemJson, mnemType, index);
             });
     }
 }
@@ -972,14 +976,33 @@ function getMnemRequestedMsg(users)
 
 function setScore(mnemType, score)
 {
-    let scoreEle = getEleByIdWait("cm-" + mnemType + "-score-num");
-    if (scoreEle)
+    let scoreEle = getEleByIdWait(`cm-${mnemType}-score-num`);
+    if (scoreEle != null)
     {
-        if (score)
-            scoreEle.innerText = score;
+        if (Number(score) != 0)
+            scoreEle.innerText = Number(score);
         else
             scoreEle.innerText = "0";
     }
+}
+
+function toggleArrows(mnemType, length, index)
+{
+    let left = `cm-${mnemType}-prev`;
+    let right = `cm-${mnemType}-next`;
+    // make array length match index, now both start at 0
+    addClass(left);
+    addClass(right);
+
+    if (length > 0 && length != null)
+        length = length - 1;
+    else
+        return;
+
+    if (length > index)
+        removeClass(right);
+    if (length > 0 && index > 0)
+        removeClass(left);
 }
 
 /**
@@ -992,26 +1015,34 @@ function setScore(mnemType, score)
  * */
 function updateCMelements(mnemType, type, mnemJson, index=0)
 {
+    // write index of mnem into prev button html, for lack of a better solution. For switching mnems. 
+    let leftBtn = document.getElementById(`cm-${mnemType}-prev`);
+    // initialize and/or reset index
+    leftBtn.dataset.currentIndex = index;
+
     // if mnemJson is undefined or null, no mnemonic exists for this item/type combo. 
     //reset score display
     setScore(mnemType, 0);
-    
-    // TODO: handle no mnemonic available. Special Message
+
+    // TODO: NEXT activate/deactivate buttons
+    disableButtons(mnemType);
+
     let iframe = getEleByIdWait("cm-iframe-" + mnemType);
-    // TODO: generate proper mnemonic content with user link and everything. Replace markup.
     if (iframe != null)
     {
         if (mnemJson != null)
         {
-            // TODO: NEXT handle multiple mnems
             let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
             let userSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_User";
             let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
             let len = mnemJson[userSelector].length;
+            if (len < index+1)
+                index = len-1;
+            else if (index < 0)
+                index = 0;
 
-            if (len > 1)
-                console.log("ALERT MORE THAN ONE MNEM ============================");
-            
+            toggleArrows(mnemType, len, index);
+
             // if it is "!" without array, Mnemonic is requested, multiple users possible
             if (mnemJson[mnemSelector] == "!")
                 iframe.srcdoc = getIframeSrcdoc(getMnemRequestedMsg(mnemJson[userSelector]));
@@ -1095,6 +1126,8 @@ function getData(item, type)
                 {
                     // fetch worked
                     wkof.file_cache.save(identifier, responseJson);
+                    let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+                    updateCM(mnemJson=splitData(reponseJsonCopy));
                     return responseJson;
                 }, reason =>
                 {
@@ -1116,7 +1149,6 @@ function getMnemonic(item, type)
     /*
     if (dataPromise == null)
         return null;
-    // TODO: make cache go brrrrrrr
     return dataPromise.then(json =>
         {
             splitData(json);

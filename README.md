@@ -42,14 +42,17 @@ This is a complete from scratch reimplementation of the original's features.
 
 ### 1.0
 - Sheet apps script regularly cleans database from HTML tags
-- Sheet apps script deletes Mnemonics with rating of -5 or below
+- Sheet apps script deletes Mnemonics with rating of -10 or below
 - At least the same functionality of WKCM
 
 ### 1.1
 - display of user stats, like written mnemonics or received votes
 - "Hall of Fame" with most active users
+- sort Mnemonics by score
 
 ## Other TODO
 - build a small tool that lets people bulk export their notes so that I can import them to the existing data set.  
 - Maybe do something with Timestamp in DB??
 - Think about adding a "Request Deletion" Button
+- Colorize items with especially high or low scores
+- Randomize default messages with alternatives
