@@ -13,6 +13,7 @@
 // @version     0.0.1
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
+// ==/UserScript==
 
 /* This script is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) license
 *  Details: http://creativecommons.org/licenses/by-nc/4.0/ */
@@ -227,14 +228,20 @@ let CMcontentCSS = /* css */`
 
 if (CMIsReview || CMIsLesson)
 {
+    if (document.readyState != "complete")
+    {
+        window.addEventListener('load', function()
+        {
+            // character div is needed for lesson & review page
+            waitForEle('character').then(waitForWKOF).reject(checkWKOF).then(init);
+        }, false);
+    }
+    else
+    {
+        waitForEle('character').then(waitForWKOF).reject(checkWKOF).then(init);
+    }
 
-    window.addEventListener('load', function() {
-        init();
-
-    }, false);
-
-}
-else // (CMIsReview || CMIsLesson)
+}else // (CMIsReview || CMIsLesson)
 {
     if (document.readyState === "loading")
       document.addEventListener("DOMContentLoaded", function() { init();/*checkCMNewestVersion(0);*/ });
@@ -262,6 +269,49 @@ function checkWKOF()
 
 }
 
+function waitForWKOF()
+{
+    // https://codepen.io/eanbowman/pen/jxqKjJ
+    let timeout = 2000;
+    let start = Date.now();
+    return new Promise(waitForFoo); // set the promise object within the ensureFooIsSet object
+
+    // waitForFoo makes the decision whether the condition is met
+    // or not met or the timeout has been exceeded which means
+    // this promise will be rejected
+    function waitForFoo(resolve, reject)
+    {
+        if (window.wkof && window.wkof.user)
+            resolve(window.wkof);
+        else if (timeout && (Date.now() - start) >= timeout)
+            reject(new Error("timeout while waiting for wkof to become available"));
+        else
+            setTimeout(waitForFoo.bind(this, resolve, reject), 30);
+    }
+}
+
+function waitForEle(id) {
+    return new Promise(resolve => {
+        if (document.getElementById(id))
+            return resolve(document.getElementById(id));
+
+        const observer = new MutationObserver(mutations =>
+        {
+            if (document.getElementById(id))
+            {
+                resolve(document.getElementById(id));
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(document.body,
+        {
+            childList: true,
+            subtree: true
+        });
+    });
+}
+
 /**
  * Adds css in the head
  * */
@@ -278,36 +328,6 @@ function addGlobalStyle(css)
 
 
 // Get infos from page ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-
-/**
- * wraps getElementById, but waits, until element is available. "Waiting on demand"
- * */
-function getEleByIdWait(id, recursions=0)
-{
-    let maxWaitTime = 3000;
-    let recursionTime = 10;
-    let ele = document.getElementById(id);
-    if (ele != null)
-    {
-        return ele;
-    }
-    else
-    {
-        if (recursions > maxWaitTime/recursionTime)
-        {
-            console.log("WKCM2: getEleByIdWait, recursion limit reached element with id:" + id + " not found. ");
-            return null;
-        }
-        
-        // wait, until site is completely loaded
-        setTimeout(function()
-                   {
-                       ele = getEleByIdWait(id, recursions++);
-                       return ele;
-                   }, recursionTime);
-    }
-
-}
 
 function setUsername()
 {
@@ -398,6 +418,7 @@ function getItemType()
  * */
 function init()
 {
+    waitForWKOF();
     checkWKOF();
     setUsername();
     if (WKUser == null || typeof WKUser != "string" || WKUser == "")
@@ -413,8 +434,8 @@ function init()
         // initCMReview();
         addHTMLinID('item-info', CMouterHTML);
 
-        getEleByIdWait("cm-meaning").innerHTML = getCMdivContent("m");
-        getEleByIdWait("cm-reading").innerHTML = getCMdivContent("r");
+        document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
+        document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
 
         initButtons("meaning");
         initButtons("reading");
@@ -432,15 +453,15 @@ function init()
         // initCMLesson();
         addHTMLinID('supplement-info', CMouterHTML);
 
-        getEleByIdWait("cm-meaning").innerHTML = getCMdivContent("m");
+        document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
         // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
-        getEleByIdWait("cm-reading").innerHTML = getCMdivContent("r");
+        document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
         // document.getElementById("cm-iframe-reading").outerHTML = getCMForm("reading");
         
         initButtons("meaning");
         initButtons("reading");
 
-        let characterDiv = getEleByIdWait("character");
+        let characterDiv = document.getElementById("character");
         if (characterDiv != null)
             characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
         else
@@ -710,14 +731,14 @@ function prevCM(mnemType)
 {
     let btn = document.getElementById(`cm-${mnemType}-prev`);
     let idx = Number(btn.dataset.currentIndex);
-    updateCM(mnemJson=false, mnemType=mnemType, index=idx-1);
+    updateCM(false, mnemType, idx-1);
 }
 
 function nextCM(mnemType)
 {
     let btn = document.getElementById(`cm-${mnemType}-prev`);
     let idx = Number(btn.dataset.currentIndex);
-    updateCM(mnemJson=false, mnemType=mnemType, index=idx+1);
+    updateCM(false, mnemType, idx+1);
 }
 
 function editSaveCM(mnemType)
@@ -845,6 +866,14 @@ function getCMBadge(isRecent, isReq) {
 function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
 {
     // sick recursive execution, to only require one fetch of data for each item. 
+
+    // display loading message
+    for (let ele of mnemType)
+    {
+        let iframe = document.getElementById("cm-iframe-" + ele);
+        if (iframe)
+            iframe.srcdoc = getIframeSrcdoc("Loading Community Mnemonic ...");
+    }
 
     let type = getItemType();
 
@@ -986,7 +1015,7 @@ function getMnemRequestedMsg(users)
 
 function setScore(mnemType, score)
 {
-    let scoreEle = getEleByIdWait(`cm-${mnemType}-score-num`);
+    let scoreEle = document.getElementById(`cm-${mnemType}-score-num`);
     if (scoreEle != null)
     {
         if (Number(score) != 0)
@@ -1066,7 +1095,7 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
     disableButtons(mnemType);
     removeClass(`cm-${mnemType}-submit`);
 
-    let iframe = getEleByIdWait("cm-iframe-" + mnemType);
+    let iframe = document.getElementById("cm-iframe-" + mnemType);
     if (iframe == null)
         return;
     
@@ -1144,16 +1173,17 @@ async function fetchData(item, type)
 
 // Sheet access ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
+// Local data management ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
-// Data caching ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// Data caching ▼▼▼▼▼▼▼▼▼
+// caching happens in getData using WaniKani Open Framework's wkof.file_cache
 function getCacheId(item, type)
 {
     type = getShortItemType(type);
     return "wkcm2-" + type + item;
 }
-// Data caching ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// Data caching ▲▲▲▲▲▲▲▲▲
 
-// Local data management ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 /**
  * Abstraction layer from direct data fetch, to make use of caches to make the script more responsive. 
  * */
@@ -1182,7 +1212,7 @@ function getData(item, type)
                     // fetch worked
                     wkof.file_cache.save(identifier, responseJson);
                     let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
-                    updateCM(mnemJson=splitData(reponseJsonCopy));
+                    updateCM(splitData(reponseJsonCopy));
                     return responseJson;
                 }, reason =>
                 {
@@ -1195,23 +1225,14 @@ function getData(item, type)
     return data;
 }
 
+/**
+ * @return promise containing Mnemonics for both Meaning and Reading for matching item and type
+ * */
 function getMnemonic(item, type)
 {
     // item = "血";
     // type = "v";
     return getData(item, type).then(splitData);
-
-    /*
-    if (dataPromise == null)
-        return null;
-    return dataPromise.then(json =>
-        {
-            splitData(json);
-        }
-    );*/
-
-    // return splitData(data);
-    
 }
 
 /**
