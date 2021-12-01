@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ==UserScript==
 // @name        WKCM2
 // @namespace   wkcm
@@ -233,23 +234,21 @@ if (CMIsReview || CMIsLesson)
         window.addEventListener('load', function()
         {
             // character div is needed for lesson & review page
-            waitForEle('character').then(waitForWKOF).reject(checkWKOF).then(init);
+            preInit();
         }, false);
     }
     else
     {
-        waitForEle('character').then(waitForWKOF).reject(checkWKOF).then(init);
+        preInit();
     }
 
 }else // (CMIsReview || CMIsLesson)
 {
     if (document.readyState === "loading")
-      document.addEventListener("DOMContentLoaded", function() { init();/*checkCMNewestVersion(0);*/ });
+      document.addEventListener("DOMContentLoaded", function() { preInit(); });
     else
-        init();
-        //checkCMNewestVersion(0);
+        preInit();
 }
-
 
 function checkWKOF()
 {
@@ -258,15 +257,16 @@ function checkWKOF()
     {
         if (confirm(scriptName + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?'))
             window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
-        return;
+        return false;
     }
-    if (wkof.version.compare_to(wkof_version_needed) === 'older')
+    else if (wkof.version.compare_to(wkof_version_needed) === 'older')
     {
         if (confirm(scriptName + ' requires Wanikani Open Framework version '+wkof_version_needed+'.\nDo you want to be forwarded to the update page?'))
             window.location.href = 'https://greasyfork.org/en/scripts/38582-wanikani-open-framework';
-        return;
+        return false;
     }
-
+    else
+        return true;
 }
 
 function waitForWKOF()
@@ -281,17 +281,19 @@ function waitForWKOF()
     // this promise will be rejected
     function waitForFoo(resolve, reject)
     {
-        if (window.wkof && window.wkof.user)
-            resolve(window.wkof);
+        if (window.wkof)
+            return resolve(window.wkof);
         else if (timeout && (Date.now() - start) >= timeout)
-            reject(new Error("timeout while waiting for wkof to become available"));
+            return reject("timeout while waiting for wkof to become available");
         else
-            setTimeout(waitForFoo.bind(this, resolve, reject), 30);
+            setTimeout(waitForFoo.bind(this, resolve, reject), 50);
     }
 }
 
-function waitForEle(id) {
-    return new Promise(resolve => {
+function waitForEle(id)
+{
+    return new Promise(resolve =>
+    {
         if (document.getElementById(id))
             return resolve(document.getElementById(id));
 
@@ -335,8 +337,18 @@ function setUsername()
     {
         if (window.wkof)
         {
-            WKUser = window.wkof.user["username"];
-            return WKUser;
+            try
+            {
+                WKUser = wkof.Apiv2.user;
+                return WKUser;
+            }
+            catch (err)
+            {
+                console.log("WKCM2: setUsername, ", err);
+                WKUser = wkof.user["username"];
+                return WKUser;
+            }
+            
         }
     }
     catch (err)
@@ -370,20 +382,20 @@ function getItem()
 {
     // TODO: add support for list page
     let item = null;
-    try
-    {
-        // $.jStorage.get("l/currentLesson")["characters"]
-        // TODO: add max recursion depth???
 
-        item = $.jStorage.get("l/currentLesson")["characters"];
-        if (item == null)
-            console.log("WKCM2: getItem, item is null");
+    let itemIdentifier = "currentItem";
+    if (CMIsReview)
+        itemIdentifier = "currentItem";
+    else if (CMIsLesson)
+        itemIdentifier = "l/currentLesson";
 
-    }
-    catch (err)
-    {
-        setTimeout(function(){item = getItem();}, 10);
-    }
+    // $.jStorage.get("l/currentLesson")["characters"]
+    // TODO: add max recursion depth???
+
+    item = $.jStorage.get(itemIdentifier)["characters"];
+    if (item == null)
+        console.log("WKCM2: getItem, item is null");
+
     return item;
 }
 
@@ -392,34 +404,51 @@ function getItem()
  * */
 function getItemType()
 {
-    // TODO: add max recursion depth???
     let itemType = null;
-    try
-    {
-        itemType = $.jStorage.get("l/currentLesson")["type"];
-        if (typeof itemType === "string")
-            itemType = itemType.toLowerCase()
-        if (itemType == null)
-            console.log("WKCM2: getItemType, itemType null");
-        return itemType;
-    }
-    // in case it has not loaded far enough wait and try again.
-    catch (err)
-    {
-        setTimeout(function(){itemType = getItemType();}, 10);
-    }
+    let itemIdentifier = "currentItem";
+    if (CMIsReview)
+        itemIdentifier = "currentItem";
+    else if (CMIsLesson)
+        itemIdentifier = "l/currentLesson";
 
+    itemType = $.jStorage.get(itemIdentifier)["type"];
+    if (typeof itemType === "string")
+        itemType = itemType.toLowerCase()
+    if (itemType == null)
+        console.log("WKCM2: getItemType, itemType null");
     return itemType;
 }
 // Get infos from page ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 /**
- * Initializes all elements. Does not add functionality yet
+ * Runs checks if elements exist before running init and waits for them. Then calls init.
+ * */
+function preInit()
+{
+    waitForEle('character').then(waitForWKOF).catch(err =>
+    {
+        console.log("catch");
+        if(checkWKOF())
+        {
+            wkof.include('Apiv2');
+            wkof.ready('Apiv2').then(init);
+        }
+        else
+            console.log("WKCM2: there was a problem with checking for wkof. Please check if it is installed correctly and running. ");
+    }).then(resp =>
+    {
+        checkWKOF();
+        wkof.include('Apiv2');
+        wkof.ready('Apiv2').then(init);
+    });
+}
+/**
+ * Runs the right code depending if the current page is Lesson, Review or List
  * */
 function init()
 {
-    waitForWKOF();
-    checkWKOF();
+    // waitForWKOF();
+    // checkWKOF();
     setUsername();
     if (WKUser == null || typeof WKUser != "string" || WKUser == "")
         throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
@@ -439,6 +468,13 @@ function init()
 
         initButtons("meaning");
         initButtons("reading");
+        
+        let characterDiv = document.getElementById("character").firstElementChild;
+        if (characterDiv != null)
+            characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
+        else
+            console.log("WKCM: init, character div NOT FOUND");
+
 
     } else if (CMIsLesson)
     {
@@ -1189,7 +1225,11 @@ function getCacheId(item, type)
  * */
 function getData(item, type)
 {
-    // TODO: NEXT redownload item after cache hit, after timeout
+    if (type == null)
+        throw new Error("WKCM2: Error, getData got empty type");
+     if (item == null)
+        throw new Error("WKCM2: Error, getData got empty item");
+   // TODO: NEXT redownload item after cache hit, after timeout
     let identifier = getCacheId(item, type);
 
     // TODO: implement cache and error handling
@@ -1200,13 +1240,13 @@ function getData(item, type)
             // cache hit
             // return from cache
             // console.log("getData: fullfilled:", value);
-            console.log("Cache hit: ", value);
+            console.log("Cache hit for", identifier, value);
             return value;
         }, reason =>
         {
             // cache miss
             // fetch data from db, put cache and return
-            console.log("Cache miss: ", reason);
+            console.log("Cache miss for", reason);
             fetchData(item, type).then(responseJson =>
                 {
                     // fetch worked
