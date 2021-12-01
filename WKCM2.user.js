@@ -1,7 +1,7 @@
 // @ts-nocheck
 // ==UserScript==
 // @name        WKCM2
-// @namespace   wkcm
+// @namespace   wkcm2
 // @description This script allows WaniKani members to contribute their own mnemonics which appear on any page that includes item info.
 // @exclude     *.wanikani.com
 // @include     *.wanikani.com/level/*
@@ -11,10 +11,18 @@
 // @include     *.wanikani.com/review/session
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
-// @version     0.0.1
+// @version     0.1
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
+
+// CREDIT: This is a reimplementation of the userscript "WK Community Mnemonics" by forum user Samuel-H.
+// Original Forum post: https://community.wanikani.com/t/userscript-community-mnemonics-v0978/7367
+// The original stopped working some time ago and was plagued by bugs even longer.
+// Due to security concerns involving XSS attacks, due to the nature of displaying user generated content,
+// I decided to recode everything from scratch.
+// The code is entirely my own, except for a few individual lines of code, that I will replace soon
+// and HTML and CSS, that I carried over from the old version. 
 
 /* This script is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) license
 *  Details: http://creativecommons.org/licenses/by-nc/4.0/ */
@@ -24,15 +32,17 @@ let WKCM2_version = "0.1";
 let scriptName = 'WKCM2';
 let scriptNameLong = 'WaniKani Community Mnemonics 2';
 
+// whether to use console logs
+let devel = false;
 
 // if current page is Review page
-let CMIsReview = (window.location.pathname.indexOf("/review/") > -1);
+let isReview = (window.location.pathname.indexOf("/review/") > -1);
 // if current page is Lesson page
-let CMIsLesson = (window.location.pathname.indexOf("/lesson/") > -1);
+let isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
 
 // Only true in list of items
 let CMIsList = false;
-if (!CMIsReview && !CMIsLesson)
+if (!isReview && !isLesson)
 {
     CMIsList = (
         // TODO: generalize regex, only matches 2 digit levels (in case they add more levels ... much more)
@@ -227,7 +237,7 @@ let CMcontentCSS = /* css */`
 `;
 
 
-if (CMIsReview || CMIsLesson)
+if (isReview || isLesson)
 {
     if (document.readyState != "complete")
     {
@@ -249,6 +259,8 @@ if (CMIsReview || CMIsLesson)
     else
         preInit();
 }
+
+// General and init helper functions ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
 function checkWKOF()
 {
@@ -328,6 +340,16 @@ function addGlobalStyle(css)
     head.appendChild(style);
 }
 
+/**
+ * calls console.log only when global devel variable is true
+ * */
+function printDev(...params)
+{
+    if (devel)
+        console.log(...params);
+}
+
+// General and init helper functions ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 // Get infos from page ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
@@ -348,7 +370,6 @@ function setUsername()
                 WKUser = wkof.user["username"];
                 return WKUser;
             }
-            
         }
     }
     catch (err)
@@ -359,7 +380,7 @@ function setUsername()
     // backup method
     let CMUserClass = "user-summary__username";
 
-    if(CMIsReview || CMIsLesson)
+    if(isReview || isLesson)
         WKUser = window.WaniKani.username;
     else
         try
@@ -384,9 +405,9 @@ function getItem()
     let item = null;
 
     let itemIdentifier = "currentItem";
-    if (CMIsReview)
+    if (isReview)
         itemIdentifier = "currentItem";
-    else if (CMIsLesson)
+    else if (isLesson)
         itemIdentifier = "l/currentLesson";
 
     // $.jStorage.get("l/currentLesson")["characters"]
@@ -406,9 +427,9 @@ function getItemType()
 {
     let itemType = null;
     let itemIdentifier = "currentItem";
-    if (CMIsReview)
+    if (isReview)
         itemIdentifier = "currentItem";
-    else if (CMIsLesson)
+    else if (isLesson)
         itemIdentifier = "l/currentLesson";
 
     itemType = $.jStorage.get(itemIdentifier)["type"];
@@ -419,6 +440,8 @@ function getItemType()
     return itemType;
 }
 // Get infos from page ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+// Init ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
 /**
  * Runs checks if elements exist before running init and waits for them. Then calls init.
@@ -458,7 +481,7 @@ function init()
     addGlobalStyle(textareaCSS);
     addGlobalStyle(cmuserbuttonsCSS);
 
-    if (CMIsReview)
+    if (isReview)
     {
         // initCMReview();
         addHTMLinID('item-info', CMouterHTML);
@@ -476,7 +499,7 @@ function init()
             console.log("WKCM: init, character div NOT FOUND");
 
 
-    } else if (CMIsLesson)
+    } else if (isLesson)
     {
         let type = getItemType();
         let item = getItem();
@@ -521,7 +544,7 @@ function init()
 
 
 }
-
+// Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 // Button initialization ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
@@ -929,6 +952,9 @@ function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
                 updateCM(mnemJson, mnemType, index);
             });
     }
+
+    // TODO: NEXT trigger background update of item. Check if content is the same as previous before iframe update.
+    // TODO: use date in cache in order to only fetch update if cached entry is older then idk what. 1d, 2d?
 }
 
 /**
@@ -1165,7 +1191,6 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
         {
             iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemSelector][index], mnemJson[userSelector][index]);
             setScore(mnemType, mnemJson[scoreSelector][index]);
-            console.log(mnemJson[userSelector][index], WKUser);
             toggleUserButtons(mnemType, mnemJson[userSelector][index] == WKUser);
             // disable submit button if user already submitted one mnem
             if (mnemJson[userSelector].includes(WKUser))
@@ -1240,13 +1265,13 @@ function getData(item, type)
             // cache hit
             // return from cache
             // console.log("getData: fullfilled:", value);
-            console.log("Cache hit for", identifier, value);
+            printDev("Cache hit for", identifier, value);
             return value;
         }, reason =>
         {
             // cache miss
             // fetch data from db, put cache and return
-            console.log("Cache miss for", reason);
+            printDev("Cache miss for", reason);
             fetchData(item, type).then(responseJson =>
                 {
                     // fetch worked
