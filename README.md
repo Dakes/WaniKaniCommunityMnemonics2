@@ -17,20 +17,14 @@ This is a complete from scratch reimplementation of the original's features.
 
 ## Roadmap
 
-### Current state
-- Buttons go brrrrrr
-- GUI elements in place
-- Adapted old Data to new Markup
-- sheet apps script can fetch data
-- Mnemonics get fetched, cached and displayed
-
-### 0.1
+### 0.1 (current version)
+- Works read only with old data from WKCM
 - Works in Lessons and Reviews
-- Works read only with data from WKCM
 - Google Sheet apps script can fetch data
+- Mnemonic data gets cached
 - Script checks for updates
 
-### 0.2
+### 0.2 (create post in forum)
 - Users can submit new mnemonics
 - Users can vote on mnemonics
 - Users can request mnemonics
@@ -56,3 +50,4 @@ This is a complete from scratch reimplementation of the original's features.
 - Think about adding a "Request Deletion" Button
 - Colorize items with especially high or low scores
 - Randomize default messages with alternatives
+- Think about handling image links
