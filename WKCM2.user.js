@@ -33,7 +33,7 @@ let scriptName = 'WKCM2';
 let scriptNameLong = 'WaniKani Community Mnemonics 2';
 
 // whether to use console logs
-let devel = false;
+let devel = true;
 
 // if current page is Review page
 let isReview = (window.location.pathname.indexOf("/review/") > -1);
@@ -236,6 +236,7 @@ let CMcontentCSS = /* css */`
 .cm-delete-text h3 { margin: 0 }
 `;
 
+// TODO: reset cache after new version (save current version to cache)
 
 if (isReview || isLesson)
 {
@@ -300,6 +301,31 @@ function waitForWKOF()
         else
             setTimeout(waitForFoo.bind(this, resolve, reject), 50);
     }
+}
+
+/**
+ * checks, if script version saved is the same. If it is not, deletes cache. 
+ * */
+function resetWKOFcache()
+{
+    wkof.file_cache.load("wkcm2-version").then(value  =>
+    {
+        // found
+
+        if (WKCM2_version != value)
+        {
+            printDev("WKCM2: Deleting cache.");
+            // regex delete of all wkcm2 saves
+            wkof.file_cache.delete(/^wkcm2-/);
+            wkof.file_cache.save("wkcm2-version", WKCM2_version);
+        }
+        return value;
+    }, reason =>
+    {
+        // version not saved, save current version
+        wkof.file_cache.save("wkcm2-version", WKCM2_version);
+    }
+    );
 }
 
 function waitForEle(id)
@@ -450,7 +476,6 @@ function preInit()
 {
     waitForEle('character').then(waitForWKOF).catch(err =>
     {
-        console.log("catch");
         if(checkWKOF())
         {
             wkof.include('Apiv2');
@@ -470,8 +495,7 @@ function preInit()
  * */
 function init()
 {
-    // waitForWKOF();
-    // checkWKOF();
+    resetWKOFcache();
     setUsername();
     if (WKUser == null || typeof WKUser != "string" || WKUser == "")
         throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
@@ -540,9 +564,6 @@ function init()
         console.log("init else")
     }
 
-    // TODO: init spreadsheet connection, or whatever
-
-
 }
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -610,16 +631,14 @@ function addHTMLinID(id, html, position="beforeend")
 
 function getFullMnemType(mnemType)
 {
-    let CMMnemType = ""
-    if (mnemType === "m")
-        CMMnemType = "meaning";
-    else if (mnemType === "r")
-        CMMnemType = "reading";
-    else if (mnemType === "meaning" || mnemType === "reading")
-        CMMnemType = mnemType;
+    let fullMnemType = ""
+    if (mnemType == "m" || mnemType == "meaning")
+        fullMnemType = "meaning";
+    else if (mnemType == "r" || mnemType == "reading")
+        fullMnemType = "reading";
     else
         throw new TypeError("mnemType in getFullMnemType is not valid. Value: " + mnemType);
-    return CMMnemType;
+    return fullMnemType;
 }
 
 /**
@@ -666,7 +685,6 @@ function getCMdivContent(mnemType)
      */
 
     mnemType = getFullMnemType(mnemType);
-    // TODO implement
     let CMItem = null;
     let CMLen = 1;
     let CMPage = 1;
@@ -744,7 +762,6 @@ function editCM(mnemType)
 
     iframe.outerHTML = getCMForm(mnemType);
 
-    // TODO: update disabled class on buttons
     // addClass("cm-" + mnemType + "-edit");
     // addClass("cm-" + mnemType + "-delete");
     addClass("cm-" + mnemType + "-upvote");
@@ -768,7 +785,6 @@ function requestCM(mnemType)
 function submitCM(mnemType)
 {
     // "Submit Yours" Button
-    // TODO: check if CM by user
 
     let iframe = document.getElementById("cm-iframe-" + mnemType);
     if (!iframe)
@@ -945,7 +961,6 @@ function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
     }
     else
     {
-        // TODO: function typeShorten
         let item = getItem();
         getMnemonic(item, type).then((mnemJson) =>
             {
@@ -1250,9 +1265,9 @@ function getCacheId(item, type)
  * */
 function getData(item, type)
 {
-    if (type == null)
+    if (type == null || type == "")
         throw new Error("WKCM2: Error, getData got empty type");
-     if (item == null)
+     if (item == null || item == "")
         throw new Error("WKCM2: Error, getData got empty item");
    // TODO: NEXT redownload item after cache hit, after timeout
     let identifier = getCacheId(item, type);
@@ -1266,6 +1281,21 @@ function getData(item, type)
             // return from cache
             // console.log("getData: fullfilled:", value);
             printDev("Cache hit for", identifier, value);
+
+            // background update of cache, if date pulled is older than 2d
+            const dayDiff = 2;
+            cachedDate = Date.parse(wkof.file_cache.dir[identifier]["added"]);
+            let pulledDiff = Math.floor((Date.now() - cachedDate) / 86400000);
+            if (pulledDiff > dayDiff)
+            {
+                dataBackgroundUpdate(item, type, value);
+            }
+            else
+            {
+                return value;
+            }
+
+
             return value;
         }, reason =>
         {
@@ -1273,21 +1303,57 @@ function getData(item, type)
             // fetch data from db, put cache and return
             printDev("Cache miss for", reason);
             fetchData(item, type).then(responseJson =>
-                {
-                    // fetch worked
-                    wkof.file_cache.save(identifier, responseJson);
-                    let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
-                    updateCM(splitData(reponseJsonCopy));
-                    return responseJson;
-                }, reason =>
-                {
-                    // fetch failed
-                    // TODO: handle failed fetch
-                    console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
-                });
+            {
+                // fetch worked
+                wkof.file_cache.save(identifier, responseJson);
+                let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+                updateCM(splitData(reponseJsonCopy));
+                return responseJson;
+            }, reason =>
+            {
+                // fetch failed
+                // TODO: handle failed fetch
+                console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
+            });
         }
     );
     return data;
+}
+
+async function dataBackgroundUpdate(item, type, cachedData)
+{
+    console.log("dataBackgroundUpdate");
+    var isEqualsJson = (obj1,obj2)=>
+    {
+        keys1 = Object.keys(obj1);
+        keys2 = Object.keys(obj2);
+
+        //return true when the two json has same length and all the properties has same value key by key
+        return keys1.length === keys2.length && Object.keys(obj1).every(key=>obj1[key]==obj2[key]);
+    }
+    
+    let identifier = getCacheId(item, type);
+    fetchData(item, type).then(responseJson =>
+    {
+        // fetch worked
+        // wkof.file_cache.save(identifier, responseJson);
+        // let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+        
+        // updateCM(splitData(reponseJsonCopy));
+
+        if (!isEqualsJson(cachedData, responseJson))
+        {
+            wkof.file_cache.save(identifier, responseJson);
+            updateCM(splitData(reponseJsonCopy));
+        }
+        
+        return responseJson;
+    }, reason =>
+    {
+        // fetch failed
+        // TODO: handle failed fetch
+        console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
+    });
 }
 
 /**
