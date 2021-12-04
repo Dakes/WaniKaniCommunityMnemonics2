@@ -14,44 +14,50 @@ function calc_score(input)
       outputArray = outputArray.concat(get_score(input[i][0]));
     }
     return outputArray;
-
   }
 }
 
 /**
  * input only string
- * Takes a string like "Anonymous␟␟2␞␞Dakes␟␟1␝␝user1␟␟1␞␞user2␟1"
- * and outputs "3␝␝2"
+ * Takes a json string like:
+ * {
+ *     "Dakes": [{"Anonymous": "1", "DerTester": "1"}],
+ *     "Anonymous": [mnem1_votes, mnem2_votes, ...],
+ *     ...
+ * }
+ * and outputs:
+ * {
+ *     "Dakes": [2, 3, ...],
+ *     "Anonymous": [6],
+ *      ...
+ * }
  */
 function get_score(input)
 {
-  if (input == "")
+  if (input == "" || input == "Meaning_Votes" || input == "Reading_Votes")
     return ""
-  let mnemSep = "␝␝";
 
-  let scoreForMnems = input.split("\x1D");
+  let in_json = JSON.parse(input);
+  let out_json = {};
 
-  let result = "";
-  for(var i=0;i<scoreForMnems.length;i++)
+  for (var mnem_key in in_json)
   {
-    let resultForMnem = 0;
-
-    // replace after split to ensure an empty string for existing but non voted entries
-    scoreForMnems[i] = scoreForMnems[i].replaceAll("␝", "").replaceAll("␞", "").replaceAll("␟", "");
-    let individualVotesForMnem = scoreForMnems[i].split("\x1E");
-    for(var j=0;j<individualVotesForMnem.length;j++)
+    // multiple mnems per user possible. Array:
+    let votes_array = in_json[mnem_key];
+    // new array of scores for multiple mnems of one user
+    let new_score_array = [];
+    for (var votes_json of votes_array)
     {
-      if(individualVotesForMnem[j])
+      // current_vote: json containing votes for this mnem
+      let mnem_score = 0;
+      for (var user_voted in votes_json)
       {
-        let vote = individualVotesForMnem[j].split("\x1F");
-        resultForMnem = resultForMnem + Number(vote[1]);
+        mnem_score = mnem_score + Number(votes_json[user_voted]);
       }
+      new_score_array = new_score_array.concat(mnem_score);
     }
-    if (i == 0)
-      result = result.concat(String(resultForMnem));
-    else
-      result = result.concat(mnemSep, String(resultForMnem));
-  }
+    out_json[mnem_key] = new_score_array;
 
-return result;
+  }
+  return JSON.stringify(out_json);
 }
