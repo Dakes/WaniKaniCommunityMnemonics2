@@ -30,9 +30,6 @@ function doPost(e)
 
 function handleResponse(e)
 {
-  // console.log("item: ", e.parameter.item);
-  // console.log("type", e.parameter.type);
-  // console.log("exec: ", e.parameter.exec);
 
   if (!e.parameter.exec)
   {
@@ -53,17 +50,16 @@ function handleResponse(e)
   }
   else if (e.parameter.exec == "put")
   {
-    putData(sheet, e.parameter.type, e.parameter.item);
-    return;
+    return putData(sheet, e.parameter.type, e.parameter.item);
   }
   else if (e.parameter.exec == "vote")
   {
     // user, item, type, mnemType, mnemUser, score
     if(e.parameter.user && e.parameter.item && e.parameter.type &&
     e.parameter.mnemType && e.parameter.mnemUser && e.parameter.score)
-      vote(sheet, e.parameter.user, e.parameter.item, e.parameter.type,
-    e.parameter.mnemType, e.parameter.mnemUser, e.parameter.score);
-    return;
+      return vote(sheet, e.parameter.user, e.parameter.item,
+      e.parameter.type, e.parameter.mnemType,
+      e.parameter.mnemUser, e.parameter.score);
   }
 
   // let sheet = SpreadsheetApp.getActiveSheet();
@@ -79,10 +75,23 @@ function test()
   let user = "DerTester";
   let item = "🍜";
   let type = "r";
-  let mnemType = "m";
+  let mnemIndex = "1";
+  let mnemType = "r";
   let mnemUser = "Dakes";
   let score = "1";
-  vote(sheet, user, item, type, mnemType, mnemUser, score);
+
+  vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
+  // let data = getData(sheet, type, item);
+  // console.log("data: ", data);
+}
+
+function getError()
+{
+  return ContentService.createTextOutput( "error" ).setMimeType(ContentService.MimeType.TEXT);
+}
+function getSuccess()
+{
+  return ContentService.createTextOutput( "success" ).setMimeType(ContentService.MimeType.TEXT);
 }
 
 function getData(sheet, type, item)
@@ -104,87 +113,77 @@ function getData(sheet, type, item)
     json_data = getJsonArrayFromData(data);
   }
 
+  // delete votes. only scores are relevant to client
+  delete json_data[0]["Meaning_Votes"];
+  delete json_data[0]["Reading_Votes"];
+  json_data = json_data[0]
 
-  console.log(json_data);
-  return ContentService.createTextOutput(JSON.stringify(json_data) ).setMimeType(ContentService.MimeType.JSON);
   // send back data to client
-}
+  return ContentService.createTextOutput(JSON.stringify(json_data) ).setMimeType(ContentService.MimeType.JSON);
 
-function vote(sheet, user, item, type, mnemType, mnemUser, score)
+}
+/**
+ * @param user: user who is voting
+ * @param mnemUser: user whos mnem is being voted on.
+ * @param mnemType: meaning / reading
+ * @param mnemIndex: User can submit multiple mnems, index of mnem to use, usually 0.
+ */
+function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
 {
   if (user == mnemUser)
-    return;
+    return getError();
   if (Number(score) < -1 || Number(score) > 1)
-    return;
+    return getError();
 
   let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
+  let votes_col = getFullMnemType(mnemType) + "_Votes";
+  let votes_string = getCellValueByColumnName(sheet ,votes_col, row);
+  let votes_json = {};
+  if (votes_string)
+    votes_json = JSON.parse(votes_string);
 
-  // get index of mnemUser in saved mnemUser
-  let user_col = getFullMnemType(mnemType) + "_User";
-  let user_string = getCellValueByColumnName(sheet ,user_col, row);
-  let users = splitStringGS(user_string);
-
-  for(let i=0;i<users.length;i++)
+  if (mnemIndex == null)
+    mnemIndex = 0;
+  if (typeof mnemIndex == "string")
   {
-    if (users[i] == mnemUser)
-    {
-      // users are the same. Use this index to access/save the vote
-      // get current cell content
-      let vote_col = getFullMnemType(mnemType) + "_Votes";
-      let vote_string = getCellValueByColumnName(sheet ,vote_col, row);
-      let mnemVotes = splitStringGS(vote_string);
-      // if length is not the same reset votes (probably no votes at all)
-      if (mnemVotes.length != users.length)
-      {
-        mnemVotes = new Array(users.length).fill("");
-      }
-      if (mnemVotes[i] == "")
-      {
-        mnemVotes[i] = user + US + score;
-      }
-      else
-      {
-        // only add if user didn't already vote, otherwise update
-        let user_votes = splitStringRS(mnemVotes[i]);
-
-        let user_votes_len = user_votes.length
-
-        let updated = false;
-        for(let j=0;j<user_votes_len;j++)
-        {
-          user_votes[j] = splitStringUS(user_votes[j]);
-          // user already voted, update vote
-          if (user_votes[j][0] == user)
-          {
-            user_votes[j][1] = score;
-            updated = true;
-          }
-        }
-        // did not update existing vote. Append the new vote.
-        if (updated == false)
-        {
-          user_votes[user_votes.length] = [user, score];
-        }
-        // "reassemble" vote string for this mnem
-        for(let j=0;j<user_votes.length;j++)
-        {
-          user_votes[j] = user_votes[j].join(US);
-        }
-        user_votes = user_votes.join(RS);
-
-        mnemVotes[i] = user_votes;
-      }
-
-      // "reassemble" votes for different mnem with GS
-      let new_vote_string = mnemVotes.join(GS);
-      setCellValueByColumnName(sheet, vote_col, row, new_vote_string)
-      // console.log(new_vote_string);
-
-    }
+    mnemIndex = Number(mnemIndex);
+    if (Number.isNaN(mnemIndex))
+      mnemIndex = 0;
   }
 
-  // append vote to M/R _Votes
+  // check if mnemUser actually in mnemonics
+  let mnem_col = getFullMnemType(mnemType) + "_Mnem";
+  let mnem_string = getCellValueByColumnName(sheet ,mnem_col, row);
 
+  // if mnem_string is empty, no mnem exists anyway, return
+  if (!mnem_string)
+    return getError();
+
+  let mnem_json = JSON.parse(mnem_string);
+
+  console.log(votes_json);
+
+  if (mnem_json.hasOwnProperty(mnemUser))
+  {
+    // check if entry for this user exists, otherwise create
+    if (!votes_json[mnemUser])
+    {
+      votes_json[mnemUser] = new Array(mnemIndex+1);
+      for (let i=0; i<mnemIndex+1; i++)
+        votes_json[mnemUser][i] = {};
+    }
+
+    // put new data in / update
+    if (!votes_json[mnemUser][mnemIndex])
+      votes_json[mnemUser][mnemIndex] = {};
+    votes_json[mnemUser][mnemIndex][user] = score;
+  }
+
+  console.log(votes_json);
+  let new_vote_string = JSON.stringify(votes_json);
+  setCellValueByColumnName(sheet, votes_col, row, new_vote_string)
+
+    return getSuccess;
 }
 
 // writes data into db.
