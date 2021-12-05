@@ -50,11 +50,11 @@ function handleResponse(e)
 
   let user = cleanData(e.parameter.user);
   let mnemType = cleanData(e.parameter.mnemType);
-  let mnemIndex = cleanData(e.parameter.mnemIndex);
+  let mnemIndex = cleanMnemIndex(e.parameter.mnemIndex);
   let mnem = cleanData(e.parameter.mnem);
 
   let mnemUser = cleanData(e.parameter.mnemUser);
-  let score = cleanData(e.parameter.score);
+  let score = cleanScore(e.parameter.score);
 
   if (e.parameter.exec == "get")
   {
@@ -78,7 +78,7 @@ function handleResponse(e)
     // user, item, type, mnemType, mnemUser, score
     if(user && item && type && mnemType && mnemUser && score)
     {
-      return vote(sheet, user, item, type, mnemType, mnemUser, score);
+      return vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
     }
     else
       return getError();
@@ -159,29 +159,12 @@ function getData(sheet, type, item)
  */
 function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
 {
-  mnemIndex = Number(mnemIndex);
-  if (user == mnemUser)
-    return getError();
-  if (Number(score) < -1 || Number(score) > 1)
-    return getError();
-  if (mnemIndex > 10)
-    return getError();
-
   let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
   let votes_col = getFullMnemType(mnemType) + "_Votes";
   let votes_string = getCellValueByColumnName(sheet ,votes_col, row);
   let votes_json = {};
   if (votes_string)
     votes_json = JSON.parse(votes_string);
-
-  if (mnemIndex == null)
-    mnemIndex = 0;
-  if (typeof mnemIndex == "string")
-  {
-    mnemIndex = Number(mnemIndex);
-    if (Number.isNaN(mnemIndex))
-      mnemIndex = 0;
-  }
 
   // check if mnemUser actually in mnemonics
   let mnem_col = getFullMnemType(mnemType) + "_Mnem";
@@ -225,11 +208,6 @@ function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
  */
 function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
 {
-  // TODO: clean user submitted data with user
-  mnemIndex = Number(mnemIndex);
-  if (mnemIndex > 10)
-    return getError();
-
   let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
   let mnem_col = getFullMnemType(mnemType) + "_Mnem";
   let mnem_string = "";

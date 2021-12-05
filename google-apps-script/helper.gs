@@ -30,6 +30,40 @@ function cleanItem(data)
   return data;
 }
 
+function cleanMnemIndex(mnemIndex)
+{
+  let clean_index = 0;
+  if (mnemIndex == null)
+    clean_index = 0;
+  if (typeof mnemIndex == "string" || typeof mnemIndex == "number")
+  {
+    clean_index = Number(mnemIndex);
+    if (Number.isNaN(clean_index))
+      clean_index = 0;
+  }
+  return clean_index;
+}
+
+function cleanScore(score)
+{
+  let clean_score = 0;
+  if (score == null)
+    clean_score = 0;
+  if (typeof score == "string" || typeof score == "number")
+  {
+    clean_score = Number(score);
+    if (Number.isNaN(clean_score))
+      clean_score = 0;
+  }
+
+  if (clean_score < -1)
+    clean_score = -1;
+  else if (clean_score > 1)
+    clean_score = 1;
+  
+  return clean_score;
+}
+
 function getFullMnemType(mnemType)
 {
     let fullMnemType = ""
