@@ -1,5 +1,5 @@
 //  1. Enter sheet name where data is to be written and read below
-var SHEET_NAME = "WKCM2";
+let SHEET_NAME = "WKCM2";
 
 // Regex matching every html tag, except the ones for highlighting
 // var regex = new RegExp(/(<(?!(?:\/?(span|b|i|u|s))\b)[^>]+>)/gmi);
@@ -33,38 +33,61 @@ function handleResponse(e)
 
   if (!e.parameter.exec)
   {
-    return;
+    return getError();
   }
 
   let ac=SpreadsheetApp.getActive();
   // let sheet=ac.getActiveSheet();
-  let sheet=ac.getSheetByName('WKCM2');
+  let sheet=ac.getSheetByName(SHEET_NAME);
+
+  if (e.parameter.type)
+    if (e.parameter.type != "k" && e.parameter.type != "v" && e.parameter.type != "r")
+      return getError();
+
+  // clean input Data
+  let type = cleanData(e.parameter.type);
+  let item = cleanItem(e.parameter.item);
+
+  let user = cleanData(e.parameter.user);
+  let mnemType = cleanData(e.parameter.mnemType);
+  let mnemIndex = cleanData(e.parameter.mnemIndex);
+  let mnem = cleanData(e.parameter.mnem);
+
+  let mnemUser = cleanData(e.parameter.mnemUser);
+  let score = cleanData(e.parameter.score);
 
   if (e.parameter.exec == "get")
   {
-    if (!e.parameter.item)
+    if (!item)
     {
-      return;
+      return getError();
     }
-    return getData(sheet, e.parameter.type, e.parameter.item);
+    return getData(sheet, type, item);
   }
   else if (e.parameter.exec == "put")
   {
-    return putData(sheet, e.parameter.type, e.parameter.item);
+    if (user && item && type && mnemType && mnemIndex && mnem)
+    {
+      return putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
+    }
+    else
+      return getError();
   }
   else if (e.parameter.exec == "vote")
   {
     // user, item, type, mnemType, mnemUser, score
-    if(e.parameter.user && e.parameter.item && e.parameter.type &&
-    e.parameter.mnemType && e.parameter.mnemUser && e.parameter.score)
-      return vote(sheet, e.parameter.user, e.parameter.item,
-      e.parameter.type, e.parameter.mnemType,
-      e.parameter.mnemUser, e.parameter.score);
+    if(user && item && type && mnemType && mnemUser && score)
+    {
+      return vote(sheet, user, item, type, mnemType, mnemUser, score);
+    }
+    else
+      return getError();
   }
-
-  // let sheet = SpreadsheetApp.getActiveSheet();
+  else
+    return getError();
 
 }
+// handleResponse ▲
 
 // Function to run during development
 function test()
@@ -72,22 +95,26 @@ function test()
   let ac=SpreadsheetApp.getActive();
   let sheet=ac.getSheetByName('WKCM2');
 
-  let user = "DerTester";
+  let user = "Dakes";
   let item = "🍜";
+  item = "🍱";
   let type = "r";
-  let mnemIndex = "1";
-  let mnemType = "r";
+  let mnemIndex = "0";
+  let mnemType = "m";
   let mnemUser = "Dakes";
   let score = "1";
+  let mnem = "🍙 Onigiri 🍙 ";
+  //mnem = "!";
 
-  vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
+  // vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
+  putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
   // let data = getData(sheet, type, item);
   // console.log("data: ", data);
 }
 
-function getError()
+function getError(msg="")
 {
-  return ContentService.createTextOutput( "error" ).setMimeType(ContentService.MimeType.TEXT);
+  return ContentService.createTextOutput( "error" + msg ).setMimeType(ContentService.MimeType.TEXT);
 }
 function getSuccess()
 {
@@ -122,6 +149,8 @@ function getData(sheet, type, item)
   return ContentService.createTextOutput(JSON.stringify(json_data) ).setMimeType(ContentService.MimeType.JSON);
 
 }
+// getData ▲
+
 /**
  * @param user: user who is voting
  * @param mnemUser: user whos mnem is being voted on.
@@ -130,9 +159,12 @@ function getData(sheet, type, item)
  */
 function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
 {
+  mnemIndex = Number(mnemIndex);
   if (user == mnemUser)
     return getError();
   if (Number(score) < -1 || Number(score) > 1)
+    return getError();
+  if (mnemIndex > 10)
     return getError();
 
   let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
@@ -161,8 +193,6 @@ function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
 
   let mnem_json = JSON.parse(mnem_string);
 
-  console.log(votes_json);
-
   if (mnem_json.hasOwnProperty(mnemUser))
   {
     // check if entry for this user exists, otherwise create
@@ -179,20 +209,85 @@ function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
     votes_json[mnemUser][mnemIndex][user] = score;
   }
 
-  console.log(votes_json);
   let new_vote_string = JSON.stringify(votes_json);
   setCellValueByColumnName(sheet, votes_col, row, new_vote_string)
 
-    return getSuccess;
+    return getSuccess();
 }
-
-// writes data into db.
-// Existing item: new mnem, update mnem
-// New item: requested, mnem
-function putData(sheet, user, item, type, mnemType, mnem)
+// vote ▲
+/**
+ *
+ * writes data into db.
+ * Existing mnem: new mnem, update mnem
+ * New mnem: mnem
+ * Request: new request or add to request
+ * @param mnem: String containing one mnemonic
+ */
+function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
 {
+  // TODO: clean user submitted data with user
+  mnemIndex = Number(mnemIndex);
+  if (mnemIndex > 10)
+    return getError();
 
+  let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
+  let mnem_col = getFullMnemType(mnemType) + "_Mnem";
+  let mnem_string = "";
+  if (row.length != 0)
+  {
+    mnem_string = getCellValueByColumnName(sheet ,mnem_col, row);
+  }
+  let mnem_json = {};
+  if (mnem_string)
+    mnem_json = JSON.parse(mnem_string);
+
+  // request
+  if (mnem == "!")
+  {
+    // if mnemonic exists no request possible
+    if (!mnem_json.hasOwnProperty("!") && Object.keys(mnem_json).length > 0)
+      return getError();
+    // create new request, if none exists, else concat user to existing
+    if (Object.keys(mnem_json).length == 0)
+      mnem_json["!"] = [user];
+    else
+      mnem_json["!"] = mnem_json["!"].concat(user);
+
+  }
+  else // not request (mnemonic)
+  {
+    // if not existent initialize array for mnemonics
+    if (!mnem_json[user])
+    {
+      mnem_json[user] = new Array(mnemIndex+1)
+      for (let i=0; i<mnemIndex+1; i++)
+        mnem_json[user][i] = "";
+    }
+    mnem_json[user][mnemIndex] = mnem;
+  }
+
+  let new_mnem_string = JSON.stringify(mnem_json);
+
+  // case mnem already exists
+  if (row.length != 0)
+  {
+    setCellValueByColumnName(sheet, mnem_col, row, new_mnem_string)
+  }
+  // no entry for this item at all
+  else
+  {
+    // add new row in the bottom
+    let row_count = sheet.getMaxRows();
+    sheet.insertRowAfter(row_count);
+
+    setCellValueByColumnName(sheet, mnem_col, row_count+1, new_mnem_string);
+    setCellValueByColumnName(sheet, "Type", row_count+1, type);
+    setCellValueByColumnName(sheet, "Item", row_count+1, item);
+  }
+
+  return getSuccess();
 }
+// putMnem ▲
 
 function setup()
 {
@@ -221,103 +316,4 @@ function getAllRows(sheet)
   }
   return data;
 }
-
-function getRowsWhere(sheet, type, item)
-{
-  let data = [];
-  data.push(sheet.getSheetValues(1, 1, 1, 8)[0]);
-  // console.log(sheet.getSheetValues(1, 1, 1, 8)[0]);
-  let rows = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
-  for (let i=0; i < rows.length; i=i+1)
-  {
-    data.push(sheet.getSheetValues(rows[i], 1, 1, 8)[0]);
-  }
-  // console.log(data);
-  return data;
-}
-
-// if value1="" (type) only match value2 (item)
-function rowWhereTwoColumnsEqual(sheet, value1, col1, value2, col2)
-{
-  // var sheet=SpreadsheetApp.getActive();
-
-  // var sheet=sheet.getActiveSheet();
-  var rg=sheet.getDataRange();
-  var vA=rg.getValues();
-  var rA=[];
-  for(var i=0;i<vA.length;i++)
-  {
-    if (value1)
-    {
-      if(vA[i][col1-1]==value1 && vA[i][col2-1]==value2)
-      {
-        rA.push(i+1);
-      }
-    }
-    else
-    {
-      if(vA[i][col2-1]==value2)
-      {
-        rA.push(i+1);
-      }
-    }
-  }
-  // SpreadsheetApp.getUi().alert(rA.join(','));
-  return rA;//as an array
-  //return rA.join(',');//as a string
-}
-
-// Just converts data with first row containing names to json
-function getJsonArrayFromData(data)
-{
-  var obj = {};
-  var result = [];
-  var headers = data[0];
-  var cols = headers.length;
-  var row = [];
-
-  for (var i = 1, l = data.length; i < l; i++)
-  {
-    // get a row to fill the object
-    row = data[i];
-    // clear object
-    obj = {};
-    for (var col = 0; col < cols; col++)
-    {
-      // fill object with new values
-      obj[headers[col]] = row[col];
-    }
-    // add object in a final result
-    result.push(obj);
-  }
-
-  return result;
-}
-
-// https://stackoverflow.com/questions/36346918/get-column-values-by-column-name-not-column-index
-function getCellRangeByColumnName(sheet, columnName, row) {
-  let data = sheet.getDataRange().getValues();
-  let column = data[0].indexOf(columnName);
-  if (column != -1) {
-    return sheet.getRange(row, column + 1, 1, 1);
-  }
-}
-
-function getCellValueByColumnName(sheet, columnName, row) {
-  let cell = getCellRangeByColumnName(sheet, columnName, row);
-  if (cell != null) {
-    return cell.getValue();
-  }
-}
-
-function setCellValueByColumnName(sheet, columnName, row, value)
-{
-  if (typeof value == "string")
-  {
-    value = [[value]];
-  }
-  let cell = getCellRangeByColumnName(sheet, columnName, row);
-  if (cell != null) {
-    return cell.setValues(value);
-  }
-}
+// getAllRows ▲
