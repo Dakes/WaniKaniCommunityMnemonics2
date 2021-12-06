@@ -66,7 +66,7 @@ function handleResponse(e)
   }
   else if (e.parameter.exec == "put")
   {
-    if (user && item && type && mnemType && mnemIndex && mnem)
+    if (user && item && type && mnemType && mnemIndex >= 0 && mnem)
     {
       return putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
     }
@@ -76,12 +76,19 @@ function handleResponse(e)
   else if (e.parameter.exec == "vote")
   {
     // user, item, type, mnemType, mnemUser, score
-    if(user && item && type && mnemType && mnemUser && score)
+    if(user && item && type && mnemType && mnemUser && score && mnemIndex >= 0)
     {
       return vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
     }
     else
       return getError();
+  }
+  else if (e.parameter.exec == "request")
+  {
+    if (user && item && type && mnemType)
+    {
+      return putMnem(sheet, user, item, type, mnemType, 0, "!");
+    }
   }
   else
     return getError();

@@ -77,6 +77,7 @@ returns a json with data of columns: Type, Item, Meaning_Mnem, Meaning_Score, Re
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` (The nth of your mnemonics. 1 for second one. )  
 `mnem = "Your very creative Mnemonic" / "Or a correction of an existing mnemonic"`  
+If you use a "!" as the Mnemonic it becomes a request. 
 #### vote
 `exec = vote`  
 `item = 林`  
@@ -86,6 +87,12 @@ returns a json with data of columns: Type, Item, Meaning_Mnem, Meaning_Score, Re
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` (The nth of your mnemonics. 1 for second one. )  
 `score = -1/0/1` Your new voting for the mnem.   
+#### request
+`exec = request`  
+`item = 林`  
+`type = k/v/r` (Kanji, Vocabulary, Radical)  
+`user = Dakes` You  
+`mnemType = m/r` (Meaning/Reading)  
 
 ## Roadmap
 
