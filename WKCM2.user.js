@@ -63,7 +63,7 @@ let WKUser;
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-let sheetAppsScriptURL = "https://script.google.com/macros/s/AKfycbwxkCj1TIt4Nll8POcjx8qOwJTse2SUyNox5K4KfV_WmNXcIUAbZKzzLwLCuJDaVyXc-g/exec";
+let sheetApiUrl = "https://script.google.com/macros/s/AKfycbwkpw1CDANts1oc9EoyOJ2H-91rdm7DHICBa0rymP2au8Fpxnairkvr5lXkOx_FbOtmlg/exec";
 
 // colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
@@ -583,7 +583,7 @@ function initButtons(mnemType)
 }
 
 /**
- * Adds a Event Listener for a click event to the element with id.
+ * Adds a Event Listener for a click event to the element with id id.
  * */
 function addClickEvent(id, func, params)
 {
@@ -606,16 +606,16 @@ function initInteractionButtons(mnemType)
 function initEditButtons(mnemType)
 {
 
-    addClickEvent("cm-" + mnemType + "-save", editSaveCM, [mnemType]);
-    addClickEvent("cm-" + mnemType + "-cancel", editCancelCM, [mnemType]);
-    addClickEvent("cm-format-" + mnemType + "-bold", insertTag, [mnemType, "b"]);
-    addClickEvent("cm-format-" + mnemType + "-italic", insertTag, [mnemType, "i"]);
-    addClickEvent("cm-format-" + mnemType + "-underline", insertTag, [mnemType, "u"]);
-    addClickEvent("cm-format-" + mnemType + "-strike", insertTag, [mnemType, "s"]);
-    addClickEvent("cm-format-" + mnemType + "-reading", insertTag, [mnemType, "read"]);
-    addClickEvent("cm-format-" + mnemType + "-rad", insertTag, [mnemType, "rad"]);
-    addClickEvent("cm-format-" + mnemType + "-kan", insertTag, [mnemType, "kan"]);
-    addClickEvent("cm-format-" + mnemType + "-voc", insertTag, [mnemType, "voc"]);
+    addClickEvent(`cm-${mnemType}-save`,             editSaveCM,   [mnemType]);
+    addClickEvent(`cm-${mnemType}-cancel`,           editCancelCM, [mnemType]);
+    addClickEvent(`cm-format-${mnemType}-bold`,      insertTag,    [mnemType, "b"]);
+    addClickEvent(`cm-format-${mnemType}-italic`,    insertTag,    [mnemType, "i"]);
+    addClickEvent(`cm-format-${mnemType}-underline`, insertTag,    [mnemType, "u"]);
+    addClickEvent(`cm-format-${mnemType}-strike`,    insertTag,    [mnemType, "s"]);
+    addClickEvent(`cm-format-${mnemType}-reading`,   insertTag,    [mnemType, "read"]);
+    addClickEvent(`cm-format-${mnemType}-rad`,       insertTag,    [mnemType, "rad"]);
+    addClickEvent(`cm-format-${mnemType}-kan`,       insertTag,    [mnemType, "kan"]);
+    addClickEvent(`cm-format-${mnemType}-voc`,       insertTag,    [mnemType, "voc"]);
 
 }
 
@@ -656,6 +656,19 @@ function getShortItemType(type)
         return "r"
     else
         throw new Error("WKCM2: getShortItemType got wrong ItemType: "+type);
+}
+
+/**
+ * converts meaning -> m, reading -> r
+ * */
+function getShortMnemType(type)
+{
+    if (type === "reading" || type === "r" || type === "Reading")
+        return "r"
+    else if (type === "meaning" || type === "m" || type === "Meaning")
+        return "m"
+    else
+        throw new Error("WKCM2: getShortMnemType got wrong ItemType: "+type);
 }
 
 /**
@@ -702,7 +715,7 @@ function getCMdivContent(mnemType)
         <div id="cm-${mnemType}-delete" class="cm-delete-highlight cm-small-button disabled">Delete</div>
         <div id="cm-${mnemType}-request" class="cm-request-highlight cm-small-button disabled">Request</div>
         </div><br>
-        <div id="cm-${mnemType}-submit" class="cm-submit-highlight">Submit Yours</div></div>`;
+        <div id="cm-${mnemType}-submit" class="cm-submit-highlight disabled">Submit Yours</div></div>`;
 
     return content;
 }
@@ -769,12 +782,31 @@ function editCM(mnemType)
 
 function deleteCM(mnemType)
 {
-
+    alert("Deleting Mnemonics is not yet implemented. ");
 }
 
 function requestCM(mnemType)
 {
-    
+    let item = getItem();
+    let shortType = getShortItemType(getItemType());
+    let shortMnemType = getShortMnemType(mnemType);
+
+    let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&&exec=request`;
+    url = encodeURI(url);
+
+    fetch(url).then(response =>
+        {
+            if (response == "success")
+            {
+                // do something to celebrate the successfull insertion of the request
+            }
+            else if (response == "error")  // includes error not ==
+            {
+                // do something to handle the failure
+            }
+        }).catch(reason => console.log("WKCM2: requestCM failed: "+reason));
+
+    addClass(`cm-${mnemType}-request`);
 }
 
 function submitCM(mnemType)
@@ -1093,7 +1125,7 @@ function getMnemRequestedMsg(users)
     let len = users.length;
     let msg = `A Mnemonic was [request]requested[/request] for this item. [br][request]Help the community by being the first to submit one![/request]`;
     if (len === 1)
-        msg = `A Mnemonic was [request]requested[/request] by user [request]${users[0]}[/request]. [br]Help them by being the first to submit one! `;
+        msg = `A Mnemonic was [request]requested[/request] by the user [request]${users[0]}[/request]. [br]Help them by being the first to submit one! `;
     else if (len > 1)
         msg = `A Mnemonic was [request]requested[/request] by the users [request]${users.slice(0, -1).join(', ')+' and '+users.slice(-1)}[/request]. [br]Help them by being the first to submit one! `;
     return msg;
@@ -1223,7 +1255,11 @@ function updateCMelements(mnemType, type, dataJson, index=0)
         else if (Object.keys(mnemJson)[0] == "!")
         {
             updateIframe(mnemType, getMnemRequestedMsg(mnemJson["!"]));
-            removeClass(`cm-${mnemType}-request`);
+            if (mnemJson["!"].includes(WKUser))
+                addClass(`cm-${mnemType}-request`);
+            else
+                removeClass(`cm-${mnemType}-request`);
+            // disable request button, if user already requested
         }
         // default case. Mnem available
         else
@@ -1260,7 +1296,7 @@ async function fetchData(item, type)
 {
     // TODO: sleep between failed fetches???
     let shortType = getShortItemType(type);
-    let url = sheetAppsScriptURL + `?item=${item}&type=${shortType}&exec=get`;
+    let url = sheetApiUrl + `?item=${item}&type=${shortType}&exec=get`;
     url = encodeURI(url);
     // TODO: handle case of malformed URL
     return fetch(url)
