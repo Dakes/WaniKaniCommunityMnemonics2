@@ -95,7 +95,7 @@ function test()
   let ac=SpreadsheetApp.getActive();
   let sheet=ac.getSheetByName('WKCM2');
 
-  let user = "Dakes";
+  let user = "DerTester";
   let item = "🍜";
   item = "🍱";
   let type = "r";
@@ -103,11 +103,11 @@ function test()
   let mnemType = "m";
   let mnemUser = "Dakes";
   let score = "1";
-  let mnem = "🍙 Onigiri 🍙 ";
+  let mnem = "🍙 Onigiri of doom 🍙 ";
   //mnem = "!";
 
-  // vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
-  putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
+  vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
+  // putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
   // let data = getData(sheet, type, item);
   // console.log("data: ", data);
 }
@@ -140,10 +140,16 @@ function getData(sheet, type, item)
     json_data = getJsonArrayFromData(data);
   }
 
+  // in case of no mnem empty array: []
   // delete votes. only scores are relevant to client
-  delete json_data[0]["Meaning_Votes"];
-  delete json_data[0]["Reading_Votes"];
-  json_data = json_data[0]
+  if (json_data[0] != null)
+  {
+    delete json_data[0]["Meaning_Votes"];
+    delete json_data[0]["Reading_Votes"];
+    json_data = json_data[0];
+  }
+  else
+    json_data = null;
 
   // send back data to client
   return ContentService.createTextOutput(JSON.stringify(json_data) ).setMimeType(ContentService.MimeType.JSON);
