@@ -11,7 +11,7 @@
 // @include     *.wanikani.com/review/session
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
-// @version     0.1
+// @version     0.1.1
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
@@ -28,17 +28,20 @@
 *  Details: http://creativecommons.org/licenses/by-nc/4.0/ */
 
 
-let WKCM2_version = "0.1";
-let scriptName = 'WKCM2';
-let scriptNameLong = 'WaniKani Community Mnemonics 2';
+const WKCM2_version = "0.1.1";
+const scriptName = 'WKCM2';
+const scriptNameLong = 'WaniKani Community Mnemonics 2';
+
+// Maximum number, how many mnemonics one user can submit for one item. 
+const mnemMaxCount = 5;
 
 // whether to use console logs
-let devel = true;
+const devel = true;
 
 // if current page is Review page
-let isReview = (window.location.pathname.indexOf("/review/") > -1);
+const isReview = (window.location.pathname.indexOf("/review/") > -1);
 // if current page is Lesson page
-let isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
+const isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
 
 // Only true in list of items
 let CMIsList = false;
@@ -56,12 +59,11 @@ if (!isReview && !isLesson)
 // TODO: true on individual item pages
 let CMIsItem = false;
 
-
-// global variables
 let WKUser;
 
+// Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-let sheetAppsScriptURL = "https://script.google.com/macros/s/AKfycbw-A6MH6YB80nzK3xfKEegBcddSCx9-gpzH--024sv0XboDLqI7qdbh6dqD5sqKKoYW_A/exec";
+let sheetAppsScriptURL = "https://script.google.com/macros/s/AKfycbwxkCj1TIt4Nll8POcjx8qOwJTse2SUyNox5K4KfV_WmNXcIUAbZKzzLwLCuJDaVyXc-g/exec";
 
 // colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
@@ -314,7 +316,7 @@ function resetWKOFcache()
 
         if (WKCM2_version != value)
         {
-            printDev("WKCM2: Deleting cache.");
+            printDev("WKCM2: New version detected. Deleting wkcm2 cache.");
             // regex delete of all wkcm2 saves
             wkof.file_cache.delete(/^wkcm2-/);
             wkof.file_cache.save("wkcm2-version", WKCM2_version);
@@ -662,15 +664,13 @@ function getShortItemType(type)
  * */
 function getInitialIframe(mnemType)
 {
-    let CMMnemType = getFullMnemType(mnemType);
+    let fullMnemType = getFullMnemType(mnemType);
 
-    let CMIframeId = "cm-iframe-" + CMMnemType;
-    let CMIframeClass = "cm-mnem-text";
-    let CMinitialIframe = getIframeSrcdoc("Loading Community Mnemonic ...");
-    let CMUserContentIframe = "<iframe sandbox referrerpolicy='no-referrer' scrolling='no' frameBorder='0' class='" + CMIframeClass + "' id='" + CMIframeId + "' srcdoc=\""+ CMinitialIframe + " \" "+// width='700' height='150' " +
-        "" +
-        "</iframe>";
-    return CMUserContentIframe;
+    let iframeId = "cm-iframe-" + fullMnemType;
+    let iframeClass = "cm-mnem-text";
+    let initialSrcdoc = getIframeSrcdoc("Loading Community Mnemonic ...");
+    let userContentIframe = `<iframe sandbox referrerpolicy='no-referrer' scrolling='no' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
+    return userContentIframe;
 }
 
 /**
@@ -685,18 +685,13 @@ function getCMdivContent(mnemType)
      */
 
     mnemType = getFullMnemType(mnemType);
-    let CMItem = null;
-    let CMLen = 1;
-    let CMPage = 1;
+    let userContentIframe = getInitialIframe(mnemType);
 
-    let CMUserContentIframe = getInitialIframe(mnemType);
-
-    let CMtypeHeader = "<h2>" + mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic</h2>"
-    let CMContent =
-        CMtypeHeader +
-        // left arrow
+    let typeHeader = "<h2>" + mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic</h2>"
+    let content =
+        typeHeader +
         `<div id="cm-${mnemType}-prev" class="cm-prev disabled"><span>◄</span></div>
-        ${CMUserContentIframe}
+        ${userContentIframe}
         <div id="cm-${mnemType}-next" class="cm-next disabled"><span>►</span></div>
         <div id="cm-${mnemType}-info" class="cm-info">
         <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
@@ -709,7 +704,7 @@ function getCMdivContent(mnemType)
         </div><br>
         <div id="cm-${mnemType}-submit" class="cm-submit-highlight">Submit Yours</div></div>`;
 
-    return CMContent;
+    return content;
 }
 
 function addClass(id, className="disabled")
@@ -940,19 +935,17 @@ function getCMBadge(isRecent, isReq) {
  * */
 function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
 {
+    // console.log("updateCM: ", mnemJson, mnemType);
     // sick recursive execution, to only require one fetch of data for each item. 
 
     // display loading message
-    for (let ele of mnemType)
-    {
-        let iframe = document.getElementById("cm-iframe-" + ele);
-        if (iframe)
-            iframe.srcdoc = getIframeSrcdoc("Loading Community Mnemonic ...");
-    }
+    if (typeof mnemType == "object")
+        for (let ele of mnemType)
+            updateIframe(ele, "Loading Community Mnemonic ...")
 
     let type = getItemType();
 
-    if (mnemJson != false)
+    if (mnemJson !== false)
     {
         if (typeof mnemType === "string")
             mnemType = [mnemType];
@@ -964,7 +957,11 @@ function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
         let item = getItem();
         getMnemonic(item, type).then((mnemJson) =>
             {
-                updateCM(mnemJson, mnemType, index);
+                if (typeof mnemJson == "undefined" || mnemJson == null)
+                    updateCM(null, mnemType, index);
+                    // setTimeout(function(){ updateCM(false, mnemType, index) }, 100);
+                else
+                    updateCM(mnemJson, mnemType, index);
             });
     }
 
@@ -992,13 +989,27 @@ function getWKcss()
     return getWKcss.css;
 }
 
-function replaceMarkup(text, list)
+function replaceMarkup(text)
 {
+    let list = ["b", "i", "u", "s", "br"];
     for (const ele of list)
     {
         text = text.replaceAll("["+ ele +"]", "<"+ ele +">");
         text = text.replaceAll("[/"+ ele +"]", "</"+ ele +">");
     }
+    
+    text = text.replaceAll("[/span]", `</span>`);
+    text = text.replaceAll("[kan]", `<span class="highlight-kanji">`);
+    text = text.replaceAll("[/kan]", `</span>`);
+    text = text.replaceAll("[voc]", `<span class="highlight-vocabulary">`);
+    text = text.replaceAll("[/voc]", `</span>`);
+    text = text.replaceAll("[rad]", `<span class="highlight-radical">`);
+    text = text.replaceAll("[/rad]", `</span>`);
+    text = text.replaceAll("[read]", `<span class="highlight-reading">`);
+    text = text.replaceAll("[/read]", `</span>`);
+    text = text.replaceAll("[request]", `<span class="request">`);
+    text = text.replaceAll("[/request]", `</span>`);
+    
     return text;
 }
 
@@ -1043,38 +1054,36 @@ body
     padding: 1px !important;
 }
 </style>`;
+    cssString = cssString.replaceAll('"', "'");
     
 
     // replace " by ' / \"
-    text = text.replaceAll('"', "'");
-    text = replaceMarkup(text, ["b", "i", "u", "s", "br"]);
+    // text = text.replaceAll('"', "'");
+    text = text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+               .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+    text = replaceMarkup(text);
 
-    text = text.replaceAll("[/span]", `</span>`);
-    text = text.replaceAll("[kan]", `<span class="highlight-kanji">`);
-    text = text.replaceAll("[/kan]", `</span>`);
-    text = text.replaceAll("[voc]", `<span class="highlight-vocabulary">`);
-    text = text.replaceAll("[/voc]", `</span>`);
-    text = text.replaceAll("[rad]", `<span class="highlight-radical">`);
-    text = text.replaceAll("[/rad]", `</span>`);
-    text = text.replaceAll("[read]", `<span class="highlight-reading">`);
-    text = text.replaceAll("[/read]", `</span>`);
+   // text = escape(text);
     
     let userMsg = "";
     // user can be null, if it is a system message
     if (user != null && typeof user === "string" && user != "")
     {
+        user = user.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+                   .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
         userMsg = "by " + getUserProfileLink(user);
-        
     }
 
 
-    let srcdoc = `<html><head>${cssString}</head><body><div class="col2">${text}</div><div id="user-link">${userMsg}</div></body></html>`;
+    let srcdoc = `<html><head>${cssString}</head><body><div class='col2'>${text}</div><div id='user-link'>${userMsg}</div></body></html>`;
+    // srcdoc = escape(srcdoc);
     return srcdoc;
 }
+// getIframeSrcdoc ▲
 
 function getNoMnemMsg()
 {
-    let msg = `No Community Mnemonic for this item exists yet. <br>Be the first to submit one.`;
+    let msg = `No Community Mnemonic for this item exists yet. [br]Be the first to submit one.`;
     return msg;
 }
 
@@ -1082,11 +1091,11 @@ function getMnemRequestedMsg(users)
 {
     // TODO: make request color darker red, the more users requested
     let len = users.length;
-    let msg = `A Mnemonic was <div class="request">requested</div> for this item. <br><div class="request">Help the community by being the first to submit one!</div>`;
+    let msg = `A Mnemonic was [request]requested[/request] for this item. [br][request]Help the community by being the first to submit one![/request]`;
     if (len === 1)
-        msg = `A Mnemonic was <div class="request">requested</div> by user <div class="request">${users[0]}</div>. <br>Help them by being the first to submit one! `;
+        msg = `A Mnemonic was [request]requested[/request] by user [request]${users[0]}[/request]. [br]Help them by being the first to submit one! `;
     else if (len > 1)
-        msg = `A Mnemonic was <div class="request">requested</div> by the users <div class="request">${users.slice(0, -1).join(', ')+' and '+users.slice(-1)}</div>. <br>Help them by being the first to submit one! `;
+        msg = `A Mnemonic was [request]requested[/request] by the users [request]${users.slice(0, -1).join(', ')+' and '+users.slice(-1)}[/request]. [br]Help them by being the first to submit one! `;
     return msg;
 }
 
@@ -1150,16 +1159,39 @@ function toggleUserButtons(mnemType, owner)
 }
 
 /**
+ * wraps iframe update, to not update content, if it is the same as the currently displayed.
+ * This reduces these annoying flashes, where the whole iframe content disappears for a moment.
+ * @param text NOT the whole content, just the message, that will be visible.
+ * */
+function updateIframe(mnemType, text, user=null)
+{
+    let iframe = document.getElementById(`cm-iframe-${mnemType}`);
+    if (iframe == null)
+        return;
+
+    let newIframeHtml = getIframeSrcdoc(text, user);
+    let newIframeContent = /<body.*?>([\s\S]*)<\/body>/.exec(newIframeHtml)[1];
+    console.log(iframe.srcdoc);
+    let oldIframeContent = /<body.*?>([\s\S]*)<\/body>/.exec(iframe.srcdoc)[1];
+    console.log(newIframeContent);
+    console.log(oldIframeContent);
+    if (newIframeContent == oldIframeContent)
+        return;
+    iframe.srcdoc = newIframeHtml;
+}
+
+/**
  * function that is doing the updating of the iframe contents.
  * Getting called in updateCM from data promise to reduce clutter in nested .then()
  * @param mnemType reading or meaning
  * @param type kanji, vocabulary or radical
- * @param mnemJson json containing data from the DB: {Type: 'k', Item: '活', Meaning_Mnem: '', Reading_Mnem: '!', Meaning_Score: '', ...}
+ * @param dataJson json containing data from the DB:
+ * {Type: 'k', Item: '活', Meaning_Mnem: {...}, Reading_Mnem: '!', Meaning_Score: {...}, ...}
  * @param index Index of mnemonic and user in case of multiple. 
  * */
-function updateCMelements(mnemType, type, mnemJson, index=0)
+function updateCMelements(mnemType, type, dataJson, index=0)
 {
-    // write index of mnem into prev button html, for lack of a better solution. For switching mnems. 
+    // write index of mnem into prev button html, for lack of a better solution. For switching mnems.
     let leftBtn = document.getElementById(`cm-${mnemType}-prev`);
     // initialize and/or reset index
     leftBtn.dataset.currentIndex = index;
@@ -1172,43 +1204,37 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
     disableButtons(mnemType);
     removeClass(`cm-${mnemType}-submit`);
 
-    let iframe = document.getElementById("cm-iframe-" + mnemType);
-    if (iframe == null)
-        return;
-    
-    if (mnemJson != null)
+    if (dataJson != null)
     {
         let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
-        let userSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_User";
         let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
-        let len = mnemJson[mnemSelector].length;
-        if (len < index+1)
-            index = len-1;
-        else if (index < 0)
-            index = 0;
+        let scoreJson = jsonParse(dataJson[scoreSelector]);
+        let mnemJson = jsonParse(dataJson[mnemSelector]);
 
-        toggleArrows(mnemType, len, index);
+        toggleArrows(mnemType, getMnemCount(mnemJson), index);
 
-        // if it is "!" without array, Mnemonic is requested, multiple users possible
-        if (mnemJson[mnemSelector] == "!")
+        // no mnem available for current item
+        if (mnemJson == null)
         {
-            iframe.srcdoc = getIframeSrcdoc(getMnemRequestedMsg(mnemJson[userSelector]));
+            updateIframe(mnemType, getNoMnemMsg());
             removeClass(`cm-${mnemType}-request`);
         }
-        // no mnem available for current item
-        else if (mnemJson[mnemSelector][0] === "" || mnemJson[mnemSelector] === "")
+        // request JSON: {"!": ["Anonymous", "Dakes"]}
+        else if (Object.keys(mnemJson)[0] == "!")
         {
-            iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+            updateIframe(mnemType, getMnemRequestedMsg(mnemJson["!"]));
             removeClass(`cm-${mnemType}-request`);
         }
         // default case. Mnem available
         else
         {
-            iframe.srcdoc = getIframeSrcdoc(mnemJson[mnemSelector][index], mnemJson[userSelector][index]);
-            setScore(mnemType, mnemJson[scoreSelector][index]);
-            toggleUserButtons(mnemType, mnemJson[userSelector][index] == WKUser);
-            // disable submit button if user already submitted one mnem
-            if (mnemJson[userSelector].includes(WKUser))
+            let mnemCount = getMnemCount(mnemJson);
+            updateIframe(mnemType, ...getNthDataUser(mnemJson, index));  // (mnem, user)
+            let score = getNthScore(scoreJson, index);
+            setScore(mnemType, score);
+            toggleUserButtons(mnemType, getNthDataUser(mnemJson, index)[1] == WKUser);
+            // disable submit button if user submitted too many mnems
+            if (getUserMnemCount(mnemJson, WKUser) > mnemMaxCount)
                 addClass(`cm-${mnemType}-submit`);
 
         }
@@ -1216,10 +1242,11 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
     // no mnem available for both items
     else
     {
-        iframe.srcdoc = getIframeSrcdoc(getNoMnemMsg());
+        updateIframe(mnemType, getNoMnemMsg());  // (mnem, user)
         removeClass(`cm-${mnemType}-request`);
     }
 }
+// updateCMelements ▲
 
 // Update Mnemnic content displayed ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -1231,18 +1258,18 @@ function updateCMelements(mnemType, type, mnemJson, index=0)
  * */
 async function fetchData(item, type)
 {
+    // TODO: sleep between failed fetches???
     let shortType = getShortItemType(type);
     let url = sheetAppsScriptURL + `?item=${item}&type=${shortType}&exec=get`;
-    let data = null;
+    url = encodeURI(url);
     // TODO: handle case of malformed URL
     return fetch(url)
-        .then((response)=>response.json())
-        .then((responseJson)=>
+        .then(response => response.json()).catch(reason => {console.log("WKCM2: fetchData failed: "+reason); return null;}).then((responseJson)=>
             {
-                if (responseJson[0] == null)
+                if (responseJson == null)
                     return null;
                 else
-                    return responseJson[0]
+                    return responseJson;
             }
         );
 }
@@ -1265,60 +1292,73 @@ function getCacheId(item, type)
  * */
 function getData(item, type)
 {
+    // static miss counter, to protect from infinite cache miss loop (only triggered when an error with the apps script exists)
+    if( typeof getData.misses == 'undefined' )
+        getData.misses = 0;
     if (type == null || type == "")
         throw new Error("WKCM2: Error, getData got empty type");
-     if (item == null || item == "")
+    if (item == null || item == "")
         throw new Error("WKCM2: Error, getData got empty item");
-   // TODO: NEXT redownload item after cache hit, after timeout
+    // TODO: NEXT redownload item after cache hit, after timeout
     let identifier = getCacheId(item, type);
 
     // TODO: implement cache and error handling
     // get from wkof cache
     // const data = fetchData(item, type).then(value => {
-    let data = wkof.file_cache.load(identifier).then(value  =>
+    let data = null;
+    data = wkof.file_cache.load(identifier).then(value  =>
         {
             // cache hit
             // return from cache
             // console.log("getData: fullfilled:", value);
             printDev("Cache hit for", identifier, value);
+            getData.misses = 0;
 
             // background update of cache, if date pulled is older than 2d
             const dayDiff = 2;
             cachedDate = Date.parse(wkof.file_cache.dir[identifier]["added"]);
             let pulledDiff = Math.floor((Date.now() - cachedDate) / 86400000);
             if (pulledDiff > dayDiff)
-            {
                 dataBackgroundUpdate(item, type, value);
-            }
             else
-            {
                 return value;
-            }
-
 
             return value;
         }, reason =>
         {
             // cache miss
-            // fetch data from db, put cache and return
+            // fetch data from db, put in cache and return
+
+            // protection against deadlock "just in case" 
+            if (getData.misses > 1000)
+            {
+                console.log("WKCM2: There was a problem with fetching the Mnemonic Data. ");
+                return null;
+            }
             printDev("Cache miss for", reason);
+            getData.misses++;
+
             fetchData(item, type).then(responseJson =>
-            {
-                // fetch worked
-                wkof.file_cache.save(identifier, responseJson);
-                let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
-                updateCM(splitData(reponseJsonCopy));
-                return responseJson;
-            }, reason =>
-            {
-                // fetch failed
-                // TODO: handle failed fetch
-                console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
-            });
+                {
+                    // fetch worked
+                    wkof.file_cache.save(identifier, responseJson);
+                    let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+                    updateCM(mnemJson=reponseJsonCopy);
+                    return responseJson;
+                    
+                }).catch(reason =>
+                {
+                    // fetch failed
+                    // TODO: handle failed fetch
+                    console.log("WKCM2: Error, getData, Fetch of data from spreadsheet failed: " + reason);
+                    // create and return "Error" object, to signale failed fetch and display that.
+                    return null;
+                });
         }
     );
     return data;
 }
+// getData ▲
 
 async function dataBackgroundUpdate(item, type, cachedData)
 {
@@ -1337,14 +1377,14 @@ async function dataBackgroundUpdate(item, type, cachedData)
     {
         // fetch worked
         // wkof.file_cache.save(identifier, responseJson);
-        // let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+        let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
         
-        // updateCM(splitData(reponseJsonCopy));
+        // updateCM(reponseJsonCopy);
 
         if (!isEqualsJson(cachedData, responseJson))
         {
             wkof.file_cache.save(identifier, responseJson);
-            updateCM(splitData(reponseJsonCopy));
+            updateCM(reponseJsonCopy);
         }
         
         return responseJson;
@@ -1352,49 +1392,115 @@ async function dataBackgroundUpdate(item, type, cachedData)
     {
         // fetch failed
         // TODO: handle failed fetch
-        console.log("WKCM2: Fetch of data from spreadsheet failed: " + reason);
+        console.log("WKCM2: Error, dataBackgroundUpdate, Fetch of data from spreadsheet failed: " + reason);
     });
 }
+// dataBackgroundUpdate ▲
 
 /**
- * @return promise containing Mnemonics for both Meaning and Reading for matching item and type
+ * @return promise containing json with Mnemonics for both Meaning and Reading for matching item and type
  * */
 function getMnemonic(item, type)
 {
     // item = "血";
     // type = "v";
-    return getData(item, type).then(splitData);
+    return getData(item, type);
 }
 
 /**
- * Takes data as json. Splits single user and mnemonic strings at Group Separator into array.
- * JSON now contains array instead, even if only one user/mnem contained.
- * If Mnemonic is requested ONLY contains "!" string NO array.
+ * wraps JSON.parse
+ * @return JSON, null if invalid
  * */
-function splitData(data)
+function jsonParse(jsonString)
 {
-    // if undefined or null, no mnemonic exist
-    if (data == null || typeof data === 'undefined' || Object.keys(data).length === 0)
+    let newJson = null;
+    if (jsonString != "" && typeof jsonString == "string")
     {
-        return null;
+        try
+        {
+            newJson = JSON.parse(jsonString);
+        }
+        catch (err)
+        {
+            console.log("WKCM2: jsonParse, got invalid json string: " + jsonString);
+        }
     }
+    // I hate JavaScript so much right now. for consistency if empty json, convert to null
+    if (newJson != null)
+        if (typeof newJson == "object")
+            if (Object.keys(newJson).length == 0)
+                mnemJson = null;
+    return newJson;
+}
 
-    // TODO: currently only for single mnems. Apply to whole data
-    if (data["Meaning_Mnem"] !== "!" && typeof data["Meaning_Mnem"] === "string")
-        data["Meaning_Mnem"] = data["Meaning_Mnem"].replaceAll("␝", "").split("\x1D");
-    if (data["Reading_Mnem"] !== "!" && typeof data["Reading_Mnem"] === "string")
-        data["Reading_Mnem"] = data["Reading_Mnem"].replaceAll("␝", "").split("\x1D");
+/**
+ * @param mnemJson json of either Meaning or Reading mnemonic. NOT whole data json
+ * @return total number of mnemonics
+ * */
+function getMnemCount(mnemJson)
+{
+    if (mnemJson == null)
+        return 0;
+    let mnemCount = 0;
+    for (let user in mnemJson)
+    {
+        mnemCount = mnemCount + mnemJson[user].length;
+    }
+    return mnemCount;
+}
 
-    // if (typeof data["Reading_Score"] == "number")
-    //     data["Reading_Score"] = data["Reading_Score"].toString()
-    data["Reading_Score"] = data["Reading_Score"].toString().replaceAll("␝", "").split("\x1D");
-    // if (typeof data["Meaning_Score"] == "number")
-    //     data["Meaning_Score"] = data["Meaning_Score"].toString()
-    data["Meaning_Score"] = data["Meaning_Score"].toString().replaceAll("␝", "").split("\x1D");
-    
-    data["Meaning_User"] = data["Meaning_User"].replaceAll("␝", "").split("\x1D");
-    data["Reading_User"] = data["Reading_User"].replaceAll("␝", "").split("\x1D");
+/**
+ * @param mnemJson json of either Meaning or Reading mnemonic. NOT whole data json
+ * @param user user whose mnems to count
+ * @return number of mnemonics user submitted
+ * */
+function getUserMnemCount(mnemJson, user)
+{
+    if (mnemJson == null)
+        return 0;
+    if (!mnemJson[user])
+        return 0;
+    return mnemJson[user].length;
+}
 
-    return data;
+/**
+ * @param innerJson inner json of data. either Meaning or Reading mnemonic. Or Votes. NOT whole data json.
+ * MUST be in the form: {"user": [1, 2, 3], "user2": [4, 5, 6]}
+ * @param n number of mnem to get.
+ * @return nth data point in json with user in Array [data, user]
+ * */
+function getNthDataUser(innerJson, n)
+{
+    if (innerJson == null)
+        return null;
+    count = 0;
+    for (let user in innerJson)
+    {
+        for (let data of innerJson[user])
+        {
+            if (count == n)
+                return [data, user];
+            ++count;
+        }
+    }
+    return null;
+}
+
+function getNthScore(scoreJson, n)
+{
+    try
+    {
+        let scoreUser = getNthDataUser(scoreJson, n);
+        if (scoreUser == null)
+            return 0;
+        let score = scoreUser[0];
+        score = (!score ? 0 : score);
+        return score;
+    }
+    catch (err)
+    {
+        console.log("WKCM2: Error, getNthScore: ", err);
+        return 0;
+    }
 }
 // Local data management ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
