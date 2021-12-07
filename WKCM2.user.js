@@ -522,7 +522,7 @@ function init()
         if (characterDiv != null)
             characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
         else
-            console.log("WKCM: init, character div NOT FOUND");
+            console.log("WKCM2: init, character div NOT FOUND");
 
 
     } else if (isLesson)
@@ -612,6 +612,7 @@ function initEditButtons(mnemType)
     addClickEvent(`cm-format-${mnemType}-italic`,    insertTag,    [mnemType, "i"]);
     addClickEvent(`cm-format-${mnemType}-underline`, insertTag,    [mnemType, "u"]);
     addClickEvent(`cm-format-${mnemType}-strike`,    insertTag,    [mnemType, "s"]);
+    // addClickEvent(`cm-format-${mnemType}-newline`,   insertText,   [mnemType, "\n"]);
     addClickEvent(`cm-format-${mnemType}-reading`,   insertTag,    [mnemType, "read"]);
     addClickEvent(`cm-format-${mnemType}-rad`,       insertTag,    [mnemType, "rad"]);
     addClickEvent(`cm-format-${mnemType}-kan`,       insertTag,    [mnemType, "kan"]);
@@ -794,6 +795,8 @@ function requestCM(mnemType)
     let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&&exec=request`;
     url = encodeURI(url);
 
+    addClass(`cm-${mnemType}-request`);
+    
     fetch(url).then(response =>
         {
             if (response == "success")
@@ -804,9 +807,7 @@ function requestCM(mnemType)
             {
                 // do something to handle the failure
             }
-        }).catch(reason => console.log("WKCM2: requestCM failed: "+reason));
-
-    addClass(`cm-${mnemType}-request`);
+        }).catch(reason => console.log("WKCM2: requestCM failed: "+reason)).then(dataUpdateAfterInsert());
 }
 
 function submitCM(mnemType)
@@ -871,12 +872,12 @@ function editCancelCM(mnemType)
     
 }
 
-/*
- * Insert the tag "tag" at current cursor position, or around highlighted text. 
- */
+/**
+ * Insert the tag "tag" in mnem writing field, at current cursor position, or around highlighted text.
+ * */
 function insertTag(mnemType, tag)
 {
-    let textarea = document.getElementById("cm-" + mnemType + "-text");
+    let textarea = document.getElementById(`cm-${mnemType}-text`);
     if (!textarea)
         return
 
@@ -894,6 +895,26 @@ function insertTag(mnemType, tag)
         document.execCommand('insertText', false /*no UI*/, insertText);
     }
     
+}
+
+/**
+ * TODO: actually needed?
+ * Insert the text in mnem writing field, at current cursor position.
+ * */
+function insertText(mnemType, text)
+{
+    let textarea = document.getElementById(`cm-${mnemType}-text`);
+    if (!textarea)
+        return
+    if (textarea.setRangeText)
+    {
+        //if setRangeText function is supported by current browser
+        textarea.setRangeText(text);
+    } else
+    {
+        textarea.focus()
+        document.execCommand('insertText', false /*no UI*/, text);
+    }
 }
 
 
@@ -971,9 +992,11 @@ function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
     // sick recursive execution, to only require one fetch of data for each item. 
 
     // display loading message
+    /*
     if (typeof mnemType == "object")
         for (let ele of mnemType)
             updateIframe(ele, "Loading Community Mnemonic ...")
+    */
 
     let type = getItemType();
 
@@ -1041,6 +1064,8 @@ function replaceMarkup(text)
     text = text.replaceAll("[/read]", `</span>`);
     text = text.replaceAll("[request]", `<span class="request">`);
     text = text.replaceAll("[/request]", `</span>`);
+
+    // text = text.replaceAll("[n]", `<br>`);
     
     return text;
 }
@@ -1106,9 +1131,7 @@ body
         userMsg = "by " + getUserProfileLink(user);
     }
 
-
     let srcdoc = `<html><head>${cssString}</head><body><div class='col2'>${text}</div><div id='user-link'>${userMsg}</div></body></html>`;
-    // srcdoc = escape(srcdoc);
     return srcdoc;
 }
 // getIframeSrcdoc ▲
@@ -1178,7 +1201,6 @@ function toggleUserButtons(mnemType, owner)
         addClass(`cm-${mnemType}-request`);
         addClass(`cm-${mnemType}-upvote`);
         addClass(`cm-${mnemType}-downvote`);
-        addClass(`cm-${mnemType}-submit`);
     }
     else if (owner == false)
     {
@@ -1203,10 +1225,8 @@ function updateIframe(mnemType, text, user=null)
 
     let newIframeHtml = getIframeSrcdoc(text, user);
     let newIframeContent = /<body.*?>([\s\S]*)<\/body>/.exec(newIframeHtml)[1];
-    console.log(iframe.srcdoc);
     let oldIframeContent = /<body.*?>([\s\S]*)<\/body>/.exec(iframe.srcdoc)[1];
-    console.log(newIframeContent);
-    console.log(oldIframeContent);
+
     if (newIframeContent == oldIframeContent)
         return;
     iframe.srcdoc = newIframeHtml;
@@ -1232,7 +1252,6 @@ function updateCMelements(mnemType, type, dataJson, index=0)
     //reset score display
     setScore(mnemType, 0);
 
-    // TODO: NEXT activate/deactivate buttons
     disableButtons(mnemType);
     removeClass(`cm-${mnemType}-submit`);
 
@@ -1350,8 +1369,8 @@ function getData(item, type)
             printDev("Cache hit for", identifier, value);
             getData.misses = 0;
 
-            // background update of cache, if date pulled is older than 2d
-            const dayDiff = 2;
+            // background update of cache, if date pulled is older than 7d
+            const dayDiff = 7;
             cachedDate = Date.parse(wkof.file_cache.dir[identifier]["added"]);
             let pulledDiff = Math.floor((Date.now() - cachedDate) / 86400000);
             if (pulledDiff > dayDiff)
@@ -1396,42 +1415,131 @@ function getData(item, type)
 }
 // getData ▲
 
-async function dataBackgroundUpdate(item, type, cachedData)
+function isEqualsJson(obj1, obj2)
+{
+    if (obj1 == null && obj2 == null)
+        return true;
+    else if (obj1 == null || obj2 == null)
+        return false;
+    keys1 = Object.keys(obj1);
+    keys2 = Object.keys(obj2);
+
+    //return true when the two json has same length and all the properties has same value key by key
+    return keys1.length === keys2.length && Object.keys(obj1).every(key=>obj1[key]==obj2[key]);
+}
+
+/**
+ * Update the displayed Mnemonic & cache in the background. If a new one is available
+ * @param item item to update (星). Will be set if null.
+ * @param item type of item (kanji) Will be set if null.
+ * @param cachedData old data json (currently in cache) will be updated, if new version is different.
+ * @param wait number of ms to wait with execution, or false. (Because after insertion into sheet it takes a moment for the updated version to be returned. Annoyingly even when using promises. )
+ * @param 
+ * */
+async function dataBackgroundUpdate(item=null, type=null, cachedData=null, wait=false)
 {
     console.log("dataBackgroundUpdate");
-    var isEqualsJson = (obj1,obj2)=>
-    {
-        keys1 = Object.keys(obj1);
-        keys2 = Object.keys(obj2);
 
-        //return true when the two json has same length and all the properties has same value key by key
-        return keys1.length === keys2.length && Object.keys(obj1).every(key=>obj1[key]==obj2[key]);
+    if (wait && typeof wait == "number")
+    {
+        setTimeout(function()
+                {
+                    dataBackgroundUpdate(item, type, cachedData, wait=false);
+                }, wait);
+        return;
     }
-    
+
+    if (item == null)
+        item = getItem();
+    if (type == null)
+        type = getItemType();
+
+    console.log(item, type);
     let identifier = getCacheId(item, type);
     fetchData(item, type).then(responseJson =>
-    {
-        // fetch worked
-        // wkof.file_cache.save(identifier, responseJson);
-        let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
-        
-        // updateCM(reponseJsonCopy);
-
-        if (!isEqualsJson(cachedData, responseJson))
         {
-            wkof.file_cache.save(identifier, responseJson);
-            updateCM(reponseJsonCopy);
-        }
-        
-        return responseJson;
-    }, reason =>
-    {
-        // fetch failed
-        // TODO: handle failed fetch
-        console.log("WKCM2: Error, dataBackgroundUpdate, Fetch of data from spreadsheet failed: " + reason);
-    });
+            console.log(responseJson);
+            // fetch worked
+            // wkof.file_cache.save(identifier, responseJson);
+            let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+
+            // updateCM(reponseJsonCopy);
+
+            if (!isEqualsJson(cachedData, responseJson))
+            {
+                console.log("saving to cache, calling updateCM");
+                console.log(reponseJsonCopy);
+                wkof.file_cache.save(identifier, responseJson);
+                updateCM(reponseJsonCopy);
+            }
+
+            return responseJson;
+        }).catch( reason =>
+        {
+            // fetch failed
+            // TODO: handle failed fetch
+            console.log("WKCM2: Error, dataBackgroundUpdate, Fetch of data from spreadsheet failed: " + reason);
+        });
 }
 // dataBackgroundUpdate ▲
+
+/**
+ * Update the displayed Mnemonic & cache. It will be called after an submission to the sheet.
+ * So compared to dataBackgroundUpdate it expects an update, and will repeat the fetch a few times, until it gives up.
+ * After the insertion into the sheet it takes a few moments (~1-2s) until the new data is returned. 
+ * @param item item to update (星). Will be set if null.
+ * @param item type of item (kanji) Will be set if null.
+ * @param cachedData old data json (currently in cache) will be updated, if new version is different. Will be set if false. 
+ * @param tries number of times to retry before giving up, waits "wait"ms between executions.
+ * @param wait number of ms to wait with execution, or false. (Because after insertion into sheet it takes a moment for the updated version to be returned. Annoyingly even when using promises. )
+ * */
+function dataUpdateAfterInsert(item=null, type=null, cachedData=false, tries=5, wait=1000)
+{
+    if (tries < 0)
+    {
+        console.log("WKCM2: dataUpdateAfterInsert, Maximum number of tries reached, giving up. Currently displayed Mnemonic will not be updated. ");
+        return;
+    }
+    if (item == null)
+        item = getItem();
+    if (type == null)
+        type = getItemType();
+    let identifier = getCacheId(item, type);
+    
+    if (cachedData === false)
+    {
+        wkof.file_cache.load(identifier).then(cachedData  => dataUpdateAfterInsert(item, type, cachedData, tries, wait));
+        return;
+    }
+
+    fetchData(item, type).then(responseJson =>
+        {
+            // fetch worked
+            let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+
+            if (!isEqualsJson(cachedData, responseJson))
+            {
+                wkof.file_cache.save(identifier, responseJson);
+                updateCM(reponseJsonCopy);
+            }
+            else
+            {
+                // retry after "wait" ms
+                setTimeout(function()
+                {
+                    dataUpdateAfterInsert(item, type, cachedData, --tries, wait);
+                }, wait);
+            }
+
+        }).catch( reason =>
+        {
+            // fetch failed
+            // TODO: handle failed fetch
+            console.log("WKCM2: Error, dataUpdateAfterInsert, Fetch of data from spreadsheet failed: " + reason);
+        });
+
+}
+// dataUpdateAfterInsert ▲
 
 /**
  * @return promise containing json with Mnemonics for both Meaning and Reading for matching item and type
