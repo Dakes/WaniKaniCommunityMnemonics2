@@ -20,12 +20,28 @@ score=1/-1, mnemUser=User whos mnem is being voted
 // If you don't want to expose either GET or POST methods you can comment out the appropriate
 function doGet(e)
 {
-    return handleResponse(e);
+    return handleResponseWaitLock(e);
 }
 
 function doPost(e)
 {
-    return handleResponse(e);
+    return handleResponseWaitLock(e);
+}
+
+function handleResponseWaitLock(e)
+{
+  const lock = LockService.getScriptLock();
+  // try for 1 minute
+  let success = lock.tryLock(1000 * 60);
+  if (!success)
+  {
+    Logger.log('Could not obtain lock after 1 Minute.');
+    return getError(", could not obtain lock after 1 Minute.");
+  }
+
+  let resp = handleResponse(e)
+  lock.releaseLock();
+  return resp;
 }
 
 function handleResponse(e)
@@ -33,19 +49,20 @@ function handleResponse(e)
 
   if (!e.parameter.exec)
   {
-    return getError();
+    return getError(", no exec parameter provided");
   }
 
   let ac=SpreadsheetApp.getActive();
   // let sheet=ac.getActiveSheet();
   let sheet=ac.getSheetByName(SHEET_NAME);
 
-  if (e.parameter.type)
-    if (e.parameter.type != "k" && e.parameter.type != "v" && e.parameter.type != "r")
-      return getError();
+
 
   // clean input Data
   let type = cleanData(e.parameter.type);
+  if (e.parameter.type)
+    if (e.parameter.type != "k" && e.parameter.type != "v" && e.parameter.type != "r")
+      return getError(", type parameter must be k, v or r. ");
   let item = cleanItem(e.parameter.item);
 
   let user = cleanData(e.parameter.user);
@@ -242,7 +259,10 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
     if (Object.keys(mnem_json).length == 0)
       mnem_json["!"] = [user];
     else
-      mnem_json["!"] = mnem_json["!"].concat(user);
+    {
+      if (!mnem_json["!"].includes(user))
+        mnem_json["!"] = mnem_json["!"].concat(user);
+    }
 
   }
   else // not request (mnemonic)
@@ -274,6 +294,11 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
     setCellValueByColumnName(sheet, mnem_col, row_count+1, new_mnem_string);
     setCellValueByColumnName(sheet, "Type", row_count+1, type);
     setCellValueByColumnName(sheet, "Item", row_count+1, item);
+    // insert new *_Score calculation formula
+    const score_formula = '=calc_score(INDIRECT("RC[-1]",FALSE))';
+    setCellValueByColumnName(sheet, "Meaning_Score", row_count+1, score_formula);
+    setCellValueByColumnName(sheet, "Reading_Score", row_count+1, score_formula);
+
   }
 
   return getSuccess();
