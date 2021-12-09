@@ -129,6 +129,9 @@ If you use a "!" as the Mnemonic it becomes a request.
 - "Hall of Fame" with most active users
 - sort Mnemonics by score
 
+## Known Bugs
+- when switching between items quickly, it can happen, that the first item finishes loading after the current one. (Especially when the current one was cached). Then the display update is triggered for the old one causing the display of the old mnemonic. 
+
 ## Other TODO
 - build a small tool that lets people bulk export their notes so that I can import them to the existing data set.  
 - Maybe do something with Timestamp in DB??

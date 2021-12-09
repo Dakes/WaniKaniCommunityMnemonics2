@@ -63,7 +63,7 @@ let WKUser;
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-let sheetApiUrl = "https://script.google.com/macros/s/AKfycbxEnhPK-grXmm9Adzz_VMluMXe6gMa8HyXqa3Rid3TCT6DY8EJCkk21Uj7z9TFRj5R0Fw/exec";
+let sheetApiUrl = "https://script.google.com/macros/s/AKfycbzDH0EriKNeJ0hGwQm7w1WAI9GXotyMnku953kxde06vhXeVE3azX3WSqmDYvpxT23p4w/exec";
 
 // colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
@@ -599,7 +599,7 @@ function initInteractionButtons(mnemType)
     addClickEvent(`cm-${mnemType}-delete`,  deleteCM,   [mnemType]);
     addClickEvent(`cm-${mnemType}-request`, requestCM,  [mnemType]);
     addClickEvent(`cm-${mnemType}-upvote`,  voteCM,     [mnemType, "1"]);
-    addClickEvent(`cm-${mnemType}-downvote`,voteCM,     [mnemType], "-1");
+    addClickEvent(`cm-${mnemType}-downvote`,voteCM,     [mnemType, "-1"]);
     addClickEvent(`cm-${mnemType}-submit`,  submitCM,   [mnemType]);
     addClickEvent(`cm-${mnemType}-prev`,    switchCM,   [mnemType, -1]);
     addClickEvent(`cm-${mnemType}-next`,    switchCM,   [mnemType, 1]);
@@ -834,14 +834,25 @@ function requestCM(mnemType)
 
 function voteCM(mnemType, vote)
 {
+    if (!voteCM.mnemUser || voteCM.mnemUser == undefined)
+        return;
+    if (Number.isNaN(Number(voteCM.mnemIndex)))
+        return;
     let item = getItem();
     let shortType = getShortItemType(getItemType());
     let shortMnemType = getShortMnemType(mnemType);
 
-    let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&exec=request`;
+    // user=WKUser: the one who is voting
+    // mnemUser: the one whose mnem is being voted
+    // mnemIndex: Index of mnems by user. NOT index of the whole json, as used by updateCM.
+    let url = sheetApiUrl + `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&user=${WKUser}&mnemUser=${voteCM.mnemUser}&mnemIndex=${voteCM.mnemIndex}&score=${vote}`;
     url = encodeURI(url);
+    console.log(url);
 
-    addClass(`cm-${mnemType}-request`);
+    if (Number(vote) >= 1)
+        addClass(`cm-${mnemType}-upvote`);
+    else if (Number(vote) <= -1)
+        addClass(`cm-${mnemType}-downvote`);
 
     fetch(url).then(response =>
         {
@@ -854,6 +865,8 @@ function voteCM(mnemType, vote)
                 // do something to handle the failure
             }
         }).catch(reason => console.log("WKCM2: requestCM failed: ", reason)).then(dataUpdateAfterInsert());
+    voteCM.mnemUser = undefined;
+    voteCM.mnemIndex = undefined;
 }
 
 function submitCM(mnemType)
@@ -1318,6 +1331,26 @@ function toggleArrows(mnemType, length, index)
     if (length > 0 && index > 0)
         removeClass(left);
 }
+/**
+ * Enables/Disables voring buttons depending on users vote
+ * votesJson["mnemUser"][mnemIndex]{WKuser} <-- contains vote
+ * */
+function toggleVotes(mnemType, votesJson, mnemUser, mnemIndex)
+{
+    try
+    {
+        let userVote = Number(votesJson[mnemUser][mnemIndex][WKUser]);
+        if (userVote >= 1)
+            addClass(`cm-${mnemType}-upvote`);
+        if (userVote <= -1)
+            addClass(`cm-${mnemType}-downvote`);
+    }
+    catch (err)
+    {
+        // catches "TypeError: Cannot read properties of undefined", because I am too lazy for 100 nested if checks
+    }
+
+}
 
 /**
  * Enable/Disable all buttons that depend on the Mnemonic being by the user, or not.
@@ -1388,8 +1421,10 @@ function updateCMelements(mnemType, type, dataJson, index=0)
     {
         let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
         let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
+        let votesSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Votes";
         let scoreJson = jsonParse(dataJson[scoreSelector]);
         let mnemJson = jsonParse(dataJson[mnemSelector]);
+        let votesJson = jsonParse(dataJson[votesSelector]);
 
         toggleArrows(mnemType, getMnemCount(mnemJson), index);
 
@@ -1417,11 +1452,16 @@ function updateCMelements(mnemType, type, dataJson, index=0)
             
             let mnemCount = getMnemCount(mnemJson);
             let nDataUser = getNthDataUser(mnemJson, index);
+            let mnemIndex = getUserIndex(mnemJson, index, nDataUser[1]);
             updateIframe(mnemType, ...nDataUser);  // (mnemType, mnem, user)
             let score = getNthScore(scoreJson, index);
             setScore(mnemType, score);
             toggleUserButtons(mnemType, nDataUser[1] == WKUser);
+            toggleVotes(mnemType, votesJson, nDataUser[1], mnemIndex);
             editCM.currentUser = nDataUser[1];
+            voteCM.mnemUser = nDataUser[1];
+            voteCM.mnemIndex = mnemIndex;
+            console.log(dataJson);
 
             // only if the currently displayed mnem is by user
             if (nDataUser[1] == WKUser)
@@ -1803,20 +1843,22 @@ function getNthScore(scoreJson, n)
  * Get the index of the users individual mnem from the global mnem index.
  * Relevant for editing mnem, to overwrite the correct one in the sheet.
  * */
-function getUserIndex(mnemJson, n)
+function getUserIndex(mnemJson, n, user=null)
 {
+    if (user == null)
+        user = WKUser;
     if (mnemJson == null)
         return 0;
-    if (mnemJson[WKUser] == null)
+    if (mnemJson[user] == null)
         return 0;
 
     count = 0;
-    for (let user in mnemJson)
+    for (let currentUser in mnemJson)
     {
         let userCount = 0;
-        for (let data of mnemJson[user])
+        for (let data of mnemJson[currentUser])
         {
-            if (count == n && user == WKUser)
+            if (count == n && currentUser == user)
                 return userCount;
             ++userCount;
             ++count;
