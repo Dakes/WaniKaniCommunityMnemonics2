@@ -75,7 +75,7 @@ returns a json with data of columns: Type, Item, Meaning_Mnem, Meaning_Score, Re
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
 `user = Dakes` You  
 `mnemType = m/r` (Meaning/Reading)  
-`mnemIndex = 0` (The nth of your mnemonics. 1 for second one. )  
+`mnemIndex = 0` (The nth of your mnemonics. 1 for second one. If -1, submit new one. New index would work as well)  
 `mnem = "Your very creative Mnemonic" / "Or a correction of an existing mnemonic"`  
 If you use a "!" as the Mnemonic it becomes a request. 
 #### vote
@@ -85,7 +85,7 @@ If you use a "!" as the Mnemonic it becomes a request.
 `user = Dakes` you  
 `mnemUser = Anonymous` The user whose mnem you are voting  
 `mnemType = m/r` (Meaning/Reading)  
-`mnemIndex = 0` (The nth of your mnemonics. 1 for second one. )  
+`mnemIndex = 0` The nth mnemonic by mnemUser. (1 for second one. )  
 `score = -1/0/1` Your new voting for the mnem.   
 #### request
 `exec = request`  
@@ -137,3 +137,5 @@ If you use a "!" as the Mnemonic it becomes a request.
 - Randomize default messages with alternatives
 - Think about handling image links
 - Add sorting by rating
+- Button for force refresh
+- Manual cache delete and fill (In wkof settings?)

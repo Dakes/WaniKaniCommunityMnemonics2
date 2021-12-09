@@ -63,7 +63,7 @@ let WKUser;
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-let sheetApiUrl = "https://script.google.com/macros/s/AKfycbwkpw1CDANts1oc9EoyOJ2H-91rdm7DHICBa0rymP2au8Fpxnairkvr5lXkOx_FbOtmlg/exec";
+let sheetApiUrl = "https://script.google.com/macros/s/AKfycbxEnhPK-grXmm9Adzz_VMluMXe6gMa8HyXqa3Rid3TCT6DY8EJCkk21Uj7z9TFRj5R0Fw/exec";
 
 // colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
@@ -150,7 +150,7 @@ let textareaCSS = /* css */`
     box-sizing: border-box; transition: text-shadow 0.15s linear; box-shadow: 0 -3px 0 rgb(0 0 0 / 20%) inset,
 }
 
-.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-strike
+.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-strike
 {
     background-color: #f5f5f5;
     background-image: -moz-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
@@ -232,7 +232,7 @@ let CMcontentCSS = /* css */`
 
 .cm-format { margin: 0 !important }
 
-.cm-format-bold, .cm-format-underline, .cm-format-strike { padding-left: 10px; padding-right: 10px }
+.cm-format-bold, .cm-format-underline, .cm-format-strike, .cm-format-newline { padding-left: 10px; padding-right: 10px }
 
 .cm-delete-text { position: absolute; opacity: 0; text-align: center }
 .cm-delete-text h3 { margin: 0 }
@@ -598,9 +598,11 @@ function initInteractionButtons(mnemType)
     addClickEvent(`cm-${mnemType}-edit`,    editCM,     [mnemType]);
     addClickEvent(`cm-${mnemType}-delete`,  deleteCM,   [mnemType]);
     addClickEvent(`cm-${mnemType}-request`, requestCM,  [mnemType]);
+    addClickEvent(`cm-${mnemType}-upvote`,  voteCM,     [mnemType, "1"]);
+    addClickEvent(`cm-${mnemType}-downvote`,voteCM,     [mnemType], "-1");
     addClickEvent(`cm-${mnemType}-submit`,  submitCM,   [mnemType]);
-    addClickEvent(`cm-${mnemType}-prev`,    prevCM,     [mnemType]);
-    addClickEvent(`cm-${mnemType}-next`,    nextCM,     [mnemType]);
+    addClickEvent(`cm-${mnemType}-prev`,    switchCM,   [mnemType, -1]);
+    addClickEvent(`cm-${mnemType}-next`,    switchCM,   [mnemType, 1]);
 }
 
 function initEditButtons(mnemType)
@@ -612,7 +614,7 @@ function initEditButtons(mnemType)
     addClickEvent(`cm-format-${mnemType}-italic`,    insertTag,    [mnemType, "i"]);
     addClickEvent(`cm-format-${mnemType}-underline`, insertTag,    [mnemType, "u"]);
     addClickEvent(`cm-format-${mnemType}-strike`,    insertTag,    [mnemType, "s"]);
-    // addClickEvent(`cm-format-${mnemType}-newline`,   insertText,   [mnemType, "\n"]);
+    addClickEvent(`cm-format-${mnemType}-newline`,   insertText,   [mnemType, "[n]"]);
     addClickEvent(`cm-format-${mnemType}-reading`,   insertTag,    [mnemType, "read"]);
     addClickEvent(`cm-format-${mnemType}-rad`,       insertTag,    [mnemType, "rad"]);
     addClickEvent(`cm-format-${mnemType}-kan`,       insertTag,    [mnemType, "kan"]);
@@ -683,7 +685,7 @@ function getInitialIframe(mnemType)
     let iframeId = "cm-iframe-" + fullMnemType;
     let iframeClass = "cm-mnem-text";
     let initialSrcdoc = getIframeSrcdoc("Loading Community Mnemonic ...");
-    let userContentIframe = `<iframe sandbox referrerpolicy='no-referrer' scrolling='no' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
+    let userContentIframe = `<iframe sandbox referrerpolicy='no-referrer' scrolling='auto' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
     return userContentIframe;
 }
 
@@ -763,22 +765,42 @@ function disableButtons(mnemType)
 
 function editCM(mnemType)
 {
+    if (editCM.mnem == undefined)
+        editCM.mnem = null;
+    if (editCM.mnem == null)
+        return;
+    if (editCM.currentUser == null)
+        return;
+    if (editCM.currentUser != WKUser)
+        return;
     // TODO: check if CM by user
 
-    let iframe = document.getElementById("cm-iframe-" + mnemType);
+    let iframe = document.getElementById(`cm-iframe-${mnemType}`);
     if (!iframe)
         return;
+
+    disableButtons(mnemType);
+
+    // save "edit" mode for submitCM function. 
+    editSaveCM.editMode = "edit";
 
     iframe.outerHTML = getCMForm(mnemType);
 
     // addClass("cm-" + mnemType + "-edit");
     // addClass("cm-" + mnemType + "-delete");
-    addClass("cm-" + mnemType + "-upvote");
-    addClass("cm-" + mnemType + "-downvote");
-    addClass("cm-" + mnemType + "-submit");
+    addClass(`cm-${mnemType}-upvote`);
+    addClass(`cm-${mnemType}-downvote`);
+    addClass(`cm-${mnemType}-submit`);
     
     initEditButtons(mnemType);
 
+    let textarea = document.getElementById(`cm-${mnemType}-text`);
+    if (textarea)
+    {
+        textarea.value = editCM.mnem;
+        editCM.mnem = undefined;
+    }
+    editCM.currentUser = undefined;
 }
 
 function deleteCM(mnemType)
@@ -792,7 +814,7 @@ function requestCM(mnemType)
     let shortType = getShortItemType(getItemType());
     let shortMnemType = getShortMnemType(mnemType);
 
-    let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&&exec=request`;
+    let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&exec=request`;
     url = encodeURI(url);
 
     addClass(`cm-${mnemType}-request`);
@@ -807,7 +829,31 @@ function requestCM(mnemType)
             {
                 // do something to handle the failure
             }
-        }).catch(reason => console.log("WKCM2: requestCM failed: "+reason)).then(dataUpdateAfterInsert());
+        }).catch(reason => console.log("WKCM2: requestCM failed: ", reason)).then(dataUpdateAfterInsert());
+}
+
+function voteCM(mnemType, vote)
+{
+    let item = getItem();
+    let shortType = getShortItemType(getItemType());
+    let shortMnemType = getShortMnemType(mnemType);
+
+    let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&exec=request`;
+    url = encodeURI(url);
+
+    addClass(`cm-${mnemType}-request`);
+
+    fetch(url).then(response =>
+        {
+            if (response == "success")
+            {
+                // do something to celebrate the successfull insertion of the request
+            }
+            else if (response == "error")  // includes error not ==
+            {
+                // do something to handle the failure
+            }
+        }).catch(reason => console.log("WKCM2: requestCM failed: ", reason)).then(dataUpdateAfterInsert());
 }
 
 function submitCM(mnemType)
@@ -818,59 +864,112 @@ function submitCM(mnemType)
     if (!iframe)
         return;
 
+    // save edit mode (whether editing or submitting new)
+    editSaveCM.editMode = "submit";
+
     iframe.outerHTML = getCMForm(mnemType);
-    addClass(`cm-${mnemType}-edit`);
-    addClass(`cm-${mnemType}-delete`);
-    addClass(`cm-${mnemType}-upvote`);
-    addClass(`cm-${mnemType}-downvote`);
-    addClass(`cm-${mnemType}-submit`);
+    // addClass(`cm-${mnemType}-edit`);
+    // addClass(`cm-${mnemType}-delete`);
+    // addClass(`cm-${mnemType}-upvote`);
+    // addClass(`cm-${mnemType}-downvote`);
+    // addClass(`cm-${mnemType}-submit`);
 
     initEditButtons(mnemType);
     disableButtons(mnemType);
 
 }
 
-function prevCM(mnemType)
-{
-    let btn = document.getElementById(`cm-${mnemType}-prev`);
-    let idx = Number(btn.dataset.currentIndex);
-    updateCM(false, mnemType, idx-1);
-}
-
-function nextCM(mnemType)
-{
-    let btn = document.getElementById(`cm-${mnemType}-prev`);
-    let idx = Number(btn.dataset.currentIndex);
-    updateCM(false, mnemType, idx+1);
-}
-
+/**
+ * Save button during Mnemonic writing. Submitting and edit.
+ * Submit Mnemonic to Database Sheet. 
+ * */
 function editSaveCM(mnemType)
 {
-    // TODO: check if CM by user
-
-    let editForm = document.getElementById("cm-" + mnemType + "-form");
-    if (!editForm)
+    let textarea = document.getElementById(`cm-${mnemType}-text`);
+    if (!textarea)
         return;
 
-    // TODO: submit text to DB
-    editForm.outerHTML = getInitialIframe(mnemType);
-    disableButtons(mnemType);
-    initEditButtons(mnemType);
+    let newMnem = replaceInNewMnem(textarea.value);
+    if (newMnem == editSaveCM.mnem)
+        return;
+
+    addClass(`cm-${mnemType}-save`);
+
+    let type = getItemType();
+    let shortType = getShortItemType(type);
+    let item = getItem();
+    let shortMnemType = getShortMnemType(mnemType);
+
+    if (editSaveCM.editMode === undefined)
+        editSaveCM.editMode = "submit";
+    // index of the mnemonic for this user in the DB. Needed to update the correct one
+    let mnemIndexDB = editSaveCM.userIndex;
+    // append new mnem if mode is submit
+    if (editSaveCM.editMode == "submit")
+        mnemIndexDB = -1;
+    
+    // restore iframe. needed by dataUpdate after insert. 
+    let editForm = document.getElementById(`cm-${mnemType}-form`);
+    if (editForm)
+    {
+        editForm.outerHTML = getInitialIframe(mnemType);
+        disableButtons(mnemType);
+    }
+
+    // assemble url and call to put data
+    let url = sheetApiUrl +
+        `?exec=put&item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&mnemIndex=${mnemIndexDB}&mnem=${newMnem}`;
+    url = encodeURI(url);
+
+    fetch(url).then().catch(reason => console.log("WKCM2: editSaveCM failed: ", reason)).then(a =>
+        {
+            addClass(`cm-${mnemType}-cancel`);
+            // with undefined, uses default parameter. Stupid JS. Python handles this much better.
+            dataUpdateAfterInsert(undefined, undefined, undefined, undefined, undefined,
+                                  index=updateCMelements.currentIndex, mnemType=mnemType);
+        });
+
+    editSaveCM.editMode = undefined;
+    editSaveCM.userIndex = undefined;
+    editSaveCM.mnem = undefined;
 }
 
+/**
+ * Cancel button during Mnemonic writing. Submiting and edit
+ * */
 function editCancelCM(mnemType)
 {
-    // TODO: check if CM by user
+    let textarea = document.getElementById(`cm-${mnemType}-text`);
+    let cancelConfirm = true;
+    // only open dialog if it has content and it was edited
+    if (textarea)
+        if (textarea.value && editCancelCM.mnem !== textarea.value)
+            cancelConfirm = confirm("Your changes will be lost. ");
 
-    let editForm = document.getElementById("cm-" + mnemType + "-form");
-    if (!editForm)
-        return;
-    editForm.outerHTML = getInitialIframe(mnemType);
-
-
-    updateCM();
-    
+    if (cancelConfirm)
+    {
+        let editForm = document.getElementById(`cm-${mnemType}-form`);
+        if (!editForm)
+            return;
+        editForm.outerHTML = getInitialIframe(mnemType);
+        updateCM(mnemJson=false, mnemType=mnemType, index=updateCMelements.currentIndex);
+    }
+    editCancelCM.mnem = undefined;
 }
+
+function switchCM(mnemType, summand)
+{
+    let idx = 0;
+    if (!Number.isNaN(Number(updateCMelements.currentIndex)))
+        idx = Number(updateCMelements.currentIndex);
+    // TODO: maybe use pseudo global for mnemJson?
+    let dataJson = false;
+    if (switchCM.dataJson !== undefined)
+        dataJson = switchCM.dataJson;
+    updateCM(dataJson, mnemType, idx+summand);
+    switchCM.dataJson = undefined;
+}
+
 
 /**
  * Insert the tag "tag" in mnem writing field, at current cursor position, or around highlighted text.
@@ -920,25 +1019,33 @@ function insertText(mnemType, text)
 
 // Button functionality ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
+/**
+ * Create the textbox and all of its buttons for writing mnemonics
+ * */
 function getCMForm(mnemType)
 {
-    var CMForm = '<form id="cm-' + mnemType + '-form" class="cm-form cm-mnem-text" onsubmit="return false"><div id="cm-' + mnemType + '-format" class="cm-format">' +
-        '<div id="cm-format-' + mnemType + '-bold" class="btn cm-format-btn cm-format-bold"><b>b</b></div>' +
-        '<div id="cm-format-' + mnemType + '-italic" class="btn cm-format-btn cm-format-italic"><i>i</i></div>' +
-        '<div id="cm-format-' + mnemType + '-underline" class="btn cm-format-btn cm-format-underline"><u>u</u></div>' +
-        '<div id="cm-format-' + mnemType + '-strike" class="btn cm-format-btn cm-format-strike"><s>s</s></div>' +
-        '<div id="cm-format-' + mnemType + '-reading" class="btn cm-format-btn cm-format-reading reading highlight-reading">読</div>' +
-        '<div id="cm-format-' + mnemType + '-rad" class="btn cm-format-btn cm-format-rad radical">部</div>' +
-        '<div id="cm-format-' + mnemType + '-kan" class="btn cm-format-btn cm-format-kan kanji" >漢</div>' +
-        '<div id="cm-format-' + mnemType + '-voc" class="btn cm-format-btn cm-format-voc vocabulary">語</div></div><fieldset>' +
-        // textarea
-        '<textarea id="cm-' + mnemType + '-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemn' +
-        'ic"></textarea>' +
-        '<div class="flex items-center"><span id="cm-' + mnemType + '-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>' +
-        '<button type="submit" id="cm-' + mnemType + '-save" class="ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>' +
-        '<button type="button" id="cm-' + mnemType + '-cancel" class="btn-cancel ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>'
+    var CMForm = /*HTML*/`
+<form id="cm-${mnemType}-form" class="cm-form cm-mnem-text" onsubmit="return false">
+<div id="cm-${mnemType}-format" class="cm-format">
+<div id="cm-format-${mnemType}-bold" class="btn cm-format-btn cm-format-bold"           title="bold"><b>b</b></div>
+<div id="cm-format-${mnemType}-italic" class="btn cm-format-btn cm-format-italic"       title="italic"><i>i</i></div>
+<div id="cm-format-${mnemType}-underline" class="btn cm-format-btn cm-format-underline" title="underline"><u>u</u></div>
+<div id="cm-format-${mnemType}-strike" class="btn cm-format-btn cm-format-strike"       title="strikethrough"><s>s</s></div>
+<div id="cm-format-${mnemType}-newline" class="btn cm-format-btn cm-format-newline"     title="newline"><div>&#92;n</div></div>
+<div id="cm-format-${mnemType}-reading" class="btn cm-format-btn cm-format-reading reading highlight-reading"   title="reading">読</div>
+<div id="cm-format-${mnemType}-rad" class="btn cm-format-btn cm-format-rad radical"     title="radical">部</div>
+<div id="cm-format-${mnemType}-kan" class="btn cm-format-btn cm-format-kan kanji"       title="kanji">漢</div>
+<div id="cm-format-${mnemType}-voc" class="btn cm-format-btn cm-format-voc vocabulary"  title="vocabulary">語</div></div>
+<fieldset>
+<!-- Textarea (Textbox) -->
+<textarea id="cm-${mnemType}-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemonic"></textarea>
+<div class="flex items-center"><span id="cm-${mnemType}-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>
+<!-- Save and Cancel Buttons -->
+<button type="submit" id="cm-${mnemType}-save" class="ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>
+<button type="button" id="cm-${mnemType}-cancel" class="btn-cancel ml-2 p-1 bg-gray-500 border-0 rounded-none font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
 
-        '</fieldset></form>';
+</fieldset>
+</form>`;
     return CMForm;
 }
 
@@ -968,7 +1075,7 @@ function initCMReview()
  * Returns new elements for the legend on item list pages (.../kanji/, .../level/)
  * */
 function getCMLegend(isReq) {
-    // TODO: get rid of jquery
+    // TODO: get rid of jquery, replace with my own code.
     return $('<li><div><span class="commnem' + ((isReq) ? "-req" : "") + '" lang="ja">共</span></div>' + ((isReq) ? "Mnemonic Requested" : "Community Mnemonics") + '</li>');
 }
 
@@ -976,7 +1083,7 @@ function getCMLegend(isReq) {
  * Returns a badge for items in lists, whether a Mnemonic is available or requested
  * */
 function getCMBadge(isRecent, isReq) {
-    // TODO: get rid of jquery
+    // TODO: get rid of jquery, replace with my own code.
     return $('<span lang="ja" ' + ((isRecent) ? ' style="top: ' + ((getItemType() == "k") ? '2.25em" ' : '1em" ') : '') + 'class="item-badge commnem-badge' + ((isReq) ? "-req" : "") + '"></span>');
 }
 
@@ -986,7 +1093,7 @@ function getCMBadge(isRecent, isReq) {
  * @param mnemType array by default to make calling the function more convenient. Will be executed for both values in array.
  * @param index index of Mnem to use
  * */
-function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
+function updateCM(dataJson=false, mnemType=["meaning", "reading"], index=0)
 {
     // console.log("updateCM: ", mnemJson, mnemType);
     // sick recursive execution, to only require one fetch of data for each item. 
@@ -1000,12 +1107,12 @@ function updateCM(mnemJson=false, mnemType=["meaning", "reading"], index=0)
 
     let type = getItemType();
 
-    if (mnemJson !== false)
+    if (dataJson !== false)
     {
         if (typeof mnemType === "string")
             mnemType = [mnemType];
         for (let ele of mnemType)
-            updateCMelements(ele, type, mnemJson, index);
+            updateCMelements(ele, type, dataJson, index);
     }
     else
     {
@@ -1044,6 +1151,17 @@ function getWKcss()
     return getWKcss.css;
 }
 
+/**
+ * Replace stuff, that should not land in DB. Or maybe unintended input by user.
+ * */
+function replaceInNewMnem(text)
+{
+    // is handled by insertion apps script as well. 
+    // replace newlines with markup
+    text = text.replace(/\n/g,'[n]').replace(/\r/g,'[n]');
+    return text;
+}
+
 function replaceMarkup(text)
 {
     let list = ["b", "i", "u", "s", "br"];
@@ -1065,7 +1183,11 @@ function replaceMarkup(text)
     text = text.replaceAll("[request]", `<span class="request">`);
     text = text.replaceAll("[/request]", `</span>`);
 
-    // text = text.replaceAll("[n]", `<br>`);
+    text = text.replaceAll("[n]", `<br>`);
+    text = text.replaceAll("[br]", `<br>`);
+    // legacy replace \n, that are already in the DB. (saved literally as \\n)
+    text = text.replaceAll("\n", `<br>`);
+    text = text.replaceAll("\\n", `<br>`);
     
     return text;
 }
@@ -1109,6 +1231,14 @@ body
     display: inline !important;
     border-radius: 3px !important;
     padding: 1px !important;
+}
+/* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.
+   TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )
+ */
+::-webkit-scrollbar{display: none;}
+* {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
 }
 </style>`;
     cssString = cssString.replaceAll('"', "'");
@@ -1159,10 +1289,11 @@ function setScore(mnemType, score)
     let scoreEle = document.getElementById(`cm-${mnemType}-score-num`);
     if (scoreEle != null)
     {
-        if (Number(score) != 0)
+        // make sure score is number and not (potentially harmful) string
+        if (!Number.isNaN(Number(score)))
             scoreEle.innerText = Number(score);
         else
-            scoreEle.innerText = "0";
+            scoreEle.innerText = 0;
     }
 }
 
@@ -1244,10 +1375,8 @@ function updateIframe(mnemType, text, user=null)
 function updateCMelements(mnemType, type, dataJson, index=0)
 {
     // write index of mnem into prev button html, for lack of a better solution. For switching mnems.
-    let leftBtn = document.getElementById(`cm-${mnemType}-prev`);
-    // initialize and/or reset index
-    leftBtn.dataset.currentIndex = index;
-
+    // initialize, set and/or reset index
+    updateCMelements.currentIndex = index;
     // if mnemJson is undefined or null, no mnemonic exists for this item/type combo. 
     //reset score display
     setScore(mnemType, 0);
@@ -1283,11 +1412,29 @@ function updateCMelements(mnemType, type, dataJson, index=0)
         // default case. Mnem available
         else
         {
+            // save dataJson to pseodo global, to prevent reloading from cache. (is faster [only a bit])
+            switchCM.dataJson = dataJson;
+            
             let mnemCount = getMnemCount(mnemJson);
-            updateIframe(mnemType, ...getNthDataUser(mnemJson, index));  // (mnem, user)
+            let nDataUser = getNthDataUser(mnemJson, index);
+            updateIframe(mnemType, ...nDataUser);  // (mnemType, mnem, user)
             let score = getNthScore(scoreJson, index);
             setScore(mnemType, score);
-            toggleUserButtons(mnemType, getNthDataUser(mnemJson, index)[1] == WKUser);
+            toggleUserButtons(mnemType, nDataUser[1] == WKUser);
+            editCM.currentUser = nDataUser[1];
+
+            // only if the currently displayed mnem is by user
+            if (nDataUser[1] == WKUser)
+            {
+                // save current mnem to functions. In case user wants to edit it. (technically global variables, but more organized)
+                editCM.mnem = nDataUser[0];
+                editSaveCM.mnem = nDataUser[0];
+                editCancelCM.mnem = nDataUser[0];
+                let userMnemIndex = getUserIndex(mnemJson, index);
+                // to know which mnem to edit. 
+                editSaveCM.userIndex = userMnemIndex;
+            }
+
             // disable submit button if user submitted too many mnems
             if (getUserMnemCount(mnemJson, WKUser) > mnemMaxCount)
                 addClass(`cm-${mnemType}-submit`);
@@ -1492,12 +1639,15 @@ async function dataBackgroundUpdate(item=null, type=null, cachedData=null, wait=
  * @param cachedData old data json (currently in cache) will be updated, if new version is different. Will be set if false. 
  * @param tries number of times to retry before giving up, waits "wait"ms between executions.
  * @param wait number of ms to wait with execution, or false. (Because after insertion into sheet it takes a moment for the updated version to be returned. Annoyingly even when using promises. )
+ * @param index Index to use for displayed mnemonic. So user sees their changed mnem directly after submission. Should only be used togetcher with mnemType. 
+ * @param mnemType just as index, mnemType to pass through.
  * */
-function dataUpdateAfterInsert(item=null, type=null, cachedData=false, tries=5, wait=1000)
+function dataUpdateAfterInsert(item=null, type=null, cachedData=false, tries=5, wait=1000, index=0, mnemType=undefined)
 {
     if (tries < 0)
     {
         console.log("WKCM2: dataUpdateAfterInsert, Maximum number of tries reached, giving up. Currently displayed Mnemonic will not be updated. ");
+        updateCM(undefined, mnemType, index);
         return;
     }
     if (item == null)
@@ -1508,7 +1658,8 @@ function dataUpdateAfterInsert(item=null, type=null, cachedData=false, tries=5, 
     
     if (cachedData === false)
     {
-        wkof.file_cache.load(identifier).then(cachedData  => dataUpdateAfterInsert(item, type, cachedData, tries, wait));
+        wkof.file_cache.load(identifier).then(cachedData  =>
+            dataUpdateAfterInsert(item, type, cachedData, tries, wait, index, mnemType));
         return;
     }
 
@@ -1520,14 +1671,14 @@ function dataUpdateAfterInsert(item=null, type=null, cachedData=false, tries=5, 
             if (!isEqualsJson(cachedData, responseJson))
             {
                 wkof.file_cache.save(identifier, responseJson);
-                updateCM(reponseJsonCopy);
+                updateCM(reponseJsonCopy, mnemType, index);
             }
             else
             {
                 // retry after "wait" ms
                 setTimeout(function()
                 {
-                    dataUpdateAfterInsert(item, type, cachedData, --tries, wait);
+                    dataUpdateAfterInsert(item, type, cachedData, --tries, wait, index, mnemType);
                 }, wait);
             }
 
@@ -1616,8 +1767,8 @@ function getUserMnemCount(mnemJson, user)
 function getNthDataUser(innerJson, n)
 {
     if (innerJson == null)
-        return null;
-    count = 0;
+        return [null, null];
+    let count = 0;
     for (let user in innerJson)
     {
         for (let data of innerJson[user])
@@ -1627,7 +1778,7 @@ function getNthDataUser(innerJson, n)
             ++count;
         }
     }
-    return null;
+    return [null, null];
 }
 
 function getNthScore(scoreJson, n)
@@ -1646,5 +1797,31 @@ function getNthScore(scoreJson, n)
         console.log("WKCM2: Error, getNthScore: ", err);
         return 0;
     }
+}
+
+/**
+ * Get the index of the users individual mnem from the global mnem index.
+ * Relevant for editing mnem, to overwrite the correct one in the sheet.
+ * */
+function getUserIndex(mnemJson, n)
+{
+    if (mnemJson == null)
+        return 0;
+    if (mnemJson[WKUser] == null)
+        return 0;
+
+    count = 0;
+    for (let user in mnemJson)
+    {
+        let userCount = 0;
+        for (let data of mnemJson[user])
+        {
+            if (count == n && user == WKUser)
+                return userCount;
+            ++userCount;
+            ++count;
+        }
+    }
+    return 0;
 }
 // Local data management ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
