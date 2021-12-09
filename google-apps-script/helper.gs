@@ -1,3 +1,6 @@
+// maximum number of mnems per user
+const mnemMaxCount = 5;
+
 /**
  * I only want to replace signs, that might be used in HTML (<>&"' etc.)
  * not Japanese characters for better readability in the sheet.
@@ -9,6 +12,8 @@ function cleanData(data)
   if (!data || data == null)
     return null;
   data = data.replace(new RegExp('<[^>]*>', 'g'), '');
+  // replace newlines with markup
+  data = data.replace(/\n/g,'[n]').replace(/\r/g,'[n]');
   data = data.replace(/[\u0000-\u001F<>\&\"\'\`\\]/gim, function(i)
   {
     return '&#' + i.charCodeAt(0) + ';';
@@ -60,7 +65,7 @@ function cleanScore(score)
     clean_score = -1;
   else if (clean_score > 1)
     clean_score = 1;
-  
+
   return clean_score;
 }
 

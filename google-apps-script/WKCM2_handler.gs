@@ -83,12 +83,12 @@ function handleResponse(e)
   }
   else if (e.parameter.exec == "put")
   {
-    if (user && item && type && mnemType && mnemIndex >= 0 && mnem)
+    if (user && item && type && mnemType && mnemIndex >= -1 && mnem)
     {
       return putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
     }
     else
-      return getError();
+      return getError(", at least one of the parameters are not valid");
   }
   else if (e.parameter.exec == "vote")
   {
@@ -100,12 +100,14 @@ function handleResponse(e)
     else
       return getError();
   }
-  else if (e.parameter.exec == "request")
+  else if (e.parameter.exec == "request" || e.parameter.exec == "req")
   {
     if (user && item && type && mnemType)
     {
       return putMnem(sheet, user, item, type, mnemType, 0, "!");
     }
+    else
+      return getError(", one of user, item, type, mnemType was not provided or wrong");
   }
   else
     return getError();
@@ -122,16 +124,17 @@ function test()
   let user = "DerTester";
   let item = "🍜";
   item = "🍱";
-  let type = "r";
-  let mnemIndex = "0";
-  let mnemType = "m";
+  item = "曲";
+  let type = "k";
+  let mnemIndex = "-1";
+  let mnemType = "r";
   let mnemUser = "Dakes";
   let score = "1";
   let mnem = "🍙 Onigiri of doom 🍙 ";
   //mnem = "!";
 
-  vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
-  // putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
+  // vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
+  putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
   // let data = getData(sheet, type, item);
   // console.log("data: ", data);
 }
@@ -189,6 +192,8 @@ function getData(sheet, type, item)
  */
 function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
 {
+  if (mnemIndex < 0)
+    mnemIndex = 0;
   let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
   let votes_col = getFullMnemType(mnemType) + "_Votes";
   let votes_string = getCellValueByColumnName(sheet ,votes_col, row);
@@ -228,6 +233,7 @@ function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
     return getSuccess();
 }
 // vote ▲
+
 /**
  *
  * writes data into db.
@@ -238,6 +244,7 @@ function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
  */
 function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
 {
+  mnemIndex = Number(mnemIndex);
   let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
   let mnem_col = getFullMnemType(mnemType) + "_Mnem";
   let mnem_string = "";
@@ -274,7 +281,13 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
       for (let i=0; i<mnemIndex+1; i++)
         mnem_json[user][i] = "";
     }
-    mnem_json[user][mnemIndex] = mnem;
+    if (mnem_json[user].length > mnemMaxCount && mnemIndex < 0)
+      return getError(", maximum Number of mnems for user reached: "+mnemMaxCount.toString());
+    // append new mnem if mnemIndex == -1
+    if (mnemIndex < 0)
+      mnem_json[user] = mnem_json[user].concat(mnem);
+    else
+      mnem_json[user][mnemIndex] = mnem;
   }
 
   let new_mnem_string = JSON.stringify(mnem_json);
