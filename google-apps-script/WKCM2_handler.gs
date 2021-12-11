@@ -88,7 +88,7 @@ function handleResponse(e)
       return putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
     }
     else
-      return getError(", at least one of the parameters are not valid");
+      return getError(", at least one of the parameters is not valid");
   }
   else if (e.parameter.exec == "vote")
   {
@@ -98,7 +98,7 @@ function handleResponse(e)
       return vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
     }
     else
-      return getError();
+      return getError(", at least one of the parameters is not valid");
   }
   else if (e.parameter.exec == "request" || e.parameter.exec == "req")
   {
@@ -114,30 +114,6 @@ function handleResponse(e)
 
 }
 // handleResponse ▲
-
-// Function to run during development
-function test()
-{
-  let ac=SpreadsheetApp.getActive();
-  let sheet=ac.getSheetByName('WKCM2');
-
-  let user = "DerTester";
-  let item = "🍜";
-  item = "🍱";
-  item = "曲";
-  let type = "k";
-  let mnemIndex = "-1";
-  let mnemType = "r";
-  let mnemUser = "Dakes";
-  let score = "1";
-  let mnem = "🍙 Onigiri of doom 🍙 ";
-  //mnem = "!";
-
-  // vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
-  putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem);
-  // let data = getData(sheet, type, item);
-  // console.log("data: ", data);
-}
 
 function getError(msg="")
 {
@@ -171,8 +147,8 @@ function getData(sheet, type, item)
   // delete votes. only scores are relevant to client
   if (json_data[0] != null)
   {
-    delete json_data[0]["Meaning_Votes"];
-    delete json_data[0]["Reading_Votes"];
+    // delete json_data[0]["Meaning_Votes"];
+    // delete json_data[0]["Reading_Votes"];
     json_data = json_data[0];
   }
   else
@@ -288,6 +264,9 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
       mnem_json[user] = mnem_json[user].concat(mnem);
     else
       mnem_json[user][mnemIndex] = mnem;
+
+    // new mnem got submitted, delete request (also works without request)
+    delete mnem_json["!"];
   }
 
   let new_mnem_string = JSON.stringify(mnem_json);
