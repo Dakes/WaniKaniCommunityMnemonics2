@@ -63,7 +63,7 @@ let WKUser;
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-let sheetApiUrl = "https://script.google.com/macros/s/AKfycbzDH0EriKNeJ0hGwQm7w1WAI9GXotyMnku953kxde06vhXeVE3azX3WSqmDYvpxT23p4w/exec";
+let sheetApiUrl = "https://script.google.com/macros/s/AKfycbzgqhLC7jJLctxZk1dKfmfLtSu-uIYY08YH4Zjv4qt-ajiCEZl7cwxo_2xVoB3Ri1dXFg/exec";
 
 // colors TODO: remove from globals.
 let CMColorReq = "#ff5500";
@@ -451,7 +451,7 @@ function getItem()
 /**
  * Returns radical, kanji or vocabulary
  * */
-function getItemType()
+function getItemType(short=false)
 {
     let itemType = null;
     let itemIdentifier = "currentItem";
@@ -465,7 +465,10 @@ function getItemType()
         itemType = itemType.toLowerCase()
     if (itemType == null)
         console.log("WKCM2: getItemType, itemType null");
-    return itemType;
+    if (short)
+        return getShortItemType(itemType);
+    else
+        return itemType;
 }
 // Get infos from page ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -814,7 +817,7 @@ function requestCM(mnemType)
     let shortType = getShortItemType(getItemType());
     let shortMnemType = getShortMnemType(mnemType);
 
-    let url = sheetApiUrl + `?item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}&exec=request`;
+    let url = sheetApiUrl + `?exec=request&item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}`;
     url = encodeURI(url);
 
     addClass(`cm-${mnemType}-request`);
@@ -845,9 +848,9 @@ function voteCM(mnemType, vote)
     // user=WKUser: the one who is voting
     // mnemUser: the one whose mnem is being voted
     // mnemIndex: Index of mnems by user. NOT index of the whole json, as used by updateCM.
-    let url = sheetApiUrl + `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&user=${WKUser}&mnemUser=${voteCM.mnemUser}&mnemIndex=${voteCM.mnemIndex}&score=${vote}`;
+    let url = sheetApiUrl +
+        `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&user=${WKUser}&mnemUser=${voteCM.mnemUser}&mnemIndex=${voteCM.mnemIndex}&score=${vote}`;
     url = encodeURI(url);
-    console.log(url);
 
     if (Number(vote) >= 1)
         addClass(`cm-${mnemType}-upvote`);
@@ -1108,8 +1111,7 @@ function getCMBadge(isRecent, isReq) {
  * */
 function updateCM(dataJson=false, mnemType=["meaning", "reading"], index=0)
 {
-    // console.log("updateCM: ", mnemJson, mnemType);
-    // sick recursive execution, to only require one fetch of data for each item. 
+    // sick recursive execution, to only require one fetch of data for each item.
 
     // display loading message
     /*
@@ -1212,6 +1214,8 @@ function getUserProfileLink(user)
         return "";
     if (user == "Anonymous")
         return `<a>Anonymous</a>`;
+    else if (user == "!")
+        return "";
     else
         return `<a href="https://www.wanikani.com/users/${user}" target="_blank" >${user}</a>`;
 }
@@ -1271,7 +1275,10 @@ body
     {
         user = user.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
                    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
-        userMsg = "by " + getUserProfileLink(user);
+        if (user == "!")
+            userMsg = "This is a request. It should have been deleted after submission of a mnemonic. If you are seeing this, please post in the forum, open an issue on GitHub, or just downvote it. ";
+        else
+            userMsg = "by " + getUserProfileLink(user);
     }
 
     let srcdoc = `<html><head>${cssString}</head><body><div class='col2'>${text}</div><div id='user-link'>${userMsg}</div></body></html>`;
@@ -1407,6 +1414,23 @@ function updateIframe(mnemType, text, user=null)
  * */
 function updateCMelements(mnemType, type, dataJson, index=0)
 {
+    // to prevent it getting stuck on the wrong item (f.e. after quick item switches with Reorder Ultimate),
+    // check if current item is equal with mnemonic item. Requires pseudo globals for null (no mnem)
+    // This is not super important, so it is not consistently executet in every situation where updateCM got called, but thats fine.
+    let curTyit = getItemType(short=true) + getItem();
+    let prevTyit = undefined;
+    if (dataJson != null)
+        prevTyit = getShortItemType(dataJson["Type"]) + dataJson["Item"];
+    else if (updateCMelements.curItem !== undefined && updateCMelements.curType !== undefined)
+    {
+        prevTyit = getShortItemType(updateCMelements.curType) + updateCMelements.curItem;
+        updateCMelements.curType = undefined;
+        updateCMelements.curItem = undefined;
+    }
+    if (prevTyit != curTyit && prevTyit !== undefined)
+        updateCM(dataJson=undefined, mnemType=undefined, index=index);
+
+
     // write index of mnem into prev button html, for lack of a better solution. For switching mnems.
     // initialize, set and/or reset index
     updateCMelements.currentIndex = index;
@@ -1435,7 +1459,7 @@ function updateCMelements(mnemType, type, dataJson, index=0)
             removeClass(`cm-${mnemType}-request`);
         }
         // request JSON: {"!": ["Anonymous", "Dakes"]}
-        else if (Object.keys(mnemJson)[0] == "!")
+        else if (Object.keys(mnemJson)[0] == "!" && Object.keys(mnemJson).length == 1)
         {
             updateIframe(mnemType, getMnemRequestedMsg(mnemJson["!"]));
             if (mnemJson["!"].includes(WKUser))
@@ -1461,7 +1485,6 @@ function updateCMelements(mnemType, type, dataJson, index=0)
             editCM.currentUser = nDataUser[1];
             voteCM.mnemUser = nDataUser[1];
             voteCM.mnemIndex = mnemIndex;
-            console.log(dataJson);
 
             // only if the currently displayed mnem is by user
             if (nDataUser[1] == WKUser)
@@ -1511,7 +1534,13 @@ async function fetchData(item, type)
                 if (responseJson == null)
                     return null;
                 else
+                {
+                    // Object.keys... .length on "" is 0. neat
+                    if (Object.keys(responseJson["Meaning_Mnem"]).length == 0 || responseJson["Meaning_Mnem"] == "{}")
+                        if (Object.keys(responseJson["Reading_Mnem"]).length == 0 || responseJson["Reading_Mnem"] == "{}")
+                            return null;
                     return responseJson;
+                }
             }
         );
 }
@@ -1585,6 +1614,8 @@ function getData(item, type)
                     // fetch worked
                     wkof.file_cache.save(identifier, responseJson);
                     let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+                    updateCMelements.curItem = item;
+                    updateCMelements.curType = type;
                     updateCM(mnemJson=reponseJsonCopy);
                     return responseJson;
                     
@@ -1657,6 +1688,8 @@ async function dataBackgroundUpdate(item=null, type=null, cachedData=null, wait=
                 console.log("saving to cache, calling updateCM");
                 console.log(reponseJsonCopy);
                 wkof.file_cache.save(identifier, responseJson);
+                updateCMelements.curItem = item;
+                updateCMelements.curType = type;
                 updateCM(reponseJsonCopy);
             }
 
