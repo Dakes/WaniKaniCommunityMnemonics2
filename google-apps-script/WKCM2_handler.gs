@@ -81,6 +81,10 @@ function handleResponse(e)
     }
     return getData(sheet, type, item);
   }
+  else if (e.parameter.exec == "getall")
+  {
+    return getData(sheet, "", "")
+  }
   else if (e.parameter.exec == "put")
   {
     if (user && item && type && mnemType && mnemIndex >= -1 && mnem)
@@ -151,7 +155,7 @@ function getData(sheet, type, item)
     // delete json_data[0]["Reading_Votes"];
     json_data = json_data[0];
   }
-  else
+  else if (type != "" && item != "")
     json_data = null;
 
   // send back data to client
