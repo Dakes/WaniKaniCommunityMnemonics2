@@ -6,7 +6,7 @@ This is a complete from scratch reimplementation, that is based on some of the o
 
 Google Spreadsheet used as Database: [WKCM2 Sheet](https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing)  
 It is editable only by the owner, me. But viewable and copyable by everyone. Only the WKCM2 sheet (tab) is used.  
-Why a Google Spreadsheet? It is free. It is public. Only one person has direct write access. But it could still be copied by everyone, should I vanish, or loose interest to maintain it. 
+Why a Google Spreadsheet? It is free. It is public, everyone can verify, there is no harmfull code in there. Only one person has direct write access. But it could still be copied by everyone, should I vanish, or loose interest to maintain it. 
 
 ## Usage instructions
 WKCM2 requires WKOF: [WKOF installation](https://community.wanikani.com/t/installing-wanikani-open-framework/28549)  
@@ -121,19 +121,23 @@ If you use a "!" as the Mnemonic it becomes a request.
 
 ## Roadmap
 
-### 0.1
+### 0.1 🍱
 - Works read only with old data from WKCM
 - Works in Lessons and Reviews
 - Google Sheet apps script can fetch data
 - Mnemonic data gets cached
 
-### 0.2 (current version)
+### 0.2 🍛
 - 💾 Changed how Data is saved in DB. Now saved as JSON strings, making everything easier to work with and more robust. 
 - 📝 Users can submit new mnemonics, up to 5 per user. Also for Radicals. 
 - 🗳️ Users can vote on mnemonics
 - ❗ Users can request mnemonics
 - 💣 Sheet apps script API inserts and filters data submitted, to protect from XSS attacks. 
 - 💅 Polish, ✨ Polish, 🇵🇱 Polish
+
+#### 0.2.1 🍛🍚 (current version)
+- ◄ ► fixed arrows being toggled with mutliple requests. 
+- 📜 added GPL license
 
 ### 0.3
 - 📝 Display mnemonics on list screens. 

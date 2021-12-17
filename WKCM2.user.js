@@ -11,7 +11,8 @@
 // @include     *.wanikani.com/review/session
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
-// @version     0.2
+// @license     GPL-3.0; https://www.gnu.org/licenses/gpl-3.0.txt
+// @version     0.2.1
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
@@ -24,11 +25,7 @@
 // The code is entirely my own, except for a few individual lines of code, that I will replace soon
 // and HTML and CSS, that I carried over from the old version. 
 
-/* This script is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) license
-*  Details: http://creativecommons.org/licenses/by-nc/4.0/ */
-
-
-const WKCM2_version = "0.2";
+const WKCM2_version = "0.2.1";
 const scriptName = 'WKCM2';
 const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
@@ -1548,8 +1545,6 @@ function updateCMelements(mnemType, type, dataJson, index=0)
         let mnemJson = jsonParse(dataJson[mnemSelector]);
         let votesJson = jsonParse(dataJson[votesSelector]);
 
-        toggleArrows(mnemType, getMnemCount(mnemJson), index);
-
         // no mnem available for current item
         if (mnemJson == null)
         {
@@ -1569,6 +1564,7 @@ function updateCMelements(mnemType, type, dataJson, index=0)
         // default case. Mnem available
         else
         {
+            toggleArrows(mnemType, getMnemCount(mnemJson), index);
             // save dataJson to pseodo global, to prevent reloading from cache. (is faster [only a bit])
             switchCM.dataJson = dataJson;
             
@@ -1988,8 +1984,8 @@ function jsonParse(jsonString)
             {
                 if (typeof jsonParse.refetchCounter == "undefined")
                     jsonParse.refetchCounter = 5;
-                if (jsonParse.refetchCounter > 0){console.log("here ", jsonParse.refetchCounter);
-                    deleteCacheItem(item=null, type=null).then(r => { getData(item=null, type=null); jsonParse.refetchCounter--; });}
+                if (jsonParse.refetchCounter > 0)
+                    deleteCacheItem(item=null, type=null).then(r => { getData(item=null, type=null); jsonParse.refetchCounter--; });
             }
         }
     }
