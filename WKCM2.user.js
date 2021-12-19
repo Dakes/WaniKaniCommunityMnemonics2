@@ -11,8 +11,8 @@
 // @include     *.wanikani.com/review/session
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
-// @license     GPL-3.0; https://www.gnu.org/licenses/gpl-3.0.txt
-// @version     0.2.1
+// @license     GPL-3.0-or-later; https://www.gnu.org/licenses/gpl-3.0.txt
+// @version     0.2.2
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
@@ -25,7 +25,7 @@
 // The code is entirely my own, except for a few individual lines of code, that I will replace soon
 // and HTML and CSS, that I carried over from the old version. 
 
-const WKCM2_version = "0.2.1";
+const WKCM2_version = "0.2.2";
 const scriptName = 'WKCM2';
 const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
@@ -728,7 +728,7 @@ function getCMForm(mnemType)
 <div id="cm-format-${mnemType}-rad" class="btn cm-format-btn cm-format-rad radical"     title="radical">部</div>
 <div id="cm-format-${mnemType}-kan" class="btn cm-format-btn cm-format-kan kanji"       title="kanji">漢</div>
 <div id="cm-format-${mnemType}-voc" class="btn cm-format-btn cm-format-voc vocabulary"  title="vocabulary">語</div></div>
-<fieldset>
+<fieldset class="note-${mnemType} noSwipe">
 <!-- Textarea (Textbox) -->
 <textarea id="cm-${mnemType}-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemonic"></textarea>
 <div class="flex items-center"><span id="cm-${mnemType}-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>
