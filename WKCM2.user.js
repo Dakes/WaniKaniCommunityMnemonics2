@@ -133,7 +133,8 @@ text-align: left;
 }
 .cm-content{
     padding: 20px;
-    width: 47%; height: 100%; min-height: 300px;
+    width: ${(isItem ? '95%' : '47%')};
+    height: 100%; min-height: 300px;
     text-align: left;
 }
 #cm-meaning{
@@ -150,7 +151,10 @@ text-align: left;
     overflow: auto;
     text-align: center;
 }
-
+/*Below this size, displayed below each other. Fill full width*/
+@media only screen and (max-width: 1530px) {
+    .cm-content{width: 95%;}
+}
 `;
 
 const listCss = /* css */`
