@@ -74,12 +74,18 @@ const colorRequestShadow = "#d57602";
 const colorMnemAvail = "#71aa00";
 
 // HTML
-const mnemOuterHTML = /* html */`
-<div id="wkcm2" class="cm">
-<br><br> <h2 class="cm-header">Community Mnemonics</h2>
-<div id="cm-meaning" class="cm-content"> </div>
-<div id="cm-reading" class="cm-content"> </div>
-</div>`;
+function getMnemOuterHTML(radical=false)
+{
+    let mnemOuterHTML = /* html */`
+    <div id="wkcm2" class="cm">
+    <br> <h2 class="cm-header">Community Mnemonics</h2>
+    <div id="cm-meaning" class="cm-content"> </div>`;
+    if (radical == false)
+        mnemOuterHTML = mnemOuterHTML + `<div id="cm-reading" class="cm-content"> </div>`;
+    mnemOuterHTML = mnemOuterHTML + `</div>`;
+    return mnemOuterHTML;
+}
+
 
 // CSS
 // highlighting CSS for different types, used for text AND buttons in different places, hence these variables
@@ -187,7 +193,7 @@ const buttonCSS = /* css */`
 .cm-btn:active
 {
     filter: contrast(1.2) !important;
-    box-shadow: 0 2px 0 rgb(0 0 0 / 20%) inset !important;
+    box-shadow: 0 2px 0 rgb(0 0 0 / 20%) inset;
 }
 .cm-btn.disabled.cm-btn.disabled
 {
@@ -211,7 +217,6 @@ const buttonCSS = /* css */`
 
 .cm-prev.disabled, .cm-next.disabled { opacity: 0.25 }
 
-/*.cm-small-btn*/
 .cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel
 {
     text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; padding: 1px 4px
@@ -335,7 +340,8 @@ body
     font-size: 100% !important;
     font-weight: 300 !important;
     line-height: 1.5 !important;
-    background-color: #fff !important;
+    /*Item Page has different background color*/
+    background-color: ${(isItem ? '#eee' : '#fff')} !important;
 }
 
 /* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.
@@ -717,7 +723,7 @@ function initLesson()
     let type = getItemType();
     let item = getItem();
 
-    addHTMLinID('supplement-info', mnemOuterHTML);
+    addHTMLinID('supplement-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
     // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
@@ -740,7 +746,7 @@ function initLesson()
 
 function initReview()
 {
-    addHTMLinID('item-info', mnemOuterHTML);
+    addHTMLinID('item-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
     document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
@@ -760,15 +766,21 @@ function initReview()
 
 function initItem()
 {
-    addHTMLinID('reading', mnemOuterHTML, "afterend");
-    
+    if (getItemType() == "radical")
+    {
+        addHTMLinID('information', getMnemOuterHTML(radical=true), "afterend");
+    }
+    if (getItemType() != "radical")
+    {
+        addHTMLinID('reading', getMnemOuterHTML(), "afterend");
+        document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
+        initButtons("reading");
+        updateCM();
+    }
+
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
-    document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
-
     initButtons("meaning");
-    initButtons("reading");
-
-    updateCM();
+    updateCM(undefined, mnemType="meaning");
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
