@@ -135,15 +135,25 @@ If you use a "!" as the Mnemonic it becomes a request.
 - 💣 Sheet apps script API inserts and filters data submitted, to protect from XSS attacks. 
 - 💅 Polish, ✨ Polish, 🇵🇱 Polish
 
-#### 0.2.1 🍛🍚 (current version)
+#### 0.2.1 🍛🍚
 - ◄ ► fixed arrows being toggled with mutliple requests. 
 - 📜 added GPL license
 
+#### 0.2.2 🍛🍚🍚
+- Fixed shortcuts being activated in textarea
+
+#### 0.2.3 🎄 🎁🍛🍚🍚🎁 (current version)
+- 📝 Mnemonics are displayed on the item pages. 
+- ✨ Visually looks much prettier. 🤤 Text highlight color more vibrant. Width dynamic. All Buttons have sick effects on click and hover. 
+- ❓ Added `?` insert button. Because ? toggles shortcut help menu.
+- Focus textarea after insert. 
+
 ### 0.3
-- 📝 Display mnemonics on list screens. 
+- 📝 Display on list screen if mnemonic is available or requested. 
 - ❗ Display if mnemonic is available or requested in list. 
 - ♻ Users can delete their own mnemonic
-- 🔁 Manual refresh button
+- 🔁 Manual refresh button. 
+
 
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags

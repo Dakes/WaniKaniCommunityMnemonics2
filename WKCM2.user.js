@@ -12,7 +12,7 @@
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
 // @license     GPL-3.0-or-later; https://www.gnu.org/licenses/gpl-3.0.txt
-// @version     0.2.2
+// @version     0.2.3
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
@@ -25,7 +25,7 @@
 // The code is entirely my own, except for a few individual lines of code, that I will replace soon
 // and HTML and CSS, that I carried over from the old version. 
 
-const WKCM2_version = "0.2.2";
+const WKCM2_version = "0.2.3";
 const scriptName = 'WKCM2';
 const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
@@ -45,44 +45,102 @@ let isList = false;
 if (!isReview && !isLesson)
 {
     isList = (
-        // TODO: generalize regex, only matches 2 digit levels (in case they add more levels ... much more)
         // true if on a level page
-        new RegExp("level\/[0-9]{1,2}$", "i").test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
+        /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
         // true if on a /kanji?difficulty=pleasant site
-        new RegExp("[kanji|vocabulary|radicals].[difficulty=[A-Z]$|$]", "i").test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2))
+        /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
+            .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2) + window.location.search )
     );
 }
 
 // TODO: true on individual item pages
-let CMIsItem = false;
+const isItem = /(kanji|vocabulary|radicals)\/.*/gi
+      .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2));
 
 let WKUser;
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-let sheetApiUrl = "https://script.google.com/macros/s/AKfycbxCxmHz_5ibnHn0un5HxaCLeJTRHxwdrS5fW4nmXBYXyA-Jw6aDPPrrHWrieir3B8kDFQ/exec";
+const sheetApiUrl = "https://script.google.com/macros/s/AKfycbxCxmHz_5ibnHn0un5HxaCLeJTRHxwdrS5fW4nmXBYXyA-Jw6aDPPrrHWrieir3B8kDFQ/exec";
 
-// colors TODO: remove from globals.
-let colorRequestDark = "#ff5500";
-let colorRequest = "#e1aa00";
-let colorRequestShadow = "#d57602";
-let colorMnemAvail = "#71aa00";
+// colors
+const colorRadical = "#00a1f1";
+const colorKanji = "#f100a1";
+const colorVocab = "#a100f1";
+const colorRead = "#474747";
+const colorRequestDark = "#e76000";
+const colorRequest = "#e1aa00";
+const colorRequestShadow = "#d57602";
+const colorMnemAvail = "#71aa00";
 
 // HTML
-let mnemOuterHTML = /* html */`<div id="wkcm" class="cm">
-<br><br> <h2 class="cm-header">Community Mnemonics</h2>
-<div id="cm-meaning" class="cm-content"> </div>
-<div id="cm-reading" class="cm-content"> </div>
-</div>`;
+function getMnemOuterHTML(radical=false)
+{
+    let mnemOuterHTML = /* html */`
+    <div id="wkcm2" class="cm">
+    <br> <h2 class="cm-header">Community Mnemonics</h2>
+    <div id="cm-meaning" class="cm-content"> </div>`;
+    if (radical == false)
+        mnemOuterHTML = mnemOuterHTML + `<div id="cm-reading" class="cm-content"> </div>`;
+    mnemOuterHTML = mnemOuterHTML + `</div>`;
+    return mnemOuterHTML;
+}
+
 
 // CSS
-let generalCSS = /* css */`
+// highlighting CSS for different types, used for text AND buttons in different places, hence these variables
+const radHighlight = `
+background-color: ${colorRadical};
+background-image: -moz-linear-gradient(top, #0af, #0093dd);
+background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#0af), to(#0093dd));
+background-image: -webkit-linear-gradient(top, #0af, #0093dd);
+background-image: -o-linear-gradient(top, #0af, #0093dd);
+background-image: linear-gradient(to bottom, #0af, #0093dd);
+background-repeat: repeat-x;
+filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FF00AAFF', endColorstr='#FF0093DD', GradientType=0);
+`
+const kanHighlight = `
+background-color: ${colorKanji};
+background-image: -moz-linear-gradient(top, #f0a, #dd0093);
+background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#f0a), to(#dd0093));
+background-image: -webkit-linear-gradient(top, #f0a, #dd0093);
+background-image: -o-linear-gradient(top, #f0a, #dd0093);
+background-image: linear-gradient(to bottom, #f0a, #dd0093);
+background-repeat: repeat-x;
+filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFF00AA', endColorstr='#FFDD0093', GradientType=0);
+`
+const vocHighlight = `
+background-color: ${colorKanji};
+background-image: -moz-linear-gradient(top, #a0f, #9300dd);
+background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#a0f), to(#9300dd));
+background-image: -webkit-linear-gradient(top, #a0f, #9300dd);
+background-image: -o-linear-gradient(top, #a0f, #9300dd);
+background-image: linear-gradient(to bottom, #a0f, #9300dd);
+background-repeat: repeat-x;
+filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFAA00FF', endColorstr='#FF9300DD', GradientType=0);
+`
+const readHighlight = `
+background-color: ${colorRead};
+background-image: -moz-linear-gradient(top, #555, #333);
+background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#555), to(#333));
+background-image: -webkit-linear-gradient(top, #555, #333);
+background-image: -o-linear-gradient(top, #555, #333);
+background-image: linear-gradient(to bottom, #555, #333);
+background-repeat: repeat-x;
+filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FF555555', endColorstr='#FF333333', GradientType=0);
+-webkit-box-shadow: 0 -2px 0 rgb(0 0 0 / 80%) inset;
+-moz-box-shadow: 0 -2px 0 rgba(0,0,0,0.8) inset;
+box-shadow: 0 -2px 0 rgb(0 0 0 / 80%) inset;
+`
+
+const generalCSS = /* css */`
 .cm-header{
 text-align: left;
 }
 .cm-content{
     padding: 20px;
-    width: 47%; height: 100%; min-height: 300px;
+    width: ${(isItem ? '95%' : '47%')};
+    height: 100%; min-height: 300px;
     text-align: left;
 }
 #cm-meaning{
@@ -99,14 +157,13 @@ text-align: left;
     overflow: auto;
     text-align: center;
 }
-
-.disabled {
-    opacity: 0.3;
-    pointer-events: none;
+/*Below this size, displayed below each other. Fill full width*/
+@media only screen and (max-width: 1530px) {
+    .cm-content{width: 95%;}
 }
 `;
 
-let listCss = /* css */`
+const listCss = /* css */`
 .commnem-badge, .commnem-badge-req { position: absolute; left: 0 }
 .commnem-badge:before, .commnem-badge-req:before {
 content: "\\5171\"; display: block; position: absolute; top: -0.6em; left: -0.6em; width: 2em; height: 2em; color: #fff; font-size: 16px; font-weight: normal;
@@ -117,63 +174,120 @@ ul.multi-character-grid .commnem-badge:before, ul.multi-character-grid .commnem-
 .commnem-badge:before { background-color: #71aa00; text-shadow: 0 2px 0 #1a5300; }
 .commnem-badge-req:before { background-color: #e1aa00; text-shadow: 0 2px 0 ${colorRequest} }`;
 
-// TODO: on click "invert" gradient, to give sick clicky feel
-let textareaCSS = /* css */`
-.cm-format-btn
+const buttonCSS = /* css */`
+.cm-btn
 {
-    filter: contrast(0.8) !important;
-    text-align: center;
-    width: 35px !important; height: 30px !important;
-    font-size: 20px !important;
-    line-height: 30px !important;
     color: white;
-    border-radius: 3px;
-    margin-left: 5px;
-    padding-left: 0px !important;
-    padding-right: 0px !important;
-
-    line-height: 1; float: left;
-
+    font-size: 14px;
     cursor: pointer;
+    filter: contrast(0.9);
+    border-radius: 3px;
+    box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
+    text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
+    transition: text-shadow 0.15s linear;
 }
-
-.cm-format-btn:hover
+.cm-btn:hover
 {
     filter: contrast(1.15) !important;
 }
-
-.cm-format-btn.kanji:active, .cm-format-btn.radical:active, .cm-format-btn.vocabulary:active, .cm-format-btn.reading:active
+.cm-btn:active
 {
     filter: contrast(1.2) !important;
+    box-shadow: 0 2px 0 rgb(0 0 0 / 20%) inset;
+}
+.cm-btn.disabled.cm-btn.disabled
+{
+    opacity: 0.3;
+    pointer-events: none;
+}
+.cm-prev, .cm-next
+{
+    color: black;
+    font-size: 50px;
+    margin: 0px 0px 0px 0px;
+    padding: 15px 10px 0px 0px;
+    box-shadow: none !important;
+}
+.cm-prev:not(.disabled), .cm-next:not(.disabled) { text-shadow: 0 4px 0 rgb(0 0 0 / 30%); }
+.cm-prev:hover, .cm-next:hover { text-shadow: 0 3px 0 rgb(0 0 0 / 30%); }
+.cm-prev:active, .cm-next:active { text-shadow: 0 1px 0 rgb(0 0 0 / 30%); }
+
+.cm-prev{float:left}
+.cm-next{float:right}
+
+.cm-prev.disabled, .cm-next.disabled { opacity: 0.25 }
+
+.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel
+{
+    text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; padding: 1px 4px
+}
+.cm-upvote-highlight, .cm-downvote-highlight
+{
+    width: 80px; margin-right: 10px; float: left;
+    padding: 1px 4px
+}
+
+.cm-upvote-highlight { background-image: linear-gradient(to bottom, #5c5, #46ad46) }
+.cm-downvote-highlight { background-image: linear-gradient(to bottom, #c55, #ad4646) }
+.cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 10px }
+.cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
+.cm-request-highlight { background-image: linear-gradient(to bottom, ${colorRequest}, ${colorRequestShadow}) }
+.cm-submit-highlight { width: 125px; margin-left: 75px; float:right; background-image: linear-gradient(to bottom, #616161, #393939) }
+
+/*Edit, delete, request are small buttons*/
+.cm-small-btn { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
+.cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
+/*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/
+`;
+// for Buttons during mnem writing. (With textare)
+const formatButtonCSS = /* css */`
+.cm-format-btn.cm-format-btn
+{
+    filter: contrast(0.8);
+    text-align: center;
+    width: 35px;
+    height: 30px;
+    font-size: 20px;
+    line-height: 30px;
+    margin-left: 5px;
+
+    float: left;
+
+    box-shadow: 0 -4px 0 rgb(0 0 0 / 20%) inset;
+}
+
+.cm-format-btn:active
+{
     box-shadow: 0 3px 0 rgb(0 0 0 / 20%) inset !important;
 }
 
-.cm-format-btn.kanji, .cm-format-btn.radical, .cm-format-btn.vocabulary, .cm-format-btn.reading
+.cm-format-kan, .cm-format-rad, .cm-format-voc, .cm-format-read
 {
     font-weight: bold;
     display: inline-block;
     color: #fff;
     text-align: center;
-    text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
     box-sizing: border-box;
-    border-radius: 3px;
-    box-shadow: 0 -3px 0 rgb(0 0 0 / 20%) inset !important;
-    transition: text-shadow 0.15s linear !important;
-}
-.cm-format-btn.radical{background-color: #0af;}
-.cm-format-btn.kanji{background-color: #f0a;}
-.cm-format-btn.vocabulary{background-color: #a0f;}
+    line-height: 1;
 
-.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-strike
+}
+
+.cm-format-rad {${radHighlight}}
+.cm-format-kan {${kanHighlight}}
+.cm-format-voc {${vocHighlight}}
+.cm-format-read {${readHighlight}}
+
+.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-qmark, .cm-format-btn.cm-format-strike
 {
     background-color: #f5f5f5;
     background-image: -moz-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
     background-image: -webkit-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -o-linear-gradient(top, #7a7a7a, #4a4a4a);
-    background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a); background-repeat: repeat-x; width: 10px; height: 10px; margin: 0
-    background-image: -webkit-linear-gradient(top, #7a7a7a, #4a4a4a); background-image: -o-linear-gradient(top, #7a7a7a, #707070);
-    background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a); background-repeat: repeat-x; width: 10px; height: 10px;
+    background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a); background-repeat: repeat-x;
 }
+`;
 
+// TODO: on click "invert" gradient, to give sick clicky feel
+const textareaCSS = /* css */`
 .cm-form form
 {
     min-height: 300px;
@@ -194,49 +308,17 @@ overflow: auto; word-wrap: break-word; resize: none; height: calc(100% - 30px); 
 .cm-mnem-text
 {
     float:left;
-    width: calc(100% - 120px); height: 100%; min-height: 150px;
+    width: calc(100% - 120px); height: 100%; min-height: 125px;
 }
 
 .cm-form-submit, .cm-form-cancel { margin-top: 0px; background-image: linear-gradient(to bottom, #555, #464646) }
 `;
 
-let cmuserbuttonsCSS = /* css */`
+
+const contentCSS = /* css */`
 .cm-user-buttons { position: absolute; margin-top: -20px }
-.cm-info { margin-top: 20px; margin-left: 65px }
-`
-
-let contentCSS = /* css */`
-.cm-prev, .cm-next, .cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel, .cm-small-button { cursor: pointer !important }
-.cm-prev, .cm-next { font-size: 50px; margin: 0px 0px 0px 0px; padding: 15px 10px 0px 0px;}
-.cm-prev{float:left}
-.cm-next{float:right}
-
-.cm-prev.disabled, .cm-next.disabled { opacity: 0.25 }
-.cm-prev span, .cm-next span
-{
-    background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgb(85, 85, 85)), to(rgb(70, 70, 70))); -webkit-background-clip: text;
-}
-
-.cm-upvote-highlight, .cm-downvote-highlight, .cm-delete-highlight, .cm-edit-highlight, .cm-submit-highlight, .cm-req-highlight, .cm-form-submit, .cm-form-cancel, .cm-small-button
-{
-    text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; background-repeat: repeat-x; cursor: help; padding: 1px 4px; color: #fff;
-    text-shadow: 0 1px 0 rgba(0,0,0,0.2); white-space: nowrap; -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px;
-    -webkit-box-shadow: 0 -2px 0 rgba(0,0,0,0.2) inset; -moz-box-shadow: 0 -2px 0 rgba(0,0,0,0.2) inset; box-shadow: 0 -2px 0 rgba(0,0,0,0.2) inset
-}
-.cm-upvote-highlight { background-image: linear-gradient(to bottom, #5c5, #46ad46) }
-
-.cm-downvote-highlight { background-image: linear-gradient(to bottom, #c55, #ad4646) }
-
-.cm-delete-highlight, .cm-edit-highlight, .cm-small-button { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
-.cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 10px }
-.cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
-.cm-request-highlight { background-image: linear-gradient(to bottom, ${colorRequest}, ${colorRequestShadow}) }
-.cm-submit-highlight, .cm-form-submit, .cm-form-cancel { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #555, #464646) }
-.cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
-.cm-req-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}
-
-.cm-info { display: inline-block }
-.cm-info, .cm-info div { margin-bottom: 0px !important }
+.cm-info { display: inline-block; margin-top: 20px; margin-left: 65px; }
+.cm-info div { margin-bottom: 0px; }
 .cm-score { float: left; width: 80px }
 .cm-score-num { color: #555 }
 .cm-score-num.pos { color: #5c5 }
@@ -246,11 +328,65 @@ let contentCSS = /* css */`
 
 .cm-format { margin: 0 !important }
 
-.cm-format-bold, .cm-format-underline, .cm-format-strike, .cm-format-newline { padding-left: 10px; padding-right: 10px }
-
 .cm-delete-text { position: absolute; opacity: 0; text-align: center }
 .cm-delete-text h3 { margin: 0 }
 `;
+
+// Makes iframe (Mnemonics) pretty. background, hide scrollbar and most importantly highlighting, copied from list page
+const iframeCSS = /*css*/`
+<style>
+body
+{
+    font-size: 100% !important;
+    font-weight: 300 !important;
+    line-height: 1.5 !important;
+    /*Item Page has different background color*/
+    background-color: ${(isItem ? '#eee' : '#fff')} !important;
+}
+
+/* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.
+   TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )
+ */
+::-webkit-scrollbar{display: none;}
+* {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+
+.request.request
+{
+    /*background-color: ${colorRequest} !important;
+    display: inline !important;
+    border-radius: 3px !important;
+    padding: 1px !important;*/
+
+    color: black !important;
+    background-color: ${colorRequest};
+    background-image: linear-gradient(to bottom, ${colorRequest}, ${colorRequestDark});
+    background-repeat: repeat-x;
+}
+
+.highlight-kanji.highlight-kanji { ${kanHighlight } }
+.highlight-vocabulary.highlight-vocabulary { ${vocHighlight} }
+.highlight-radical.highlight-radical { ${radHighlight} }
+.highlight-reading.highlight-reading { ${readHighlight} }
+
+[class^="highlight-"], .request
+{
+    padding: 1px 4px;
+    color: #fff;
+    font-weight: normal;
+    text-shadow: 0 1px 0 rgb(0 0 0 / 20%);
+    white-space: nowrap;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
+    -moz-box-shadow: 0 -2px 0 rgba(0,0,0,0.2) inset;
+    box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
+}
+
+</style>`
 
 // all code runs from here
 if (isReview || isLesson)
@@ -268,7 +404,7 @@ if (isReview || isLesson)
         preInit();
     }
 
-} else if (isList)
+} else if (isList || isItem)
 {
     if (document.readyState === "loading")
       document.addEventListener("DOMContentLoaded", function() { preInit(); });
@@ -449,16 +585,24 @@ function getUsername()
 
 function getItem(short=false)
 {
-    // TODO: add support for list page
     let item = null;
 
-    let itemIdentifier = "currentItem";
-    if (isReview)
-        itemIdentifier = "currentItem";
+    if (isItem)
+    {
+        // No need to go scraping the HTML
+        wkItemInfo.forType(getItemType()).under(`examples`)
+                  .notify((i) => item = i.characters);
+    }
+    else if (isReview)
+    {
+        item = $.jStorage.get("currentItem")["characters"];
+    }
     else if (isLesson)
-        itemIdentifier = "l/currentLesson";
+    {
+        item = $.jStorage.get("l/currentLesson")["characters"];
+    }
 
-    item = $.jStorage.get(itemIdentifier)["characters"];
+
     if (item == null)
         console.log("WKCM2: getItem, item is null");
 
@@ -472,17 +616,26 @@ function getItem(short=false)
 function getItemType(short=false)
 {
     let itemType = null;
-    let itemIdentifier = "currentItem";
     if (isReview)
-        itemIdentifier = "currentItem";
+        itemType = $.jStorage.get("currentItem")["type"];
     else if (isLesson)
-        itemIdentifier = "l/currentLesson";
+        itemType = $.jStorage.get("l/currentLesson")["type"];
+    else if (isItem)
+    {
+        itemType = window.location.pathname.slice(
+            window.location.pathname.indexOf("com/") + 2,
+            window.location.pathname.lastIndexOf("/")
+        )
+        if (itemType === "radicals")
+            itemType = "radical";
+    }
 
-    itemType = $.jStorage.get(itemIdentifier)["type"];
+    
     if (typeof itemType === "string")
         itemType = itemType.toLowerCase()
     if (itemType == null)
         console.log("WKCM2: getItemType, itemType null");
+    
     if (short)
         return getShortItemType(itemType);
     else
@@ -499,7 +652,7 @@ function preInit()
 {
     let elePromise = null;
     // character div only needed in Lesson & Review. For list use dummy Promise. 
-    if (isList)
+    if (isList || isItem)
         elePromise = Promise.resolve(true);
     else
         elePromise = waitForEle('character');
@@ -534,9 +687,10 @@ function init()
         throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
     
     addGlobalStyle(generalCSS);
+    addGlobalStyle(buttonCSS);
+    addGlobalStyle(formatButtonCSS);
     addGlobalStyle(contentCSS);
     addGlobalStyle(textareaCSS);
-    addGlobalStyle(cmuserbuttonsCSS);
 
     if (isReview)
     {
@@ -552,7 +706,12 @@ function init()
         $(".legend.level-list span.commnem").css("background-color", colorMnemAvail).parent().parent().parent().children("li").css("width", 188).parent().children("li:first-child, li:nth-child(6)")
             .css("width", 187);
         $(".legend.level-list span.commnem-req").css("background-color", colorRequestDark);
-    } else
+    }
+    else if (isItem)
+    {
+        initItem();
+    }
+    else
     {
         console.log("WKCM2: init else")
     }
@@ -564,7 +723,7 @@ function initLesson()
     let type = getItemType();
     let item = getItem();
 
-    addHTMLinID('supplement-info', mnemOuterHTML);
+    addHTMLinID('supplement-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
     // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
@@ -587,7 +746,7 @@ function initLesson()
 
 function initReview()
 {
-    addHTMLinID('item-info', mnemOuterHTML);
+    addHTMLinID('item-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
     document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
@@ -603,6 +762,25 @@ function initReview()
     }
     else
         console.log("WKCM2: init, character div NOT FOUND");
+}
+
+function initItem()
+{
+    if (getItemType() == "radical")
+    {
+        addHTMLinID('information', getMnemOuterHTML(radical=true), "afterend");
+    }
+    if (getItemType() != "radical")
+    {
+        addHTMLinID('reading', getMnemOuterHTML(), "afterend");
+        document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
+        initButtons("reading");
+        updateCM();
+    }
+
+    document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
+    initButtons("meaning");
+    updateCM(undefined, mnemType="meaning");
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -652,6 +830,7 @@ function initEditButtons(mnemType)
     addClickEvent(`cm-format-${mnemType}-underline`, insertTag,    [mnemType, "u"]);
     addClickEvent(`cm-format-${mnemType}-strike`,    insertTag,    [mnemType, "s"]);
     addClickEvent(`cm-format-${mnemType}-newline`,   insertText,   [mnemType, "[n]"]);
+    addClickEvent(`cm-format-${mnemType}-qmark`,     insertText,   [mnemType, "?"]);
     addClickEvent(`cm-format-${mnemType}-reading`,   insertTag,    [mnemType, "read"]);
     addClickEvent(`cm-format-${mnemType}-rad`,       insertTag,    [mnemType, "rad"]);
     addClickEvent(`cm-format-${mnemType}-kan`,       insertTag,    [mnemType, "kan"]);
@@ -691,22 +870,24 @@ function getCMdivContent(mnemType)
     mnemType = getFullMnemType(mnemType);
     let userContentIframe = getInitialIframe(mnemType);
 
-    let typeHeader = "<h2>" + mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic</h2>"
+    let typeHeader = `<h2>${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic</h2>`;
     let content =
         typeHeader +
-        `<div id="cm-${mnemType}-prev" class="cm-prev disabled"><span>◄</span></div>
+        `<div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled"><span>◄</span></div>
         ${userContentIframe}
-        <div id="cm-${mnemType}-next" class="cm-next disabled"><span>►</span></div>
-        <div id="cm-${mnemType}-info" class="cm-info">
-        <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
-        <div id="cm-${mnemType}-upvote" class="cm-upvote-highlight disabled">Upvote ▲</div>
-        <div id="cm-${mnemType}-downvote" class="cm-downvote-highlight disabled">Downvote ▼</div>
+        <div id="cm-${mnemType}-next"         class="cm-btn cm-next disabled"><span>►</span></div>
+        <div id="cm-${mnemType}-info"         class="cm-info">
+
         <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
-        <div id="cm-${mnemType}-edit" class="cm-edit-highlight cm-small-button disabled" >Edit</div>
-        <div id="cm-${mnemType}-delete" class="cm-delete-highlight cm-small-button disabled">Delete</div>
-        <div id="cm-${mnemType}-request" class="cm-request-highlight cm-small-button disabled">Request</div>
-        </div><br>
-        <div id="cm-${mnemType}-submit" class="cm-submit-highlight disabled">Submit Yours</div></div>`;
+            <div id="cm-${mnemType}-edit"         class="cm-btn cm-edit-highlight cm-small-btn disabled" >Edit</div>
+            <div id="cm-${mnemType}-delete"       class="cm-btn cm-delete-highlight cm-small-btn disabled">Delete</div>
+            <div id="cm-${mnemType}-request"      class="cm-btn cm-request-highlight cm-small-btn disabled">Request</div>
+        </div>
+
+        <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
+        <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote ▲</div>
+        <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote ▼</div>
+        <div id="cm-${mnemType}-submit"       class="cm-btn cm-submit-highlight disabled">Submit Yours</div></div>`;
 
     return content;
 }
@@ -719,22 +900,23 @@ function getCMForm(mnemType)
     var CMForm = /*HTML*/`
 <form id="cm-${mnemType}-form" class="cm-form cm-mnem-text" onsubmit="return false">
 <div id="cm-${mnemType}-format" class="cm-format">
-<div id="cm-format-${mnemType}-bold" class="btn cm-format-btn cm-format-bold"           title="bold"><b>b</b></div>
-<div id="cm-format-${mnemType}-italic" class="btn cm-format-btn cm-format-italic"       title="italic"><i>i</i></div>
-<div id="cm-format-${mnemType}-underline" class="btn cm-format-btn cm-format-underline" title="underline"><u>u</u></div>
-<div id="cm-format-${mnemType}-strike" class="btn cm-format-btn cm-format-strike"       title="strikethrough"><s>s</s></div>
-<div id="cm-format-${mnemType}-newline" class="btn cm-format-btn cm-format-newline"     title="newline"><div>&#92;n</div></div>
-<div id="cm-format-${mnemType}-reading" class="btn cm-format-btn cm-format-reading reading highlight-reading"   title="reading">読</div>
-<div id="cm-format-${mnemType}-rad" class="btn cm-format-btn cm-format-rad radical"     title="radical">部</div>
-<div id="cm-format-${mnemType}-kan" class="btn cm-format-btn cm-format-kan kanji"       title="kanji">漢</div>
-<div id="cm-format-${mnemType}-voc" class="btn cm-format-btn cm-format-voc vocabulary"  title="vocabulary">語</div></div>
+<div id="cm-format-${mnemType}-bold"      class="cm-btn cm-format-btn cm-format-bold"      title="bold"><b>b</b></div>
+<div id="cm-format-${mnemType}-italic"    class="cm-btn cm-format-btn cm-format-italic"    title="italic"><i>i</i></div>
+<div id="cm-format-${mnemType}-underline" class="cm-btn cm-format-btn cm-format-underline" title="underline"><u>u</u></div>
+<div id="cm-format-${mnemType}-strike"    class="cm-btn cm-format-btn cm-format-strike"    title="strikethrough"><s>s</s></div>
+<div id="cm-format-${mnemType}-newline"   class="cm-btn cm-format-btn cm-format-newline"   title="newline"><div>&#92;n</div></div>
+<div id="cm-format-${mnemType}-qmark"     class="cm-btn cm-format-btn cm-format-qmark"     title="Question Mark"><div>?</div></div>
+<div id="cm-format-${mnemType}-reading"   class="cm-btn cm-format-btn cm-format-read"      title="reading">読</div>
+<div id="cm-format-${mnemType}-rad"       class="cm-btn cm-format-btn cm-format-rad"       title="radical">部</div>
+<div id="cm-format-${mnemType}-kan"       class="cm-btn cm-format-btn cm-format-kan"       title="kanji">漢</div>
+<div id="cm-format-${mnemType}-voc"       class="cm-btn cm-format-btn cm-format-voc"       title="vocabulary">語</div></div>
 <fieldset class="note-${mnemType} noSwipe">
 <!-- Textarea (Textbox) -->
 <textarea id="cm-${mnemType}-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemonic"></textarea>
 <div class="flex items-center"><span id="cm-${mnemType}-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>
 <!-- Save and Cancel Buttons -->
-<button type="submit" id="cm-${mnemType}-save" class="ml-2 p-0 bg-gray-500 border-1 rounded-l font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>
-<button type="button" id="cm-${mnemType}-cancel" class="btn-cancel ml-1 p-0 bg-gray-500 border-1 rounded-r font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
+<button type="submit" id="cm-${mnemType}-save" class="cm-btn ml-2 p-0 bg-gray-500 border-1 rounded-l font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Save</button>
+<button type="button" id="cm-${mnemType}-cancel" class="cm-btn btn-cancel ml-1 p-0 bg-gray-500 border-1 rounded-r font-lessons text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
 
 </fieldset>
 </form>`;
@@ -1075,10 +1257,10 @@ function insertTag(mnemType, tag)
 {
     let textarea = document.getElementById(`cm-${mnemType}-text`);
     if (!textarea)
-        return
+        return;
 
     let selectedText = getSelectedText(textarea);
-    let insertText = "[" + tag + "]" + selectedText + "[/" + tag + "]"
+    let insertText = "[" + tag + "]" + selectedText + "[/" + tag + "]";
     
     if (textarea.setRangeText)
     {
@@ -1086,10 +1268,10 @@ function insertTag(mnemType, tag)
         textarea.setRangeText(insertText);
     } else
     {
-        textarea.focus()
+        textarea.focus();
         document.execCommand('insertText', false /*no UI*/, insertText);
     }
-    
+    textarea.focus();
 }
 
 /**
@@ -1099,16 +1281,17 @@ function insertText(mnemType, text)
 {
     let textarea = document.getElementById(`cm-${mnemType}-text`);
     if (!textarea)
-        return
+        return;
     if (textarea.setRangeText)
     {
         //if setRangeText function is supported by current browser
         textarea.setRangeText(text);
     } else
     {
-        textarea.focus()
+        textarea.focus();
         document.execCommand('insertText', false /*no UI*/, text);
     }
+    textarea.focus();
 }
 // Button functionality ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -1316,30 +1499,7 @@ function getIframeSrcdoc(text, user=null)
     for (const l of cssLinks)
         cssString = cssString + l.outerHTML;
     // override style to fix some oddities
-    cssString = cssString + /*css*/`<style>
-body
-{
-    font-size: 100% !important;
-    font-weight: 300 !important;
-    line-height: 1.5 !important;
-    background-color: #fff !important;
-}
-.request
-{
-    background-color: ${colorRequest} !important;
-    display: inline !important;
-    border-radius: 3px !important;
-    padding: 1px !important;
-}
-/* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.
-   TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )
- */
-::-webkit-scrollbar{display: none;}
-* {
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
-}
-</style>`;
+    cssString = cssString + iframeCSS;
     cssString = cssString.replaceAll('"', "'");
     
 
