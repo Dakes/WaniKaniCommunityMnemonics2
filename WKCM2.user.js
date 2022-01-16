@@ -12,7 +12,7 @@
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
 // @license     GPL-3.0-or-later; https://www.gnu.org/licenses/gpl-3.0.txt
-// @version     0.2.3
+// @version     0.2.4
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
@@ -25,7 +25,7 @@
 // The code is entirely my own, except for a few individual lines of code, that I will replace soon
 // and HTML and CSS, that I carried over from the old version. 
 
-const WKCM2_version = "0.2.3";
+const WKCM2_version = "0.2.4";
 const scriptName = 'WKCM2';
 const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
@@ -589,22 +589,63 @@ function getItem(short=false)
 
     if (isItem)
     {
-        // No need to go scraping the HTML
-        wkItemInfo.forType(getItemType()).under(`examples`)
-                  .notify((i) => item = i.characters);
+        item = document.querySelector(".radical-icon, .kanji-icon, .vocabulary-icon").textContent.trim();
+        if (!item)
+            item = null
+        // image radical case
+        if (getItemType(short=true) === "r" && item == null)
+        {
+            let radImg = document.querySelector(".radical-image");
+            if (radImg != null)
+                item = radImg.alt.trim().toLowerCase();
+        }
+        if (getItemType(short=true) === "r" && item == null)
+            item = decodeURIComponent( window.location.pathname.slice(window.location.pathname.lastIndexOf("/")+1 ) );
     }
     else if (isReview)
     {
         item = $.jStorage.get("currentItem")["characters"];
+        // image radical case, two methods, if one breaks
+        if (getItemType(short=true) === "r" && item == null)
+        {
+            let jstorageEn = $.jStorage.get("currentItem")["en"];
+            if (jstorageEn != null)
+                item = jstorageEn[0].toLowerCase();
+        }
+        if (getItemType(short=true) === "r" && item == null)
+        {
+            let imgRad = document.querySelector("#item-info-col1 section");
+            if (imgRad != null)
+                item = imgRad.childNodes[2].textContent.trim().toLowerCase();
+        }
     }
     else if (isLesson)
     {
         item = $.jStorage.get("l/currentLesson")["characters"];
+        // image radical case
+        if (getItemType(short=true) === "r" && item == null)
+        {
+            let jstorageEn = $.jStorage.get("l/currentLesson")["en"];
+            if (jstorageEn != null)
+                item = jstorageEn[0].toLowerCase();
+        }
+        if (getItemType(short=true) === "r" && item == null)
+        {
+            let imgRad = document.querySelector("#meaning");
+            if (imgRad != null)
+                item = imgRad.textContent.trim().toLowerCase();
+        }
+        
     }
 
-
     if (item == null)
-        console.log("WKCM2: getItem, item is null");
+    {
+        let msg = "Error: getItem, item is null. ";
+        console.log("WKCM2: " + msg);
+        // this unfortunately doesn't work. Gets overwritten instantly with "No mnem available"
+        // TODO: maybe add flag, that marks the iframe for this item "unupdatable", after an error display
+        // updateIframe(null, msg, user=null);
+    }
 
     return item;
 }
@@ -1636,6 +1677,13 @@ function toggleUserButtons(mnemType, owner)
  * */
 function updateIframe(mnemType, text, user=null)
 {
+    if (mnemType === null)
+    {
+        updateIframe("meaning", text, user);
+        updateIframe("reading", text, user);
+        return;
+    }
+    
     let iframe = document.getElementById(`cm-iframe-${mnemType}`);
     if (iframe == null)
         return;
@@ -1922,6 +1970,11 @@ function getData(item, type)
         type = getItemType(short=true);
     if (item == null || item == "")
         item = getItem();
+
+    if (item == null || type == null)
+    {
+        throw new Error("WKCM2: getData, item or type is null. ", item, type);
+    }
     let identifier = getCacheId(item, type);
 
     // get from wkof cache
