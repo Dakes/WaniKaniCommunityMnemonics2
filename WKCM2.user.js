@@ -12,7 +12,7 @@
 // @include     *.wanikani.com/lesson/session
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/WKCM2.user.js
 // @license     GPL-3.0-or-later; https://www.gnu.org/licenses/gpl-3.0.txt
-// @version     0.2.4
+// @version     0.2.5
 // @author      Daniel Ostertag (Dakes)
 // @grant       none
 // ==/UserScript==
@@ -25,7 +25,7 @@
 // The code is entirely my own, except for a few individual lines of code, that I will replace soon
 // and HTML and CSS, that I carried over from the old version. 
 
-const WKCM2_version = "0.2.4";
+const WKCM2_version = "0.2.5";
 const scriptName = 'WKCM2';
 const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
@@ -78,7 +78,7 @@ function getMnemOuterHTML(radical=false)
 {
     let mnemOuterHTML = /* html */`
     <div id="wkcm2" class="cm">
-    <br> <h2 class="cm-header">Community Mnemonics</h2>
+    <br> <h2 class="cm-header subject-section__title">Community Mnemonics</h2>
     <div id="cm-meaning" class="cm-content"> </div>`;
     if (radical == false)
         mnemOuterHTML = mnemOuterHTML + `<div id="cm-reading" class="cm-content"> </div>`;
@@ -135,7 +135,7 @@ box-shadow: 0 -2px 0 rgb(0 0 0 / 80%) inset;
 
 const generalCSS = /* css */`
 .cm-header{
-text-align: left;
+    text-align: left;
 }
 .cm-content{
     padding: 20px;
@@ -154,6 +154,7 @@ text-align: left;
     vertical-align: top;
 }
 .cm{
+    font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
     overflow: auto;
     text-align: center;
 }
@@ -185,6 +186,7 @@ const buttonCSS = /* css */`
     box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
     text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
     transition: text-shadow 0.15s linear;
+    text-align: center;
 }
 .cm-btn:hover
 {
@@ -219,12 +221,12 @@ const buttonCSS = /* css */`
 
 .cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel
 {
-    text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; padding: 1px 4px
+    text-align: center; font-size: 14px; width: 75px; margin-right: 10px; float: left; padding: 1px 4px;
 }
 .cm-upvote-highlight, .cm-downvote-highlight
 {
-    width: 80px; margin-right: 10px; float: left;
-    padding: 1px 4px
+    width: 90px; margin-right: 10px; float: left;
+    /* padding: 2px 0px 3px 0px;  This is for the redesign. */
 }
 
 .cm-upvote-highlight { background-image: linear-gradient(to bottom, #5c5, #46ad46) }
@@ -232,10 +234,13 @@ const buttonCSS = /* css */`
 .cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 10px }
 .cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
 .cm-request-highlight { background-image: linear-gradient(to bottom, ${colorRequest}, ${colorRequestShadow}) }
-.cm-submit-highlight { width: 125px; margin-left: 75px; float:right; background-image: linear-gradient(to bottom, #616161, #393939) }
+.cm-submit-highlight { width: 125px; margin-left: 75px; float:right; background-image: linear-gradient(to bottom, #616161, #393939); padding: 2px 0px 3px 0px; }
 
 /*Edit, delete, request are small buttons*/
-.cm-small-btn { font-size: 12px; width: 50px; height: 12px; line-height: 1 }
+.cm-small-btn {
+    font-size: 12px; width: 50px; height: 12px; line-height: 1;
+    /*padding: 1px 0px 13px 0px;  This is for the redesign. */
+}
 .cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
 /*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/
 `;
@@ -342,6 +347,7 @@ body
     line-height: 1.5 !important;
     /*Item Page has different background color*/
     background-color: ${(isItem ? '#eee' : '#fff')} !important;
+    font-family: "Ubuntu",Helvetica,Arial,sans-serif;
 }
 
 /* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.
@@ -583,13 +589,13 @@ function getUsername()
     return setUsername();
 }
 
-function getItem(short=false)
+function getItem()
 {
     let item = null;
 
     if (isItem)
     {
-        item = document.querySelector(".radical-icon, .kanji-icon, .vocabulary-icon").textContent.trim();
+        item = document.querySelector(".page-header__icon--kanji,.page-header__icon--vocabulary,.page-header__icon--radical,.vocabulary-icon")?.textContent?.trim();
         if (!item)
             item = null
         // image radical case
@@ -764,7 +770,7 @@ function initLesson()
     let type = getItemType();
     let item = getItem();
 
-    addHTMLinID('supplement-info', getMnemOuterHTML());
+    addHTMLinEle('supplement-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
     // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
@@ -787,7 +793,7 @@ function initLesson()
 
 function initReview()
 {
-    addHTMLinID('item-info', getMnemOuterHTML());
+    addHTMLinEle('item-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("m");
     document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
@@ -809,11 +815,11 @@ function initItem()
 {
     if (getItemType() == "radical")
     {
-        addHTMLinID('information', getMnemOuterHTML(radical=true), "afterend");
+        addHTMLinEle('.subject-section', getMnemOuterHTML(radical=true), "afterend");
     }
     if (getItemType() != "radical")
     {
-        addHTMLinID('reading', getMnemOuterHTML(), "afterend");
+        addHTMLinEle('reading', getMnemOuterHTML(), "afterend");
         document.getElementById("cm-reading").innerHTML = getCMdivContent("r");
         initButtons("reading");
         updateCM();
@@ -911,7 +917,7 @@ function getCMdivContent(mnemType)
     mnemType = getFullMnemType(mnemType);
     let userContentIframe = getInitialIframe(mnemType);
 
-    let typeHeader = `<h2>${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic</h2>`;
+    let typeHeader = `<h2 class="subject-section__subtitle"> ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic</h2>`;
     let content =
         typeHeader +
         `<div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled"><span>◄</span></div>
@@ -1035,12 +1041,25 @@ function getSelectedText(textArea)
 
 /**
  * Adds the given HTML to an element with id. Checks, if the element with id exists.
+ * @legacy
  * */
-function addHTMLinID(id, html, position="beforeend")
+function addHTMLinId(id, html, position="beforeend")
 {
     let ele = document.getElementById(id);
     if (ele)
         ele.insertAdjacentHTML(position, html)
+}
+/**
+ * Adds the given HTML to an element searched by the querySelector search query. Checks, if the element exists.
+ */
+function addHTMLinEle(selector, html, position="beforeend")
+{
+    if (selector[0] != "." && selector[1] != "#")
+        selector = "#"+selector;
+    let ele = document.querySelector(selector);
+    if (ele)
+        ele.insertAdjacentHTML(position, html);
+    
 }
 
 // General helper functions ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲

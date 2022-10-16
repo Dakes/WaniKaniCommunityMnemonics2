@@ -142,15 +142,18 @@ If you use a "!" as the Mnemonic it becomes a request.
 #### 0.2.2 🍛🍚🍚
 - Fixed shortcuts being activated in textarea
 
-#### 0.2.3 🎄 🎁🍛🍚🍚🎁 (current version)
+#### 0.2.3 🎄 🎁🍛🍚🍚🎁
 - 📝 Mnemonics are displayed on the item pages. 
 - ✨ Visually looks much prettier. 🤤 Text highlight color more vibrant. Width dynamic. All Buttons have sick effects on click and hover. 
 - ❓ Added `?` insert button. Because ? toggles shortcut help menu.
 - Focus textarea after insert. 
-#### 0.2.4 🍛🍚🍚
+#### 0.2.4 🍛🍚🍚🍚
 - fix unintentional use of wkItemInfo. 
 - add compatibility with "image radicals"
 - If item or type is null, throws an exception. 
+
+#### 0.2.5 🍛🍚🍚🍚🍚 (current version)
+- Make item pages compatiple to WaniKani's move to React. 
 
 ### 0.3
 - 📝 Display on list screen if mnemonic is available or requested. 
