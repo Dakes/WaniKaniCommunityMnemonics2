@@ -1,0 +1,48 @@
+@use "colors";
+
+
+.commnem-badge,
+.commnem-badge-req {
+    position: absolute;
+    left: 0
+}
+
+.commnem-badge:before,
+.commnem-badge-req:before {
+    //content: "\\5171\"; 
+    display: block;
+    position: absolute;
+    top: -0.6em;
+    left: -0.6em;
+    width: 2em;
+    height: 2em;
+    color: #fff;
+    font-size: 16px;
+    font-weight: normal;
+    line-height: 2.2em;
+    -webkit-box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);
+    -moz-box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    border-radius: 50%;
+    z-index: 999
+}
+
+ul.multi-character-grid .commnem-badge:before,
+ul.multi-character-grid .commnem-badge-req:before {
+    top: 1.1em;
+    left: -1.1em;
+    font-size: 11px;
+    text-align: center
+}
+
+.commnem-badge:before {
+    background-color: #71aa00;
+    text-shadow: 0 2px 0 #1a5300;
+}
+
+.commnem-badge-req:before {
+    background-color: colors.$request;
+    text-shadow: 0 2px 0 colors.$request-shadow;
+}

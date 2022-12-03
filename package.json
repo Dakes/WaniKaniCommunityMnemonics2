@@ -1,0 +1,53 @@
+{
+    "name": "WKCM2",
+    "version": "0.2.5",
+    "description": "This script allows WaniKani members to contribute their own mnemonics which appear on any page that includes item info.",
+    "keywords": [
+        "userscript",
+        "WaniKani"
+    ],
+    "homepage": "https://github.com/Dakes/WaniKaniCommunityMnemonics2/",
+    "repository": {
+        "type": "git",
+        "url": "github:Dakes/WaniKaniCommunityMnemonics2"
+    },
+    "bugs": {
+        "url": "https://github.com/Dakes/WaniKaniCommunityMnemonics2/issues",
+        "email": "daniel.ostertag@dakes.de"
+    },
+    "author": "Daniel Ostertag (Dakes)",
+    "license": "GPL-3.0",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "npx rollup --config rollup.config.js",
+        "watch": "npx rollup --config rollup.config.js --watch",
+        "serve": "node -r esm server.js",
+        "start": "node -r esm server.js",
+        "build:release": "npx rollup --config rollup.config.js --sourcemap 0 --file dist/WKCM2.user.js",
+        "version": "npm run build:release",
+        "prepublishOnly": "npm run build:release"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.17.10",
+        "@babel/core": "^7.18.2",
+        "@babel/plugin-proposal-class-properties": "^7.17.12",
+        "@babel/preset-react": "^7.17.12",
+        "@rollup/plugin-babel": "^5.3.1",
+        "@rollup/plugin-commonjs": "^22.0.0",
+        "@rollup/plugin-node-resolve": "^13.3.0",
+        "@rollup/plugin-replace": "^4.0.0",
+        "@rollup/plugin-typescript": "^9.0.2",
+        "colorette": "^2.0.16",
+        "esm": "^3.2.25",
+        "rollup": "^2.75.3",
+        "rollup-plugin-postcss": "^4.0.2",
+        "rollup-plugin-userscript-metablock": "^0.3.1",
+        "sass": "^1.55.0",
+        "serve": "^13.0.2",
+        "tslib": "^2.4.0",
+        "typescript": "^4.9.3"
+    },
+    "config": {
+        "port": "8124"
+    }
+}
