@@ -37,6 +37,7 @@ export function setUsername(): string
         WKUser = window.WaniKani.username;
     }
     else
+    {
         try
         {
             WKUser = document.getElementsByClassName(userClass)[0].innerHTML;
@@ -45,6 +46,11 @@ export function setUsername(): string
         {
             throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
         }
+    }
+    
+    if (WKUser == null || typeof WKUser != "string" || WKUser == "")
+        throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
+
     return WKUser;
 }
 

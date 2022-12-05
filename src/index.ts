@@ -3,9 +3,10 @@ import { isList, isItem, isReview, isLesson } from "./const";
 import { getCMdivContent, getMnemOuterHTML } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
 import { getItemType, getItem } from "./page";
-import { setUsername, WKUser } from "./user";
+import { setUsername } from "./user";
 import { waitForEle, addGlobalStyle, addHTMLinEle } from "./utils";
-import { waitForWKOF, checkWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
+import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
+import { getLegendLi } from "./html/list";
 
 // ? Legacy imports?
 import * as generalCss from "./css/general.scss"
@@ -15,7 +16,7 @@ import * as formatButtonCss from "./css/formatButton.scss"
 import * as textareaCss from "./css/textarea.scss"
 import * as contentCss from "./css/content.scss"
 import * as highlightCss from "./css/highlight.scss"
-import { getCMLegend } from "./list";
+
 
 // CREDIT: This is a reimplementation of the userscript "WK Community Mnemonics" by forum user Samuel-H.
 // Original Forum post: https://community.wanikani.com/t/userscript-community-mnemonics-v0978/7367
@@ -49,7 +50,7 @@ function run()
     } else if (isList || isItem)
     {
         if (document.readyState === "loading")
-        document.addEventListener("DOMContentLoaded", function() { preInit(); });
+            document.addEventListener("DOMContentLoaded", function() { preInit(); });
         else
             preInit();
     }
@@ -121,8 +122,6 @@ function init()
     // refills whole cache, if not already filled or old.
     checkFillCacheAge();
     setUsername();
-    if (WKUser == null || typeof WKUser != "string" || WKUser == "")
-        throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
 
     addGlobalStyle(generalCSS);
     addGlobalStyle(buttonCSS);
@@ -139,21 +138,8 @@ function init()
         initLesson();
     } else if (isList)
     {
+        initList();
 
-        addGlobalStyle(listCSS);
-        // TODO: get rid of jquery and redo
-        const colorRequestDark = "#e76000";
-        const colorMnemAvail = "#71aa00";
-        interface Window {
-            // @ts-ignore
-            $: JQueryStatic
-        }
-        // @ts-ignore
-        const { $ } = unsafeWindow;
-        $(".additional-info.level-list.legend li").parent().prepend(getCMLegend(true)).prepend(getCMLegend(false));
-        $(".legend.level-list span.commnem").css("background-color", colorMnemAvail).parent().parent().parent().children("li").css("width", 188).parent().children("li:first-child, li:nth-child(6)")
-            .css("width", 187);
-        $(".legend.level-list span.commnem-req").css("background-color", colorRequestDark);
     }
     else if (isItem)
     {
@@ -229,6 +215,15 @@ function initItem()
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
     initButtons("meaning");
     updateCM(undefined, "meaning");
+}
+
+function initList()
+{
+    console.log("hey, this is a list");
+    addGlobalStyle(listCSS);
+    addHTMLinEle(".subject-legend__items", getLegendLi(), "beforeend");
+    
+    // $(".legend.level-list span.commnem-req").css("background-color", colorRequestDark);
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲

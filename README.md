@@ -163,8 +163,8 @@ Running `npm start` will start a development server, that will continually rebui
 
 ### 0.3
 - 📜 Move Codebase to Typescript.
-- 📝 Display on list screen if mnemonic is available or requested. 
-- ❗ Display if mnemonic is available or requested in list. 
+- 📝 Only display Reading or Meaning on right page. 
+- ❗ Display on list screen if mnemonic is available or requested.
 - ♻ Users can delete their own mnemonic
 - 🔁 Manual refresh button. 
 

@@ -3,13 +3,13 @@
  */
 
 import { cacheExpired, getCacheId } from "./cache";
-import { cacheFillIdent, cacheDayMaxAge, sheetApiUrl } from "./const";
-import { dataBackgroundUpdate, dataUpdateAfterInsert } from "./data";
+import { cacheDayMaxAge, sheetApiUrl } from "./const";
+import { dataBackgroundUpdate } from "./data";
 import { currentMnem, updateCM } from "./mnemonic";
 import { getItem, getItemType } from "./page";
 import { WKUser } from "./user";
-import { addClass, getShortItemType, getShortMnemType, printDev } from "./utils";
-import { resetWKOFcache, wkof } from "./wkof";
+import { getShortItemType, getShortMnemType, printDev } from "./utils";
+import { wkof } from "./wkof";
 
 
 /**

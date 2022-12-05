@@ -102,7 +102,6 @@ export function addHTMLinEle(selector: string, html: string, position: InsertPos
     let ele = document.querySelector(selector);
     if (ele)
         ele.insertAdjacentHTML(position, html);
-    
 }
 
 export function waitForEle(id: string): Promise<HTMLElement>
