@@ -1,12 +1,12 @@
-import { checkFillCacheAge } from "./cache";
+import { cacheFillIfExpired } from "./cache";
 import { isList, isItem, isReview, isLesson } from "./const";
 import { getCMdivContent, getMnemOuterHTML } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
-import { getItemType, getItem } from "./page";
+import { getItemType, getItem, detectUrlChange, waitForClass } from "./page";
 import { setUsername } from "./user";
 import { waitForEle, addGlobalStyle, addHTMLinEle } from "./utils";
 import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
-import { getLegendLi } from "./html/list";
+import { getBadgeClass, getLegendLi } from "./html/list";
 
 // ? Legacy imports?
 import * as generalCss from "./css/general.scss"
@@ -16,6 +16,7 @@ import * as formatButtonCss from "./css/formatButton.scss"
 import * as textareaCss from "./css/textarea.scss"
 import * as contentCss from "./css/content.scss"
 import * as highlightCss from "./css/highlight.scss"
+import { displayContent, initHeader } from "./list";
 
 
 // CREDIT: This is a reimplementation of the userscript "WK Community Mnemonics" by forum user Samuel-H.
@@ -120,7 +121,7 @@ function init()
     // resets cache on new version of WKCM2
     resetWKOFcache();
     // refills whole cache, if not already filled or old.
-    checkFillCacheAge();
+    cacheFillIfExpired();
     setUsername();
 
     addGlobalStyle(generalCSS);
@@ -221,9 +222,12 @@ function initList()
 {
     console.log("hey, this is a list");
     addGlobalStyle(listCSS);
-    addHTMLinEle(".subject-legend__items", getLegendLi(), "beforeend");
+    displayContent();
+
+    let waitCreateListContent = function () { waitForClass("."+getBadgeClass("available", true), initHeader, 250); };
+    waitCreateListContent();
+    detectUrlChange(waitCreateListContent, 0);
     
-    // $(".legend.level-list span.commnem-req").css("background-color", colorRequestDark);
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲

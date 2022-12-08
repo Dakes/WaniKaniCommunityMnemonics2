@@ -43,10 +43,9 @@ export function cacheExpired(identifier: string, maxAge: number=cacheDayMaxAge)
 }
 
 /**
- * Runs fillCache but firstly checks, the age of the last fillCache.
- * Only runs if last complete fill was older then, uhmm 2 weeks?? ¯\_(ツ)_/¯
+ * Only fills cache, if cache is expired. 
  * */
-export function checkFillCacheAge()
+export function cacheFillIfExpired()
 {
     wkof.file_cache.load(cacheFillIdent).then(value  =>
         {

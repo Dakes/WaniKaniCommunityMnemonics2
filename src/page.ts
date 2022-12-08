@@ -116,3 +116,53 @@ export function getItemType(/*short: boolean=true*/): ItemType
     return itemType;
 }
 
+export function detectUrlChange(callback: Function, delay: number=100)
+{
+    const observer = new MutationObserver((mutations) =>
+    {
+        if (window.location.href !== observerUrl.previousUrl) {
+            observerUrl.previousUrl = window.location.href;
+            console.log(`URL changed from ${observerUrl.previousUrl} to ${window.location.href}`);
+            setTimeout(callback, delay);
+            // callback();
+        }
+        
+    });
+    const config = { subtree: true, childList: true };
+
+    // start listening to changes
+    observer.observe(document, config);
+}
+
+namespace observerUrl {
+    export let previousUrl = "";
+}
+
+/**
+ * Reexecutes callback function every "timeout" ms until classname exists.
+ * @param selector selector to get element by id or classname
+ * @param callback Callback function, that would create element found by selector
+ * @param timeout 
+ */
+export function waitForClass(selector: string, callback: Function, timeout=50)
+{
+    let callbackWrapper = function () {
+        timer.iter++;
+        let ele = document.querySelector(selector);
+        if (ele || timer.iter >= timer.maxIter)
+        {
+            clearInterval(timer.timer);
+            timer.iter = 0;
+        }
+        else
+            callback();
+    };
+    timer.timer = setInterval(callbackWrapper, timeout);
+}
+
+namespace timer {
+    export let timer: NodeJS.Timer;
+    export let iter: number = 0;
+    export const maxIter = 25;
+}
+

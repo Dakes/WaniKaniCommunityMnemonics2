@@ -36,3 +36,18 @@
     margin-bottom: 14px;
     text-align: center;
 }
+
+
+$small: 767px;
+.character-item__badge__cm-request {
+    background-color: colors.$request;
+    left: 30px;
+    @media screen and (max-width: $small) {left: 300px;};
+}
+
+.character-item__badge__cm-available {
+    background-color: colors.$mnen-available;
+    left: 60px;
+    @media screen and (max-width: $small) {left: 330px;};
+}
+
