@@ -1,18 +1,20 @@
 import { isItem } from "../const";
-import { getFullMnemType, memoize } from "../utils"
+import { memoize } from "../utils"
 import * as iframeCss from "../css/iframe.scss"
 import { Escaping } from "../data";
 
 // Makes iframe (Mnemonics) pretty. background, hide scrollbar and most importantly highlighting, copied from list page
 // NOTE: fix for different background color on item page
-const iframeCSS = /*css*/`
-<style>
-${ 
+function iframeCSS(): string
+{
+    return /*css*/`<style>
+${
     isItem ?
         iframeCss.stylesheet.replaceAll("background-color: #fff", "background-color: #eee") : 
         iframeCss.stylesheet
 }
 </style>`;
+}
 
 /**
  * Creates emty Iframe for CM user content later on
@@ -71,7 +73,7 @@ function getIframeSrcdoc(text: string, user: string|null=null)
     for (const l of cssLinks)
         cssString = cssString + l.outerHTML;
     // override style to fix some oddities
-    cssString = cssString + iframeCSS;
+    cssString = cssString + iframeCSS();
     cssString = cssString.replaceAll('"', "'");
     
 

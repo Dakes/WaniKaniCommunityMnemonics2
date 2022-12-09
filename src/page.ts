@@ -2,7 +2,8 @@
  * Functions to get information about the currently loaded page/item
  */
 
-import { isItem, isLesson, isReview } from "./const";
+import { initItem, initLesson, initList, initReview } from ".";
+import { isItem, isLesson, isList, isReview, setPageVars } from "./const";
 import { getShortItemType } from "./utils";
 
 interface Window {
@@ -85,9 +86,8 @@ export function getItem(): string
 
 /**
  * Returns radical, kanji or vocabulary
- * // @param short with short=true returns r, k or v
  * */
-export function getItemType(/*short: boolean=true*/): ItemType
+export function getItemType(): ItemType
 {
     let itemType = null;
     if (isReview)
@@ -95,14 +95,10 @@ export function getItemType(/*short: boolean=true*/): ItemType
     else if (isLesson)
         itemType = $.jStorage.get("l/currentLesson")["type"];
     else if (isItem)
-    {
-        itemType = window.location.pathname.slice(
-            window.location.pathname.indexOf("com/") + 2,
-            window.location.pathname.lastIndexOf("/")
-        )
-        if (itemType === "radicals")
-            itemType = "radical";
-    }
+        itemType = window.location.pathname.slice(1, window.location.pathname.lastIndexOf("/"));
+    else if (isList)
+        itemType = window.location.pathname.slice(1);
+
 
     
     if (typeof itemType === "string")
@@ -110,23 +106,35 @@ export function getItemType(/*short: boolean=true*/): ItemType
     if (itemType == null)
         console.log("WKCM2: getItemType, itemType null");
     
-    // if (short)
-        // return getShortItemType(itemType);
-    // else
+    if (itemType === "radicals")
+        itemType = "radical";
+    
     return itemType;
 }
 
-export function detectUrlChange(callback: Function, delay: number=100)
+/**
+ * When URL changes calls right init function
+ * // callback with delay of "delay" ms
+ * @param delay delay after URL change, to call functions. 
+ * @param callback Optional callback, extra function to execute. 
+ */
+export function detectUrlChange(delay: number=250, callback: Function=function(){})
 {
     const observer = new MutationObserver((mutations) =>
     {
-        if (window.location.href !== observerUrl.previousUrl) {
+        if (window.location.href !== observerUrl.previousUrl)
+        {
+            setPageVars();
             observerUrl.previousUrl = window.location.href;
-            console.log(`URL changed from ${observerUrl.previousUrl} to ${window.location.href}`);
-            setTimeout(callback, delay);
-            // callback();
+
+            setTimeout(function () {
+                if (isList)
+                    initList();
+                else if (isItem)
+                    initItem();
+                callback();
+            }, delay);
         }
-        
     });
     const config = { subtree: true, childList: true };
 
@@ -142,27 +150,41 @@ namespace observerUrl {
  * Reexecutes callback function every "timeout" ms until classname exists.
  * @param selector selector to get element by id or classname
  * @param callback Callback function, that would create element found by selector
- * @param timeout 
+ * @param interval 
  */
-export function waitForClass(selector: string, callback: Function, timeout=50)
+export function waitForClass(selector: string, callback: Function, interval=250, firstTimeout=0)
 {
-    let callbackWrapper = function () {
-        timer.iter++;
+    if (timer.iter[selector] == undefined)
+        timer.iter[selector] = 0;
+    // other timer is still running
+    if (timer.timer[selector])
+        return;
+
+    let callbackWrapper = async function () {
+        let timeout = 0;
         let ele = document.querySelector(selector);
-        if (ele || timer.iter >= timer.maxIter)
+        timer.iter[selector]++;
+        if (timer.iter[selector] <= 1)
+            timeout = firstTimeout;
+        if (ele || timer.iter[selector] >= timer.maxIter)
         {
-            clearInterval(timer.timer);
-            timer.iter = 0;
+            timer.iter[selector] = 0;
+            timer.timer[selector] = clearInterval(timer.timer[selector]);
+            return;
         }
         else
-            callback();
+            setTimeout(async () => {
+                await callback();
+            }, timeout);
     };
-    timer.timer = setInterval(callbackWrapper, timeout);
+    timer.timer[selector] = setInterval(callbackWrapper, interval);
 }
 
+
 namespace timer {
-    export let timer: NodeJS.Timer;
-    export let iter: number = 0;
+    // Array of timers with selector as key
+    export let timer: {string?: NodeJS.Timer} = {};
+    export let iter: {string?: number} = {};
     export const maxIter = 25;
 }
 

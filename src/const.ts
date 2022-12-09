@@ -21,29 +21,36 @@ export const cacheDayMaxAge = 7;
 // whether to use console logs
 export const devel = false;
 
-// if current page is Review page
-export const isReview = (window.location.pathname.indexOf("/review/") > -1);
-// if current page is Lesson page
-export const isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
 
-// Only true in list of items
-let isListTmp = false;
-if (!isReview && !isLesson)
-{
-    isListTmp = (
-        // true if on a level page
-        /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
-        // true if on a /kanji?difficulty=pleasant site
-        /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
-            .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2) + window.location.search )
-    );
+export let isReview = false;
+export let isLesson = false;
+export let isList = false;
+export let isItem = false;
+
+export function setPageVars() {
+    // if current page is Review page
+    isReview = (window.location.pathname.indexOf("/review/") > -1);
+    // if current page is Lesson page
+    isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
+
+    // Only true in list of items
+    let isListTmp = false;
+    if (!isReview && !isLesson)
+    {
+        isListTmp = (
+            // true if on a level page
+            /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
+            // true if on a /kanji?difficulty=pleasant site
+            /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
+                .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2) + window.location.search )
+        );
+    }
+    isList = isListTmp;
+
+    isItem = /(kanji|vocabulary|radicals)\/.*/gi
+        .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2));
 }
-export const isList = isListTmp;
-
-
-// TODO: true on individual item pages
-export const isItem = /(kanji|vocabulary|radicals)\/.*/gi
-      .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2));
+setPageVars();
 
 export const cacheFillIdent = "wkcm2-fillCache";
 

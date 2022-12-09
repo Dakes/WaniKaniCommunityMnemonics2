@@ -6,7 +6,7 @@ import { getItemType, getItem, detectUrlChange, waitForClass } from "./page";
 import { setUsername } from "./user";
 import { waitForEle, addGlobalStyle, addHTMLinEle } from "./utils";
 import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
-import { getBadgeClass, getLegendLi } from "./html/list";
+import { getBadgeBaseClass, getBadgeClass, getBadgeClassAvail, getBadgeClassReq } from "./html/list";
 
 // ? Legacy imports?
 import * as generalCss from "./css/general.scss"
@@ -16,7 +16,7 @@ import * as formatButtonCss from "./css/formatButton.scss"
 import * as textareaCss from "./css/textarea.scss"
 import * as contentCss from "./css/content.scss"
 import * as highlightCss from "./css/highlight.scss"
-import { displayContent, initHeader } from "./list";
+import { addBadgeToItems, initHeader } from "./list";
 
 
 // CREDIT: This is a reimplementation of the userscript "WK Community Mnemonics" by forum user Samuel-H.
@@ -139,6 +139,7 @@ function init()
         initLesson();
     } else if (isList)
     {
+        cacheFillIfExpired();
         initList();
 
     }
@@ -151,13 +152,13 @@ function init()
         console.log("WKCM2: init else")
     }
 
+    // call right init functions, after page has changed (without proper reload)
+    detectUrlChange(500);
+
 }
 
-function initLesson()
+export function initLesson()
 {
-    let type = getItemType();
-    let item = getItem();
-
     addHTMLinEle('supplement-info', getMnemOuterHTML());
 
     document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
@@ -179,7 +180,7 @@ function initLesson()
 
 }
 
-function initReview()
+export function initReview()
 {
     addHTMLinEle('item-info', getMnemOuterHTML());
 
@@ -199,7 +200,7 @@ function initReview()
         console.log("WKCM2: init, character div NOT FOUND");
 }
 
-function initItem()
+export function initItem()
 {
     if (getItemType() == "radical")
     {
@@ -218,16 +219,11 @@ function initItem()
     updateCM(undefined, "meaning");
 }
 
-function initList()
+export function initList()
 {
-    console.log("hey, this is a list");
     addGlobalStyle(listCSS);
-    displayContent();
-
-    let waitCreateListContent = function () { waitForClass("."+getBadgeClass("available", true), initHeader, 250); };
-    waitCreateListContent();
-    detectUrlChange(waitCreateListContent, 0);
-    
+    waitForClass("."+getBadgeClassAvail(true), initHeader, 250);
+    waitForClass(`[class*='${getBadgeBaseClass()}']`, addBadgeToItems, 100, 25);
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲

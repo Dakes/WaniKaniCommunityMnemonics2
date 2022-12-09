@@ -1,13 +1,16 @@
 {
     "namespace": "wkcm2",
     "copyright": "2022, Daniel Ostertag (https://github.com/Dakes)",
-    "include": [
-        "*.wanikani.com/level/*",
-        "*.wanikani.com/kanji*",
-        "*.wanikani.com/vocabulary*",
-        "*.wanikani.com/radicals*",
-        "*.wanikani.com/review/session",
-        "*.wanikani.com/lesson/session"
+    "match": [
+        "https://www.wanikani.com/level/*",
+        "https://www.wanikani.com/kanji*",
+        "https://www.wanikani.com/vocabulary*",
+        "https://www.wanikani.com/radicals*",
+        "https://www.wanikani.com/review/session",
+        "https://www.wanikani.com/lesson/session"
+    ],
+    "grant": [
+        "none"
     ],
     "homepage": "https://github.com/Dakes/WaniKaniCommunityMnemonics2/",
     "downloadURL": "https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js"

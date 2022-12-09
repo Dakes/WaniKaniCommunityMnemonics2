@@ -30,15 +30,21 @@ export function getBadgeClass(type: string="available", legend=false): string
     if (legend)
         return "subject-legend__item-badge--cm-" + type;
     else
-        return "character-item__badge__cm-" + type;
+        return `character-item__badge ${getBadgeBaseClass(type)}`;
+}
+
+export function getBadgeBaseClass(type="")
+{
+    return `character-item__badge__cm-${type}`
 }
 
 export function getBadgeClassReq(legend=false): string
 {
-    return getBadgeClass("requested", legend);
+    return getBadgeClass("request", legend);
 }
 
 export function getBadgeClassAvail(legend=false): string
 {
     return getBadgeClass("available", legend);
 }
+

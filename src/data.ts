@@ -190,6 +190,30 @@ export function isEqualsJson(obj1: null|WKCMJson, obj2: null|WKCMJson): boolean
     return keys1.length === keys2.length && Object.keys(obj1).every(key=>obj1[key]==obj2[key]);
 }
 
+export function hasRequest(dataJson: DataJson|null): boolean
+{
+    if (dataJson == null)
+        return false;
+    if (dataJson["Meaning_Mnem"][2] == "!")
+        return true
+    if (dataJson["Reading_Mnem"][2] == "!" )
+        return true
+    return false
+}
+
+export function mnemAvailable(dataJson: DataJson|null): boolean
+{
+    if (dataJson == null)
+        return false;
+    if (dataJson["Meaning_Mnem"][2] && dataJson["Meaning_Mnem"][2] != "!")
+        return true
+    if (dataJson["Reading_Mnem"][2] && dataJson["Reading_Mnem"][2] != "!")
+        return true
+    return false
+}
+
+
+
 /**
  * Functions for Escaping/Unescaping User content.
  * Or generating Strings with User content.

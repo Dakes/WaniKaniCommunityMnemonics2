@@ -15,8 +15,12 @@ import { wkof } from "./wkof";
 /**
  * Abstraction layer from direct data fetch,
  * to make use of caches to make the script more responsive.
- * */
-export async function getData(item?: string, type?: ItemTypeShort): Promise<DataJson|null>
+ * @param item Current Item. Optional, gets it if not given.
+ * @param type Current Item Type (short), optional. gets it if not given.
+ * @param fetchOnMiss True: default. Refetch from API on cache miss. If false returns null on miss. 
+ * @returns Promise resolving to DataJson or null.
+ */
+export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss=true): Promise<DataJson|null>
 {
     if (type == undefined)
         type = getShortItemType(getItemType());
@@ -44,6 +48,8 @@ export async function getData(item?: string, type?: ItemTypeShort): Promise<Data
         }, (reason) =>
         {
             // cache miss
+            if (!fetchOnMiss)
+                return null;
             // fetch data from db, put in cache and return
 
             getData.misses++;
