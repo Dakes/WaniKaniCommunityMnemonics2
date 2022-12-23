@@ -4,7 +4,7 @@
     text-align: left;
 }
 .cm-content{
-    padding: 20px;
+    padding: 0px 0px 0px 0px;;
     // width: ${(isItem ? '95%' : '47%')};
     width: '47%';
     height: 100%; min-height: 300px;
@@ -27,5 +27,5 @@
 }
 /*Below this size, displayed below each other. Fill full width*/
 @media only screen and (max-width: 1530px) {
-    .cm-content{width: 95%;}
+    // .cm-content{width: 95%;}
 }

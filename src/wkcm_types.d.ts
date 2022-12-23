@@ -4,7 +4,8 @@ type MnemTypeAny = MnemType | MnemTypeShort
 
 type ItemType = "kanji" | "vocabulary" | "radical"
 type ItemTypeShort = "k" | "v" | "r"
-type ItemTypeAny = ItemType | ItemTypeShort
+type ItemTypeMed = "kan" | "voc" | "rad"
+type ItemTypeAny = ItemType | ItemTypeShort | ItemTypeMed
 
 type MnemJson = {user: string[]}
 type ScoreJson = {user: number[]}

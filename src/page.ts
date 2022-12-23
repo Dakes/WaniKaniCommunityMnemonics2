@@ -4,7 +4,7 @@
 
 import { initItem, initLesson, initList, initReview } from ".";
 import { isItem, isLesson, isList, isReview, setPageVars } from "./const";
-import { getShortItemType } from "./utils";
+import { getMedItemType, getShortItemType } from "./utils";
 
 interface Window {
     // @ts-ignore
@@ -187,4 +187,69 @@ namespace timer {
     export let iter: {string?: number} = {};
     export const maxIter = 25;
 }
+
+/**
+ * Observe if meaning/reading tabs are activated in Lessons
+ * @param callback requires param MnemType. Initializes HTML
+ */
+export function observeLessonTabs(callback: Function)
+{
+    const observer = new MutationObserver(function (mutations)
+    {
+        mutations.forEach(function (mutation)
+        {
+            let ele = mutation.target as HTMLElement;
+            if (ele.id == "supplement-kan" && mutation.addedNodes.length != 0)
+            {
+                let addedNode = mutation.addedNodes[0] as HTMLElement;
+                if (addedNode.id.includes("meaning"))
+                {
+                    callback("meaning");
+                }
+                else if (addedNode.id.includes("reading"))
+                {
+                    callback("reading");
+                }
+            }
+        });
+    });
+
+    const target = document.getElementById(`supplement-${getMedItemType(getItemType())}`);
+    observer.observe(target, 
+        { attributes: false, childList: true, subtree: true }
+    );
+}
+
+/**
+ * Observe item-info field for changes and insert Mnemonic divs if needed.
+ * Also copies style to hide/show element from note
+ * @param callback initReview callback function
+ */
+export function observeReviewInfo(callback: Function)
+{
+    const observer = new MutationObserver(function (mutations)
+    {
+        for (let mnemType of ["meaning", "reading"])
+        {
+            let note = document.querySelector(`#note-${mnemType}`) as HTMLElement;
+            let cmDiv = document.querySelector(`#cm-${mnemType}`) as HTMLElement;
+            if (note && !cmDiv)
+            {
+                initReview(mnemType as MnemType);
+            }
+            if (cmDiv)
+            {
+                cmDiv.style.display = note.style.display;
+                // TODO: next. does not trigger when clicking expand (maybe change callback settings)
+                console.log(mnemType, "copying style: ", note.style.display)
+            }
+        }
+    });
+
+    const target = document.getElementById(`item-info`);
+    observer.observe(target, 
+        { attributes: false, childList: true, subtree: true }
+    )
+}
+
 

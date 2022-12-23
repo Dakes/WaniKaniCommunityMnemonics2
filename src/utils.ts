@@ -18,12 +18,22 @@ export function printDev(...params: any[])
  * */
 export function getShortItemType(type: ItemTypeAny): ItemTypeShort
 {
-    if (type === "kanji" || type === "k")
-        return "k"
-    else if (type === "vocabulary" || type === "v")
-        return "v"
-    else if (type === "radical" || type === "r")
-        return "r"
+    return getItemTypeLen(type, 1) as ItemTypeShort;
+}
+
+export function getMedItemType(type: ItemTypeAny): ItemTypeMed
+{
+    return getItemTypeLen(type, 3) as ItemTypeMed;
+}
+
+function getItemTypeLen(type: ItemTypeAny, len: Number=99): ItemType
+{
+    if (type === "kanji" || type === "k" || type === "kan")  // @ts-ignore
+        return "kanji".substring(0, len)
+    else if (type === "vocabulary" || type === "v" || type === "voc")  // @ts-ignore
+        return "vocabulary".substring(0, len)
+    else if (type === "radical" || type === "r" || type === "rad")  // @ts-ignore
+        return "radical".substring(0, len)
     else
         throw new Error("WKCM2: getShortItemType got wrong ItemType: "+type);
 }
@@ -97,7 +107,7 @@ export function addClickEvent(id: string, func: Function, params: any[])
  */
 export function addHTMLinEle(selector: string, html: string, position: InsertPosition="beforeend")
 {
-    if (selector[0] != "." && selector[1] != "#")
+    if (selector[0] != "." && selector[0] != "#" && selector[1] != "#")
         selector = "#"+selector;
     let ele = document.querySelector(selector);
     if (ele)

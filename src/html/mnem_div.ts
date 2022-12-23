@@ -15,14 +15,14 @@ import { Textarea } from "../mnemonic";
 import { dataUpdateAfterInsert } from "../data";
 import * as api from "../api";
 
-export function getMnemOuterHTML(radical=false)
+export function getMnemOuterHTMLList(radical=false)
 {
     let mnemOuterHTML = /* html */`
     <div id="wkcm2" class="cm">
-    <br> <h2 class="cm-header subject-section__title">Community Mnemonics</h2>
-    <div id="cm-meaning" class="cm-content"> </div>`;
+    <br> <h2>Community Mnemonics</h2>
+    ${getCMdivContent("meaning", true)}`;
     if (radical == false)
-        mnemOuterHTML = mnemOuterHTML + `<div id="cm-reading" class="cm-content"> </div>`;
+        mnemOuterHTML = mnemOuterHTML + getCMdivContent("reading", true);
     mnemOuterHTML = mnemOuterHTML + `</div>`;
     return mnemOuterHTML;
 }
@@ -31,28 +31,35 @@ export function getMnemOuterHTML(radical=false)
  * Creates the initial HTML code for the individual Mnemonic types, including Iframes. But also all Buttons.
  * Does not include content
  */
-export function getCMdivContent(mnemType: MnemType): string
+export function getCMdivContent(mnemType: MnemType, list: Boolean=false): string
 {
-    let userContentIframe = getInitialIframe(mnemType);
+    const userContentIframe = getInitialIframe(mnemType);
+   
+    let header = "Community Mnemonic"
+    if (list)
+        header = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic";
 
-    let typeHeader = `<h2 class="subject-section__subtitle"> ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic</h2>`;
     let content =
-        typeHeader +
-        `<div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled"><span>◄</span></div>
-        ${userContentIframe}
-        <div id="cm-${mnemType}-next"         class="cm-btn cm-next disabled"><span>►</span></div>
-        <div id="cm-${mnemType}-info"         class="cm-info">
+/*HTML*/`
+<div id="cm-${mnemType}" class="cm-content">
+    <h2>${header}</h2>
+    <div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled"><span>◄</span></div>
+    ${userContentIframe}
+    <div id="cm-${mnemType}-next"         class="cm-btn cm-next disabled"><span>►</span></div>
+    <div id="cm-${mnemType}-info"         class="cm-info">
 
-        <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
-            <div id="cm-${mnemType}-edit"         class="cm-btn cm-edit-highlight cm-small-btn disabled" >Edit</div>
-            <div id="cm-${mnemType}-delete"       class="cm-btn cm-delete-highlight cm-small-btn disabled">Delete</div>
-            <div id="cm-${mnemType}-request"      class="cm-btn cm-request-highlight cm-small-btn disabled">Request</div>
-        </div>
+    <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
+        <div id="cm-${mnemType}-edit"         class="cm-btn cm-edit-highlight cm-small-btn disabled" >Edit</div>
+        <div id="cm-${mnemType}-delete"       class="cm-btn cm-delete-highlight cm-small-btn disabled">Delete</div>
+        <div id="cm-${mnemType}-request"      class="cm-btn cm-request-highlight cm-small-btn disabled">Request</div>
+    </div>
 
-        <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
-        <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote ▲</div>
-        <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote ▼</div>
-        <div id="cm-${mnemType}-submit"       class="cm-btn cm-submit-highlight disabled">Submit Yours</div></div>`;
+    <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
+    <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote ▲</div>
+    <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote ▼</div>
+    <div id="cm-${mnemType}-submit"       class="cm-btn cm-submit-highlight disabled">Submit Yours</div></div>
+</div>
+`;
 
     return content;
 }
@@ -71,6 +78,10 @@ export function setScore(mnemType: MnemType, score: string|Number)
     }
 }
 
+export function removeMnemDiv(mnemType: MnemType)
+{
+    
+}
 
 
 export class Buttons

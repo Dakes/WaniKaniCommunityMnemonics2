@@ -93,6 +93,10 @@ export function updateCM(dataJson:boolean|DataJson|null=false,
  * */
 function updateCMelements(mnemType: MnemType, type: ItemType, dataJson: DataJson, index=0)
 {
+    // check if cm type exists in HTML
+    if (!document.querySelector("#cm-"+mnemType))
+        return;
+
     // Radicals only have meaning, no reading. Disable Reading buttons and update Reading message
     if(mnemType == "reading" && type == "radical")
     {

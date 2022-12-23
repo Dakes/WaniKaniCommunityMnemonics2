@@ -1,10 +1,10 @@
 import { cacheFillIfExpired } from "./cache";
 import { isList, isItem, isReview, isLesson } from "./const";
-import { getCMdivContent, getMnemOuterHTML } from "./html/mnem_div";
+import { getCMdivContent, getMnemOuterHTMLList } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
-import { getItemType, getItem, detectUrlChange, waitForClass } from "./page";
+import { getItemType, getItem, detectUrlChange, waitForClass, observeLessonTabs, observeReviewInfo } from "./page";
 import { setUsername } from "./user";
-import { waitForEle, addGlobalStyle, addHTMLinEle } from "./utils";
+import { waitForEle, addGlobalStyle, addHTMLinEle, getMedItemType } from "./utils";
 import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
 import { getBadgeBaseClass, getBadgeClass, getBadgeClassAvail, getBadgeClassReq } from "./html/list";
 
@@ -133,10 +133,10 @@ function init()
 
     if (isReview)
     {
-        initReview();
+        observeReviewInfo(initReview);
     } else if (isLesson)
     {
-        initLesson();
+        observeLessonTabs(initLesson);
     } else if (isList)
     {
         cacheFillIfExpired();
@@ -157,58 +157,49 @@ function init()
 
 }
 
-export function initLesson()
+export function initLesson(mnemType: MnemType)
 {
-    addHTMLinEle('supplement-info', getMnemOuterHTML());
+    let selector = `#supplement-${getMedItemType(getItemType())}-${mnemType} > div > div:nth-child(2)`;
+    // backup method, in case they change something about these classes above
+    if (! document.querySelector(selector))
+        selector = `supplement-${getMedItemType(getItemType())}-${mnemType}`;
+    addHTMLinEle(selector, getCMdivContent(mnemType));
 
-    document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
-    // document.getElementById("cm-iframe-meaning").outerHTML = getCMForm("meaning");
-    document.getElementById("cm-reading").innerHTML = getCMdivContent("reading");
-    // document.getElementById("cm-iframe-reading").outerHTML = getCMForm("reading");
+    initButtons(mnemType);
 
-    initButtons("meaning");
-    initButtons("reading");
-
-    let characterDiv = document.getElementById("character");
-    if (characterDiv != null)
-    {
-        characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
-        updateCM();
-    }
-    else
-        console.log("character div NOT FOUND");
-
+    updateCM(undefined, mnemType);
 }
 
-export function initReview()
+export function initReview(mnemType: MnemType)
 {
-    addHTMLinEle('item-info', getMnemOuterHTML());
+    // Add before note
+    let selector = `#note-${mnemType}`;
+    addHTMLinEle(selector, getCMdivContent(mnemType), "beforebegin");
 
-    document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
-    document.getElementById("cm-reading").innerHTML = getCMdivContent("reading");
+    initButtons(mnemType);
 
-    initButtons("meaning");
-    initButtons("reading");
+    updateCM(undefined, mnemType);
 
+    /*
     let characterDiv = document.getElementById("character").firstElementChild;
     if (characterDiv != null)
     {
         characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
-        updateCM();
     }
     else
         console.log("WKCM2: init, character div NOT FOUND");
+    */
 }
 
 export function initItem()
 {
     if (getItemType() == "radical")
     {
-        addHTMLinEle('.subject-section', getMnemOuterHTML(true), "afterend");
+        addHTMLinEle('.subject-section', getMnemOuterHTMLList(true), "afterend");
     }
     if (getItemType() != "radical")
     {
-        addHTMLinEle('reading', getMnemOuterHTML(), "afterend");
+        addHTMLinEle('reading', getMnemOuterHTMLList(), "afterend");
         document.getElementById("cm-reading").innerHTML = getCMdivContent("reading");
         initButtons("reading");
         updateCM();
