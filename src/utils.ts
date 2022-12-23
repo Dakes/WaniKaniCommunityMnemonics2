@@ -3,6 +3,7 @@
  */
 
 import { devel } from "./const";
+import { getItemType } from "./page";
 
 /**
  * calls console.log only when global devel variable is true
@@ -147,10 +148,14 @@ export function addGlobalStyle(css: string)
     if (!head)
         return;
     let style = document.createElement('style');
-    style.type = 'text/css';
     style.innerHTML = css;//css.replace(/;/g, ' !important;');
     head.appendChild(style);
 }
 
-
+export function getPossibleMnemTypes(): MnemType[]
+{
+    if (getItemType() == "radical")
+        return ["meaning"];
+    return ["meaning", "reading"];
+}
 

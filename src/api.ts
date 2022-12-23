@@ -17,10 +17,11 @@ import { wkof } from "./wkof";
  * to make use of caches to make the script more responsive.
  * @param item Current Item. Optional, gets it if not given.
  * @param type Current Item Type (short), optional. gets it if not given.
- * @param fetchOnMiss True: default. Refetch from API on cache miss. If false returns null on miss. 
+ * @param fetchOnMiss False: default. Refetch from API on cache miss. 
+ * If false, interprets cache miss as not in DB and fills cache with null. 
  * @returns Promise resolving to DataJson or null.
  */
-export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss=true): Promise<DataJson|null>
+export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss=false): Promise<DataJson|null>
 {
     if (type == undefined)
         type = getShortItemType(getItemType());
@@ -49,8 +50,12 @@ export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss=t
         {
             // cache miss
             if (!fetchOnMiss)
+            {
+                wkof.file_cache.save(identifier, null);
                 return null;
+            }
             // fetch data from db, put in cache and return
+            // ? maybe remove? is not used anyway
 
             getData.misses++;
             // protection against deadlock "just in case" something somewhere else at some point breaks.

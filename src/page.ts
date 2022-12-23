@@ -4,7 +4,7 @@
 
 import { initItem, initLesson, initList, initReview } from ".";
 import { isItem, isLesson, isList, isReview, setPageVars } from "./const";
-import { getMedItemType, getShortItemType } from "./utils";
+import { getMedItemType, getPossibleMnemTypes, getShortItemType } from "./utils";
 
 interface Window {
     // @ts-ignore
@@ -222,33 +222,27 @@ export function observeLessonTabs(callback: Function)
 
 /**
  * Observe item-info field for changes and insert Mnemonic divs if needed.
- * Also copies style to hide/show element from note
+ * Also copies style from note, to hide/show CM element
  * @param callback initReview callback function
  */
 export function observeReviewInfo(callback: Function)
 {
     const observer = new MutationObserver(function (mutations)
     {
-        for (let mnemType of ["meaning", "reading"])
+        for (let mnemType of getPossibleMnemTypes())
         {
             let note = document.querySelector(`#note-${mnemType}`) as HTMLElement;
             let cmDiv = document.querySelector(`#cm-${mnemType}`) as HTMLElement;
             if (note && !cmDiv)
-            {
-                initReview(mnemType as MnemType);
-            }
-            if (cmDiv)
-            {
+                initReview(mnemType);
+            if (cmDiv && cmDiv?.style.display != note?.style.display)
                 cmDiv.style.display = note.style.display;
-                // TODO: next. does not trigger when clicking expand (maybe change callback settings)
-                console.log(mnemType, "copying style: ", note.style.display)
-            }
         }
     });
 
     const target = document.getElementById(`item-info`);
     observer.observe(target, 
-        { attributes: false, childList: true, subtree: true }
+        { attributes: true, attributeFilter: ["style"], childList: false, subtree: true }
     )
 }
 

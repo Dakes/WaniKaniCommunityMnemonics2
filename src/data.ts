@@ -19,7 +19,8 @@ import { wkof } from "./wkof";
  * @param cachedData old data json (currently in cache) will be updated, if new version is different.
  * @param wait number of ms to wait with execution, or false. (Because after insertion into sheet it takes a moment for the updated version to be returned. Annoyingly even when using promises. )
  * */
-export async function dataBackgroundUpdate(item=null, type=null, cachedData:DataJson|null=null, wait=false)
+export async function dataBackgroundUpdate(item:string|null=null, type:ItemTypeAny|null=null, 
+    cachedData:DataJson|null=null, wait=false)
 {
     if (wait && typeof wait == "number")
     {

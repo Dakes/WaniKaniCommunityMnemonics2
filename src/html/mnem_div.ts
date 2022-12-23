@@ -20,9 +20,9 @@ export function getMnemOuterHTMLList(radical=false)
     let mnemOuterHTML = /* html */`
     <div id="wkcm2" class="cm">
     <br> <h2>Community Mnemonics</h2>
-    ${getCMdivContent("meaning", true)}`;
+    ${getCMdivContent("meaning")}`;
     if (radical == false)
-        mnemOuterHTML = mnemOuterHTML + getCMdivContent("reading", true);
+        mnemOuterHTML = mnemOuterHTML + getCMdivContent("reading");
     mnemOuterHTML = mnemOuterHTML + `</div>`;
     return mnemOuterHTML;
 }
@@ -31,13 +31,11 @@ export function getMnemOuterHTMLList(radical=false)
  * Creates the initial HTML code for the individual Mnemonic types, including Iframes. But also all Buttons.
  * Does not include content
  */
-export function getCMdivContent(mnemType: MnemType, list: Boolean=false): string
+export function getCMdivContent(mnemType: MnemType): string
 {
     const userContentIframe = getInitialIframe(mnemType);
    
-    let header = "Community Mnemonic"
-    if (list)
-        header = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + " Mnemonic";
+    let header = `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`
 
     let content =
 /*HTML*/`
@@ -80,7 +78,7 @@ export function setScore(mnemType: MnemType, score: string|Number)
 
 export function removeMnemDiv(mnemType: MnemType)
 {
-    
+
 }
 
 
