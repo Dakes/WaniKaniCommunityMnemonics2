@@ -19,7 +19,7 @@ export function getMnemOuterHTMLList(radical=false)
 {
     let mnemOuterHTML = /* html */`
     <div id="wkcm2" class="cm">
-    <br> <h2>Community Mnemonics</h2>
+    <br> <h2 class="subject-section__title">Community Mnemonics</h2>
     ${getCMdivContent("meaning")}`;
     if (radical == false)
         mnemOuterHTML = mnemOuterHTML + getCMdivContent("reading");
@@ -40,7 +40,7 @@ export function getCMdivContent(mnemType: MnemType): string
     let content =
 /*HTML*/`
 <div id="cm-${mnemType}" class="cm-content">
-    <h2>${header}</h2>
+    <h2 class="subject-section__subtitle">${header}</h2>
     <div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled"><span>◄</span></div>
     ${userContentIframe}
     <div id="cm-${mnemType}-next"         class="cm-btn cm-next disabled"><span>►</span></div>
@@ -170,7 +170,7 @@ export class Buttons
             return;
         if (currentMnem.currentUser[mnemType] == undefined)
             return;
-        if (currentMnem.currentUser[mnemType] != WKUser)
+        if (currentMnem.currentUser[mnemType] !== WKUser)
             return;
 
         Textarea.submitting = false;
@@ -195,21 +195,24 @@ export class Buttons
 
     static deleteCM(mnemType: MnemType)
     {
-        alert("Deleting Mnemonics is not yet implemented. ");
+        addClass(`cm-${mnemType}-delete`);
+        addClass(`cm-${mnemType}-edit`);
+        if (currentMnem.mnem[mnemType] == undefined)
+            return;
+        if (currentMnem.currentUser[mnemType] !== WKUser)
+            return
+        
+        let item = getItem();
+        let shortType = getShortItemType(getItemType());
+
+        api.deleteMnemonic(mnemType, item, shortType);
     }
 
     static requestCM(mnemType: MnemType)
     {
-        let item = getItem();
-        let shortType = getShortItemType(getItemType());
-        let shortMnemType = getShortMnemType(mnemType);
-
-        let url = sheetApiUrl + `?exec=request&item=${item}&type=${shortType}&user=${WKUser}&mnemType=${shortMnemType}`;
-        url = encodeURI(url);
-
         addClass(`cm-${mnemType}-request`);
-        
-        fetch(url).then(response =>
+        let shortType = getShortItemType(getItemType());
+        api.requestMnemonic(mnemType, getItem(), shortType).then(response =>
             {
                 if (response.status < 300)  // < 200 Informational Response
                 {

@@ -1,9 +1,9 @@
-import { cacheFillIfExpired } from "./cache";
+import { fillCacheIfExpired } from "./cache";
 import { isList, isItem, isReview, isLesson } from "./const";
 import { getCMdivContent, getMnemOuterHTMLList } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
 import { getItemType, getItem, detectUrlChange, waitForClass, observeLessonTabs, observeReviewInfo } from "./page";
-import { setUsername } from "./user";
+import { setApiKey, setUsername } from "./user";
 import { waitForEle, addGlobalStyle, addHTMLinEle, getMedItemType } from "./utils";
 import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
 import { getBadgeBaseClass, getBadgeClass, getBadgeClassAvail, getBadgeClassReq } from "./html/list";
@@ -121,8 +121,12 @@ function init()
     // resets cache on new version of WKCM2
     resetWKOFcache();
     // refills whole cache, if not already filled or old.
-    cacheFillIfExpired();
+    fillCacheIfExpired();
     setUsername();
+    setApiKey();
+    
+    if (isInitialized())
+        return;
 
     addGlobalStyle(generalCSS);
     addGlobalStyle(buttonCSS);
@@ -139,7 +143,7 @@ function init()
         observeLessonTabs(initLesson);
     } else if (isList)
     {
-        cacheFillIfExpired();
+        fillCacheIfExpired();
         initList();
 
     }
@@ -159,6 +163,9 @@ function init()
 
 export function initLesson(mnemType: MnemType)
 {
+    if (isInitialized())
+        return;
+
     let selector = `#supplement-${getMedItemType(getItemType())}-${mnemType} > div > div:nth-child(2)`;
     // backup method, in case they change something about these classes above
     if (! document.querySelector(selector))
@@ -172,6 +179,9 @@ export function initLesson(mnemType: MnemType)
 
 export function initReview(mnemType: MnemType)
 {
+    if (isInitialized())
+        return;
+
     // Add before note
     let selector = `#note-${mnemType}`;
     addHTMLinEle(selector, getCMdivContent(mnemType), "beforebegin");
@@ -193,28 +203,47 @@ export function initReview(mnemType: MnemType)
 
 export function initItem()
 {
+    if (isInitialized())
+        return;
+
     if (getItemType() == "radical")
     {
         addHTMLinEle('.subject-section', getMnemOuterHTMLList(true), "afterend");
     }
-    if (getItemType() != "radical")
+    // if (getItemType() != "radical")
+    else
     {
-        addHTMLinEle('reading', getMnemOuterHTMLList(), "afterend");
-        document.getElementById("cm-reading").innerHTML = getCMdivContent("reading");
+        addHTMLinEle('.subject-section--reading', getMnemOuterHTMLList(), "afterend");
+        // document.getElementById("cm-reading").innerHTML = getCMdivContent("reading");
         initButtons("reading");
-        updateCM();
     }
 
-    document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
+    // document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
     initButtons("meaning");
-    updateCM(undefined, "meaning");
+    updateCM();
 }
 
 export function initList()
 {
+    if (isInitialized())
+        return;
+
     addGlobalStyle(listCSS);
     waitForClass("."+getBadgeClassAvail(true), initHeader, 250);
     waitForClass(`[class*='${getBadgeBaseClass()}']`, addBadgeToItems, 100, 25);
+}
+
+function isInitialized(): Boolean
+{
+    if (document.querySelector("#wkcm2"))
+        return true;
+    if (document.querySelector("#cm-meaning"))
+        return true;
+    if (document.querySelector(".character-item__badge__cm-request"))
+        return true;
+    if (document.querySelector(".character-item__badge__cm-available"))
+        return true;
+    return false;
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲

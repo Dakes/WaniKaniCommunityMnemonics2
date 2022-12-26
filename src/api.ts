@@ -7,7 +7,7 @@ import { cacheDayMaxAge, sheetApiUrl } from "./const";
 import { dataBackgroundUpdate } from "./data";
 import { currentMnem, updateCM } from "./mnemonic";
 import { getItem, getItemType } from "./page";
-import { WKUser } from "./user";
+import { userApiKey, WKUser } from "./user";
 import { getShortItemType, getShortMnemType, printDev } from "./utils";
 import { wkof } from "./wkof";
 
@@ -134,8 +134,11 @@ export async function getAll(): Promise<Object|null>
 {
     let url = sheetApiUrl + `?exec=getall`;
     url = encodeURI(url);
-    return fetch(url).then(response => response.json())
-        .catch(reason => {console.log("WKCM2: fillCache failed: ", reason); return null;})
+    return fetch(url, {method: "GET"}).then(response => response.json())
+        .catch(reason => {
+            console.log("WKCM2: fillCache failed: ", reason);
+            return null;
+        });
 }
 
 export async function submitMnemonic(mnemType: MnemType, item: string,
@@ -144,10 +147,9 @@ export async function submitMnemonic(mnemType: MnemType, item: string,
     let shortMnemType = getShortMnemType(mnemType);
     newMnem = encodeURIComponent(newMnem);
     let url = sheetApiUrl +
-        `?exec=put&item=${item}&type=${shortType}&user=${
-        encodeURIComponent(WKUser)}&mnemType=${shortMnemType}&mnemIndex=${
+        `?exec=put&item=${item}&type=${shortType}&apiKey=${
+        encodeURIComponent(userApiKey)}&mnemType=${shortMnemType}&mnemIndex=${
         mnemIndexDB}&mnem=${newMnem}`;
-    console.log(url);
 
     return fetch(url, {method: "POST"});
 }
@@ -157,9 +159,35 @@ export async function voteMnemonic(mnemType: MnemType, item: string,
 {
     let shortMnemType = getShortMnemType(mnemType);
     let url = sheetApiUrl +
-        `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&user=${
-            WKUser}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${
-                currentMnem.userIndex}&score=${vote}`;
+        `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
+            userApiKey}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${
+                currentMnem.userIndex[mnemType]}&score=${vote}`;
+    url = encodeURI(url);
+    return fetch(url, {method: "POST"});
+}
+
+export async function requestMnemonic(mnemType: MnemType, item: string,
+    shortType: ItemTypeShort)
+{
+    let shortMnemType = getShortMnemType(mnemType);
+
+    let url = sheetApiUrl + `?exec=request&item=${item}&type=${shortType}&apiKey=${
+        userApiKey}&mnemType=${shortMnemType}`;
+    url = encodeURI(url);
+    return fetch(url);
+}
+
+export async function deleteMnemonic(mnemType: MnemType, item: string,
+    shortType: ItemTypeShort): Promise<Response>
+{
+    if (currentMnem.currentUser[mnemType] != WKUser)
+        return;
+    let shortMnemType = getShortMnemType(mnemType);
+    let url = sheetApiUrl +
+        `?exec=del&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
+            userApiKey}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${
+                currentMnem.userIndex[mnemType]}`;
+    console.log(url);
     url = encodeURI(url);
     return fetch(url, {method: "POST"});
 }

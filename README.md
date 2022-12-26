@@ -98,16 +98,23 @@ returns a json of all available items with the key being Type+Item.
 `exec = put`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
-`user = Dakes` You  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` (The nth of your mnemonics. 1 for second one. If -1, submit new one. New index would work as well)  
 `mnem = "Your very creative Mnemonic" / "Or a correction of an existing mnemonic"`  
 If you use a "!" as the Mnemonic it becomes a request. 
+#### delete mnemonic
+`exec = del`  
+`item = 林`  
+`type = k/v/r` (Kanji, Vocabulary, Radical)  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
+`mnemType = m/r` (Meaning/Reading)  
+`mnemIndex = 0` (The nth of your mnemonics. 1 for second one. If -1, submit new one. New index would work as well)  
 #### vote
 `exec = vote`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
-`user = Dakes` you  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
 `mnemUser = Anonymous` The user whose mnem you are voting  
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` The nth mnemonic by mnemUser. (1 for second one. )  
@@ -116,7 +123,7 @@ If you use a "!" as the Mnemonic it becomes a request.
 `exec = request`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
-`user = Dakes` You  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
 `mnemType = m/r` (Meaning/Reading)  
 
 ## Building instruction

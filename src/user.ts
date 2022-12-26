@@ -3,6 +3,7 @@ import { wkof } from "./wkof";
 
 
 export let WKUser: string|null = null;
+export let userApiKey: string|null = null;
 
 export function setUsername(): string
 {
@@ -60,4 +61,17 @@ export function getUsername(): string
         return WKUser;
     else
         return setUsername();
+}
+
+export function setApiKey(): string
+{
+    try
+    {
+        userApiKey = wkof.Apiv2.key;
+    }
+    catch(err)
+    {
+        throw new Error("WKCM2 Error: API key not set.");
+    }
+    return userApiKey;
 }

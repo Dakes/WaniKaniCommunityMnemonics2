@@ -45,7 +45,7 @@ export function cacheExpired(identifier: string, maxAge: number=cacheDayMaxAge)
 /**
  * Only fills cache, if cache is expired. 
  * */
-export function cacheFillIfExpired()
+export function fillCacheIfExpired()
 {
     wkof.file_cache.load(cacheFillIdent).then(value  =>
         {
