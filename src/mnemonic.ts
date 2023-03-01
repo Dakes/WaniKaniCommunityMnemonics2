@@ -89,7 +89,7 @@ export function updateCM(dataJson:boolean|DataJson|null=false,
  * @param type kanji, vocabulary or radical
  * @param dataJson json containing data from the DB:
  * {Type: 'k', Item: '活', Meaning_Mnem: {...}, Reading_Mnem: '!', Meaning_Score: {...}, ...}
- * @param index Index of mnemonic and ? user in case of multiple.
+ * @param index Global Index of mnemonic.
  * */
 function updateCMelements(mnemType: MnemType, type: ItemType, dataJson: DataJson, index=0)
 {
@@ -133,8 +133,8 @@ function updateCMelements(mnemType: MnemType, type: ItemType, dataJson: DataJson
         let mnemSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Mnem";
         let scoreSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Score";
         let votesSelector = mnemType.charAt(0).toUpperCase() + mnemType.slice(1) + "_Votes";
-        let scoreJson: ScoreJson = jsonParse(dataJson[scoreSelector]) as ScoreJson;
         let mnemJson: MnemJson = jsonParse(dataJson[mnemSelector]) as MnemJson;
+        let scoreJson: ScoreJson = jsonParse(dataJson[scoreSelector]) as ScoreJson;  // Score != Votes
         let votesJson: VotesJson = jsonParse(dataJson[votesSelector]) as VotesJson;
 
         // no mnem available for current item
@@ -160,20 +160,24 @@ function updateCMelements(mnemType: MnemType, type: ItemType, dataJson: DataJson
             // save dataJson to pseodo global, to prevent reloading from cache. (is faster [only a bit])
             switchCM.dataJson = dataJson;
 
-            let nDataUser = getNthDataUser(mnemJson, index);
-            updateIframe(mnemType, ...nDataUser);  // (mnemType, mnem, user)
-            let score = getNthScore(scoreJson, index);
-            setScore(mnemType, score);
-            Buttons.toggleUserButtons(mnemType, nDataUser[1]==WKUser);
-            Buttons.toggleVotes(mnemType, votesJson, nDataUser[1], index);
-            currentMnem.currentUser[mnemType] = nDataUser[1];
+            
+            let currentJsonUser = getNthDataUser(mnemJson, index);
+            updateIframe(mnemType, ...currentJsonUser);  // (mnemType, mnem, user)
 
             // to know which mnem to edit.
+            currentMnem.currentUser[mnemType] = currentJsonUser[1];
             currentMnem.userIndex[mnemType] = getUserIndex(mnemJson, index, currentMnem.currentUser[mnemType]);
 
+            // let score = getNthScore(scoreJson, index);
+            let score = scoreJson[currentMnem.currentUser[mnemType]][currentMnem.userIndex[mnemType]]
+            setScore(mnemType, score);
+            Buttons.toggleUserButtons(mnemType, currentJsonUser[1]==WKUser);
+            currentMnem.userIndex[mnemType] = getUserIndex(mnemJson, index, currentMnem.currentUser[mnemType]);
+            Buttons.toggleVotes(mnemType, votesJson, currentJsonUser[1], currentMnem.userIndex[mnemType]);
+
             // save for editing only if the currently displayed mnem is by user
-            if (nDataUser[1] == WKUser)
-                currentMnem.mnem[mnemType] = nDataUser[0];
+            if (currentJsonUser[1] == WKUser)
+                currentMnem.mnem[mnemType] = currentJsonUser[0];
 
             // disable submit button if user submitted too many mnems
             if (getUserMnemCount(mnemJson, WKUser) >= mnemMaxCount)
@@ -251,10 +255,11 @@ export function getUserMnemCount(mnemJson: MnemJson, user: string)
 }
 
 /**
+ * Get data point at position n and return in array with user (owner of data) in second element.
  * @param innerJson inner json of data. either Meaning or Reading mnemonic. Or Votes. NOT whole data json.
  * MUST be in the form: {"user": [1, 2, 3], "user2": [4, 5, 6]}
- * @param n number of mnem to get.
- * @return nth data point in json with user in Array [data, user]
+ * @param n number of mnem to get. (Global index)
+ * @return Array of nth data point in json and user: [data, user]
  * */
 function getNthDataUser(innerJson: MnemJson|ScoreJson, n: number): [any, string|null]
 {
@@ -279,12 +284,18 @@ function getNthDataUser(innerJson: MnemJson|ScoreJson, n: number): [any, string|
     return [null, null];
 }
 
+/**
+ * Get Score at position n. (Global index)
+ * @param scoreJson 
+ * @param n Global index of data to search
+ * @returns Score: int
+ */
 export function getNthScore(scoreJson: ScoreJson, n: number)
 {
     try
     {
         let scoreUser = getNthDataUser(scoreJson, n);
-        if (scoreUser == null)
+        if (scoreUser[0] == null)
             return 0;
         let score: number = Number(scoreUser[0]);
         score = (!score ? 0 : score);
@@ -301,10 +312,8 @@ export function getNthScore(scoreJson: ScoreJson, n: number)
  * Get the index of the users individual mnem from the global mnem index.
  * Relevant for editing mnem, to overwrite the correct one in the sheet.
  * */
-export function getUserIndex(mnemJson: MnemJson, n: number, user:string|null=null)
+export function getUserIndex(mnemJson: MnemJson, n: number, user:string)
 {
-    if (user == null)
-        user = WKUser;
     if (mnemJson == null)
         return 0;
     if (mnemJson[user] == null)
@@ -405,8 +414,8 @@ export class Textarea
 
 
         Textarea.submitting = false;
-        currentMnem.userIndex[mnemType] = {};
-        currentMnem.mnem[mnemType] = {};
+        currentMnem.userIndex[mnemType] = 0;
+        currentMnem.mnem[mnemType] = null;
     }
 
     /**

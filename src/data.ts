@@ -69,14 +69,16 @@ export async function dataBackgroundUpdate(item:string|null=null, type:ItemTypeA
  * So compared to dataBackgroundUpdate it expects an update, and will repeat the fetch a few times, until it gives up.
  * After the insertion into the sheet it takes a few moments (~1-2s) until the new data is returned. 
  * @param item item to update (星). Will be set if null.
- * @param item type of item (kanji) Will be set if null.
+ * @param type of item (kanji) Will be set if null.
  * @param cachedData old data json (currently in cache) will be updated, if new version is different. Will be set if false. 
  * @param tries number of times to retry before giving up, waits "wait"ms between executions.
  * @param wait number of ms to wait with execution, or false. (Because after insertion into sheet it takes a moment for the updated version to be returned. Annoyingly even when using promises. )
  * @param index Index to use for displayed mnemonic. So user sees their changed mnem directly after submission. Should only be used togetcher with mnemType. 
  * @param mnemType just as index, mnemType to pass through.
  * */
-export function dataUpdateAfterInsert(item=null, type=null, cachedData: DataJson|boolean=false, tries=10, wait=1000, index=0, mnemType=undefined): Promise<void>
+export function dataUpdateAfterInsert(item: string|null=null, type: ItemType|null=null,
+    cachedData: DataJson|boolean|null=false, tries=10, wait=1000, index=0, 
+    mnemType: MnemType|undefined=undefined): Promise<void>
 {
     if (tries < 0)
     {
@@ -96,7 +98,7 @@ export function dataUpdateAfterInsert(item=null, type=null, cachedData: DataJson
             dataUpdateAfterInsert(item, type, cachedData, tries, wait, index, mnemType))
             .catch(err => {
                 printDev("WKCM2: dataUpdateAfterInsert, cache miss: ", err);
-                dataUpdateAfterInsert(item, type, cachedData=null, tries, wait, index, mnemType);
+                dataUpdateAfterInsert(item, type, null, tries, wait, index, mnemType);
             });
         return Promise.resolve();
     }

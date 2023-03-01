@@ -76,6 +76,10 @@ export function setScore(mnemType: MnemType, score: string|Number)
     }
 }
 
+/**
+ * TODO: implement. needed?
+ * @param mnemType 
+ */
 export function removeMnemDiv(mnemType: MnemType)
 {
 
@@ -135,11 +139,11 @@ export class Buttons
      * Enables/Disables voring buttons depending on users vote
      * votesJson["mnemUser"][mnemIndex]{WKuser} <-- contains vote
      * */
-    static toggleVotes(mnemType: MnemType, scoreJson: ScoreJson, mnemUser: string, mnemIndex: number)
+    static toggleVotes(mnemType: MnemType, votesJson: VotesJson, mnemUser: string, mnemIndex: number)
     {
         try
         {
-            let userVote = Number(scoreJson[mnemUser][mnemIndex][WKUser]);
+            const userVote = Number(votesJson[mnemUser][mnemIndex][WKUser]);
             if (userVote >= 1)
                 addClass(`cm-${mnemType}-upvote`);
             if (userVote <= -1)
@@ -147,7 +151,7 @@ export class Buttons
         }
         catch (err)
         {
-            // catches "TypeError: Cannot read properties of undefined", because I am too lazy for 100 nested if checks
+            console.log("WKCM2 Error in toggleVotes, mnem_div.ts:", err);
         }
     }
 
@@ -216,14 +220,15 @@ export class Buttons
             {
                 if (response.status < 300)  // < 200 Informational Response
                 {
+                    dataUpdateAfterInsert();
                     // do something to celebrate the successfull insertion of the request
                 }
                 else if (response.status >= 300)  // includes error not ==
                 {
                     // do something to handle the failure
                 }
-            }).catch(reason => console.log("WKCM2: requestCM failed: ", reason))
-                .then(dataUpdateAfterInsert);
+            }).catch(reason => console.log("WKCM2: requestCM failed: ", reason));
+                // .then(dataUpdateAfterInsert(););
     }
 
     static voteCM(mnemType: MnemType, vote: number)
@@ -261,7 +266,7 @@ export class Buttons
                     // do something to handle the failure
                 }
                 
-            }).catch(reason => console.log("WKCM2: requestCM failed: ", reason));
+            }).catch(reason => console.log("WKCM2: requestCM failed:\n", reason));
 
         currentMnem.currentUser[mnemType] = {};
         currentMnem.mnemIndex[mnemType] = {};

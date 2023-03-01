@@ -118,7 +118,7 @@ If you use a "!" as the Mnemonic it becomes a request.
 `mnemUser = Anonymous` The user whose mnem you are voting  
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` The nth mnemonic by mnemUser. (1 for second one. )  
-`score = -1/0/1` Your new voting for the mnem.   
+`vote = -1/0/1` Your new voting for the mnem.   
 #### request
 `exec = request`  
 `item = 林`  

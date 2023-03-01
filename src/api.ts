@@ -161,7 +161,7 @@ export async function voteMnemonic(mnemType: MnemType, item: string,
     let url = sheetApiUrl +
         `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
             userApiKey}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${
-                currentMnem.userIndex[mnemType]}&score=${vote}`;
+                currentMnem.userIndex[mnemType]}&vote=${vote}`;
     url = encodeURI(url);
     return fetch(url, {method: "POST"});
 }
@@ -185,8 +185,7 @@ export async function deleteMnemonic(mnemType: MnemType, item: string,
     let shortMnemType = getShortMnemType(mnemType);
     let url = sheetApiUrl +
         `?exec=del&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
-            userApiKey}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${
-                currentMnem.userIndex[mnemType]}`;
+            userApiKey}&mnemIndex=${currentMnem.userIndex[mnemType]}`;
     console.log(url);
     url = encodeURI(url);
     return fetch(url, {method: "POST"});

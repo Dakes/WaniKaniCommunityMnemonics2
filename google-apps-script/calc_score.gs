@@ -3,7 +3,6 @@
  */
 function calc_score(input)
 {
-
   if (typeof input == "string")
     return get_score(input)
   else
@@ -19,24 +18,24 @@ function calc_score(input)
 
 /**
  * input only string
- * Takes a json string like:
+ * Takes a json string like: 
  * {
- *     "Dakes": [{"Anonymous": "1", "DerTester": "1"}],
- *     "Anonymous": [mnem1_votes, mnem2_votes, ...],
+ *     "Dakes": [{"Anonymous": "1", "DerTester": "1"}], 
+ *     "Anonymous": [mnem1_votes, mnem2_votes, ...], 
  *     ...
  * }
  * and outputs:
  * {
- *     "Dakes": [2, 3, ...],
- *     "Anonymous": [6],
+ *     "Dakes": [2, 3, ...], 
+ *     "Anonymous": [6], 
  *      ...
  * }
  */
 function get_score(input)
 {
-  if (input == "" || input == "Meaning_Votes" || input == "Reading_Votes")
+  if (!input || input == "Meaning_Votes" || input == "Reading_Votes")
     return ""
-
+    
   let in_json = JSON.parse(input);
   let out_json = {};
 
@@ -58,6 +57,6 @@ function get_score(input)
     }
     out_json[mnem_key] = new_score_array;
 
-  }
+  } 
   return JSON.stringify(out_json);
 }

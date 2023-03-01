@@ -8,9 +8,7 @@ export const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-// dev
-// export const sheetApiUrl = "https://script.google.com/macros/s/AKfycbwyuEmU6JJbT3_4b0Oh0DVDTCor0a7hq4hqlyA-O1Wk/dev";
-export const sheetApiUrl = "https://script.google.com/macros/s/AKfycbxQKOBycD0Q9eZXNAVTjj7KTt-mVxBcHet5gd0xpB9dQxDnp6STDJO6i_LyDZMUQgASWg/exec";
+export const sheetApiUrl = "https://script.google.com/macros/s/AKfycby9rPr3pS4rFoLOBpji5veZ5XnxSXAchXh-CytddXxPfbES1sjJXAJPzEkvVLJIiKTV/exec";
 
 // "https://script.google.com/macros/s/AKfycbxCxmHz_5ibnHn0un5HxaCLeJTRHxwdrS5fW4nmXBYXyA-Jw6aDPPrrHWrieir3B8kDFQ/exec";
 
