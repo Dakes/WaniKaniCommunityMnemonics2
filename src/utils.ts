@@ -105,14 +105,26 @@ export function addClickEvent(id: string, func: Function, params: any[])
 
 /**
  * Adds the given HTML to an element searched by the querySelector search query. Checks, if the element exists.
+ * @param eleOrSel Selector of element to add code to, or element directly.
+ * @param html HTML to add
+ * @param position InsertPosition. default: beforeend (Inside at end)
  */
-export function addHTMLinEle(selector: string, html: string, position: InsertPosition="beforeend")
+export function addHTMLinEle(eleOrSel: string|HTMLElement, html: string, 
+    position: InsertPosition="beforeend")
 {
-    if (selector[0] != "." && selector[0] != "#" && selector[1] != "#")
-        selector = "#"+selector;
-    let ele = document.querySelector(selector);
-    if (ele)
-        ele.insertAdjacentHTML(position, html);
+    let element: HTMLElement;
+    if (typeof eleOrSel == "string")
+    {
+        if (eleOrSel[0] != "." && eleOrSel[0] != "#" && eleOrSel[1] != "#")
+            eleOrSel = "#"+eleOrSel;
+        element = document.querySelector(eleOrSel);
+    }
+    else
+    {
+        element = eleOrSel;
+    }
+    if (element)
+        element.insertAdjacentHTML(position, html);
 }
 
 export function waitForEle(id: string): Promise<HTMLElement>

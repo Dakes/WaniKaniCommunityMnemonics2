@@ -77,6 +77,7 @@ export function updateCM(dataJson:boolean|DataJson|null=false,
                 if (dataJson !== undefined)
                     updateCM(dataJson, mnemType, index);
             }).catch((reason) => {
+                console.log("WKCM2: updateCM error: ", reason);
                 setTimeout(function(){ updateCM(false, mnemType, index) }, refetchTimeout);
             });
     }
@@ -168,8 +169,15 @@ function updateCMelements(mnemType: MnemType, type: ItemType, dataJson: DataJson
             currentMnem.currentUser[mnemType] = currentJsonUser[1];
             currentMnem.userIndex[mnemType] = getUserIndex(mnemJson, index, currentMnem.currentUser[mnemType]);
 
-            // let score = getNthScore(scoreJson, index);
-            let score = scoreJson[currentMnem.currentUser[mnemType]][currentMnem.userIndex[mnemType]]
+            let score = 0;
+            try
+            {
+                score = scoreJson[currentMnem.currentUser[mnemType]][currentMnem.userIndex[mnemType]];
+            }
+            catch (err)
+            {
+                // ignore in cases: ScoreJson is null (empty). And user entry does not exist.
+            }
             setScore(mnemType, score);
             Buttons.toggleUserButtons(mnemType, currentJsonUser[1]==WKUser);
             currentMnem.userIndex[mnemType] = getUserIndex(mnemJson, index, currentMnem.currentUser[mnemType]);

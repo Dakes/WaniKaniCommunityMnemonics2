@@ -223,9 +223,8 @@ export function observeLessonTabs(callback: Function)
 /**
  * Observe item-info field for changes and insert Mnemonic divs if needed.
  * Also copies style from note, to hide/show CM element
- * @param callback initReview callback function
  */
-export function observeReviewInfo(callback: Function)
+export function observeReviewInfo()
 {
     const observer = new MutationObserver(function (mutations)
     {

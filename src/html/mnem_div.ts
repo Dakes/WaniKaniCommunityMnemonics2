@@ -3,12 +3,11 @@
  * but also to modify it, like toggle buttons
  */
 
-import { sheetApiUrl } from "../const";
 import { currentMnem, switchCM } from "../mnemonic";
 import { getItem, getItemType } from "../page";
 import { decodeHTMLEntities } from "../text";
 import { WKUser } from "../user";
-import { addClass, addClickEvent, getFullMnemType, getShortItemType, getShortMnemType, removeClass } from "../utils";
+import { addClass, addClickEvent, getShortItemType, removeClass } from "../utils";
 import { getCMForm } from "./form";
 import { getInitialIframe } from "./iframe";
 import { Textarea } from "../mnemonic";
@@ -141,6 +140,8 @@ export class Buttons
      * */
     static toggleVotes(mnemType: MnemType, votesJson: VotesJson, mnemUser: string, mnemIndex: number)
     {
+        if (votesJson == null)
+            return;
         try
         {
             const userVote = Number(votesJson[mnemUser][mnemIndex][WKUser]);
@@ -148,10 +149,12 @@ export class Buttons
                 addClass(`cm-${mnemType}-upvote`);
             if (userVote <= -1)
                 addClass(`cm-${mnemType}-downvote`);
+            removeClass(`cm-${mnemType}-downvote`);
         }
         catch (err)
         {
-            console.log("WKCM2 Error in toggleVotes, mnem_div.ts:", err);
+            // catch votesJson access in case mnemUser or WKUser do not have and entries.
+            //// console.log("WKCM2 Error in toggleVotes, mnem_div.ts:", err);
         }
     }
 

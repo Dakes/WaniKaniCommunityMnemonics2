@@ -2,11 +2,11 @@ import { fillCacheIfExpired } from "./cache";
 import { isList, isItem, isReview, isLesson } from "./const";
 import { getCMdivContent, getMnemOuterHTMLList } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
-import { getItemType, getItem, detectUrlChange, waitForClass, observeLessonTabs, observeReviewInfo } from "./page";
+import { getItemType, detectUrlChange, waitForClass, observeLessonTabs, observeReviewInfo } from "./page";
 import { setApiKey, setUsername } from "./user";
 import { waitForEle, addGlobalStyle, addHTMLinEle, getMedItemType } from "./utils";
 import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
-import { getBadgeBaseClass, getBadgeClass, getBadgeClassAvail, getBadgeClassReq } from "./html/list";
+import { getBadgeBaseClass, getBadgeClassAvail } from "./html/list";
 
 // ? Legacy imports?
 import * as generalCss from "./css/general.scss"
@@ -137,7 +137,7 @@ function init()
 
     if (isReview)
     {
-        observeReviewInfo(initReview);
+        observeReviewInfo();
     } else if (isLesson)
     {
         observeLessonTabs(initLesson);
@@ -163,27 +163,29 @@ function init()
 
 export function initLesson(mnemType: MnemType)
 {
-    if (isInitialized())
+    if (isInitializedReviewLesson(mnemType))
         return;
 
-    let selector = `#supplement-${getMedItemType(getItemType())}-${mnemType} > div > div:nth-child(2)`;
-    // backup method, in case they change something about these classes above
-    if (! document.querySelector(selector))
-        selector = `supplement-${getMedItemType(getItemType())}-${mnemType}`;
-    addHTMLinEle(selector, getCMdivContent(mnemType));
+    const selector = `h2`
+    let headers = document.querySelectorAll<HTMLElement>(selector);
+    for (let i=0; i<headers.length; i++)
+        if (headers[i].innerText.includes("Notes"))
+        {
+            addHTMLinEle(headers[i], "<br>", "beforebegin");
+            addHTMLinEle(headers[i], getCMdivContent(mnemType), "beforebegin");
+            initButtons(mnemType);
+            updateCM(undefined, mnemType);
+        }
 
-    initButtons(mnemType);
-
-    updateCM(undefined, mnemType);
 }
 
 export function initReview(mnemType: MnemType)
 {
-    if (isInitialized())
+    if (isInitializedReviewLesson(mnemType))
         return;
 
     // Add before note
-    let selector = `#note-${mnemType}`;
+    const selector = `#note-${mnemType}`;
     addHTMLinEle(selector, getCMdivContent(mnemType), "beforebegin");
 
     initButtons(mnemType);
@@ -233,17 +235,35 @@ export function initList()
     waitForClass(`[class*='${getBadgeBaseClass()}']`, addBadgeToItems, 100, 25);
 }
 
-function isInitialized(): Boolean
+/**
+ * return true if initialized. False else
+ * @param mnemType can be null. If null uses both.
+ * @returns 
+ */
+function isInitialized(mnemType: MnemType|null=null): Boolean
 {
+    if (mnemType == null)
+        return isInitialized("reading") && isInitialized("meaning")
+
     if (document.querySelector("#wkcm2"))
         return true;
-    if (document.querySelector("#cm-meaning"))
+    if (document.querySelector(`#cm-${mnemType}`))
         return true;
+    // For list
     if (document.querySelector(".character-item__badge__cm-request"))
         return true;
     if (document.querySelector(".character-item__badge__cm-available"))
         return true;
     return false;
+}
+
+function isInitializedReviewLesson(mnemType: MnemType|null=null): Boolean
+{
+    if (mnemType == null)
+        return isInitialized("reading") && isInitialized("meaning")
+
+    if (document.querySelector(`#cm-${mnemType}`))
+        return true;
 }
 
 // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
