@@ -29,6 +29,10 @@ export let isLesson = false;
 export let isList = false;
 export let isItem = false;
 
+// @ts-ignore;  A wrapper for the window, because unsafeWindow doesn't work in Firefox 
+// @ts-ignore;  and window does not have access to wkof?? (How even? idk, it worked before)
+export let win: Window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
+
 export function setPageVars() {
     // if current page is Review page
     isReview = (window.location.pathname.indexOf("/review/") > -1);

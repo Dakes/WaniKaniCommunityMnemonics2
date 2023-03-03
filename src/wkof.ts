@@ -3,7 +3,7 @@
  * https://community.wanikani.com/t/wanikani-open-framework-developer-thread/22231
  */
 
-import { scriptName, WKCM2_version } from "./const";
+import { scriptName, win, WKCM2_version } from "./const";
 import { printDev } from "./utils";
 import {WKOF, ItemData, Apiv2, Menu, Settings} from "./wkof_types"
 
@@ -17,8 +17,7 @@ declare global {
 }
 
 // @ts-ignore
-// export let wkof = wkof;
-export const { wkof } = unsafeWindow;
+export const { wkof } = win;
 
 // Makes sure that WKOF is installed
 export async function checkWKOF(): Promise<boolean> {

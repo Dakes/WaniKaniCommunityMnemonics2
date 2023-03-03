@@ -19,15 +19,6 @@ import * as highlightCss from "./css/highlight.scss"
 import { addBadgeToItems, initHeader } from "./list";
 
 
-// CREDIT: This is a reimplementation of the userscript "WK Community Mnemonics" by forum user Samuel-H.
-// Original Forum post: https://community.wanikani.com/t/userscript-community-mnemonics-v0978/7367
-// The original stopped working some time ago and was plagued by bugs even longer.
-// Due to security concerns involving XSS attacks, due to the nature of displaying user generated content,
-// I decided to recode everything from scratch.
-// The code is entirely my own, except for a few individual lines of code, that I will replace soon
-// and HTML and CSS, that I carried over from the old version. 
-
-
 run();
 
 // all code runs from here

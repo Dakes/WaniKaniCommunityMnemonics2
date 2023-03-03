@@ -3,7 +3,7 @@
  */
 
 import { initItem, initLesson, initList, initReview } from ".";
-import { isItem, isLesson, isList, isReview, setPageVars } from "./const";
+import { isItem, isLesson, isList, isReview, setPageVars, win } from "./const";
 import { getMedItemType, getPossibleMnemTypes, getShortItemType } from "./utils";
 
 interface Window {
@@ -12,7 +12,7 @@ interface Window {
 }
 
 // @ts-ignore
-export const { $ } = unsafeWindow;
+export const { $ } = win;
 
 /**
  * @returns The current item. (説得, stick, etc.)

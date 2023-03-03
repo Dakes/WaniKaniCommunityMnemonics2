@@ -1,4 +1,4 @@
-import { isLesson, isReview } from "./const";
+import { isLesson, isReview, win } from "./const";
 import { wkof } from "./wkof";
 
 
@@ -35,7 +35,7 @@ export function setUsername(): string
     if(isReview || isLesson)
     {
         // @ts-ignore
-        WKUser = window.WaniKani.username;
+        WKUser = win.WaniKani.username;
     }
     else
     {
