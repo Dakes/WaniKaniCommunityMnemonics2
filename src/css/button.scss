@@ -3,7 +3,7 @@
 .cm-btn
 {
     color: white;
-    height: 18px;
+    height: 20px;
     font-size: 14px;
     cursor: pointer;
     filter: contrast(0.9);
@@ -29,7 +29,7 @@
 }
 .cm-prev, .cm-next
 {
-    color: black;
+    color: #333333;
     font-size: 50px;
     margin: 0px 0px 0px 0px;
     padding: 15px 10px 0px 0px;
@@ -51,11 +51,11 @@
     width: 75px;
     margin-right: 10px;
     float: left;
-    padding: 1px 4px;
+    padding: 0px 4px;
 }
 .cm-upvote-highlight, .cm-downvote-highlight
 {
-    width: 90px; margin-right: 10px; float: left;
+    width: 95px; margin-right: 10px; float: left; padding: 2px;
     /* padding: 2px 0px 3px 0px;  This is for the redesign. */
 }
 

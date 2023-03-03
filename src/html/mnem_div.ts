@@ -36,13 +36,14 @@ export function getCMdivContent(mnemType: MnemType): string
    
     let header = `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`
 
+    // ◄►
     let content =
 /*HTML*/`
 <div id="cm-${mnemType}" class="cm-content">
     <h2 class="subject-section__subtitle">${header}</h2>
-    <div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled"><span>◄</span></div>
+    <div id="cm-${mnemType}-prev"        class="fa-solid fa-angle-left cm-btn cm-prev disabled"><span></span></div>
     ${userContentIframe}
-    <div id="cm-${mnemType}-next"         class="cm-btn cm-next disabled"><span>►</span></div>
+    <div id="cm-${mnemType}-next"         class="fa-solid fa-angle-right cm-btn cm-next disabled"><span></span></div>
     <div id="cm-${mnemType}-info"         class="cm-info">
 
     <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
@@ -52,8 +53,8 @@ export function getCMdivContent(mnemType: MnemType): string
     </div>
 
     <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
-    <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote ▲</div>
-    <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote ▼</div>
+    <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote <i class="fa-solid fa-chevrons-up"></i></div>
+    <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote <i class="fa-solid fa-chevrons-down"></i></div>
     <div id="cm-${mnemType}-submit"       class="cm-btn cm-submit-highlight disabled">Submit Yours</div></div>
 </div>
 `;
@@ -140,16 +141,17 @@ export class Buttons
      * */
     static toggleVotes(mnemType: MnemType, votesJson: VotesJson, mnemUser: string, mnemIndex: number)
     {
-        if (votesJson == null)
+        if (votesJson == null || mnemUser == WKUser)
             return;
+        const downv = `cm-${mnemType}-downvote`;
+        const upv = `cm-${mnemType}-upvote`;
         try
         {
             const userVote = Number(votesJson[mnemUser][mnemIndex][WKUser]);
             if (userVote >= 1)
-                addClass(`cm-${mnemType}-upvote`);
-            if (userVote <= -1)
-                addClass(`cm-${mnemType}-downvote`);
-            removeClass(`cm-${mnemType}-downvote`);
+                addClass(upv);
+            else if (userVote <= -1)
+                addClass(downv);
         }
         catch (err)
         {
@@ -261,7 +263,8 @@ export class Buttons
             {
                 if (response.status < 300)  // < 200 Informational Response
                 {
-                    dataUpdateAfterInsert();
+                    dataUpdateAfterInsert(undefined, undefined, undefined, undefined, undefined,
+                                          currentMnem.mnemIndex[mnemType], mnemType);
                     // do something to celebrate the successfull insertion of the request
                 }
                 else if (response.status >= 300)  // includes error not ==
@@ -271,8 +274,6 @@ export class Buttons
                 
             }).catch(reason => console.log("WKCM2: requestCM failed:\n", reason));
 
-        currentMnem.currentUser[mnemType] = {};
-        currentMnem.mnemIndex[mnemType] = {};
     }
 
     static submitCM(mnemType: MnemType)
