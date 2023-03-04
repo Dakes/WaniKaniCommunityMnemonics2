@@ -34,7 +34,6 @@ Deleting will be added in version 0.3
 - Completely new implementation; Maintainable
 - Possibility to add Meaning mnemonics for Radicals. 
 - Each user can submit multiple mnemonics. 
-- Both Reading and Meaning Mnemonics now always get displayed next to each other, no matter what tab is activated.
 - Data in sheet is saved, making use of JSONs. Easier to work with & more robust. 
 - To protect from XSS attacks, instead of HTML tags a custom markup syntax is used for highlighting. 
 - *All* HTML tags will be removed during insert into the DB spreadsheet. 
@@ -84,8 +83,10 @@ Form for score in the \*_Score column. Automatically calculated by apps script f
 The `Last_Updated` column was carried over from the legacy WKCM data but is currently unused. 
 
 ### API
+Current API URL: `https://script.google.com/macros/s/AKfycby9rPr3pS4rFoLOBpji5veZ5XnxSXAchXh-CytddXxPfbES1sjJXAJPzEkvVLJIiKTV/exec`
 The only way for data to go into the sheet is via the apps script api, through the `WKCM2_handler.gs` file. It will receive all data as URL parameters, clean and escape them before putting them into the sheet.  
-`*apps_script_url*?exec=put&item=🍜&type=r&user=Dakes&mnemType=m&mnemIndex=0&mnem=Your very creative Mnemonic`
+Since version 0.3, a read only WaniKani API key is required for write operations, instead of the username. The Google Apps script will automatically fetch the username from WaniKani. This is to make abuse harder and to make it possible to ban people who try to abuse the system. 
+`<apps_script_url>?exec=put&item=🍜&type=r&apiKey=<long-string-of-chars>&mnemType=m&mnemIndex=0&mnem=Your very creative Mnemonic`
 #### get mnemonic
 returns a json with data of columns: Type, Item, Meaning_Mnem, Meaning_Votes, Meaning_Score, Reading_Mnem, Reading_Votes, Reading_Score, Last_Updated.  
 `exec = get`  
@@ -134,6 +135,9 @@ Running `npm start` will start a development server, that will continually rebui
 
 ## Roadmap
 
+<details>
+  <summary>Past versions</summary>
+
 ### 0.1 🍱
 - Works read only with old data from WKCM
 - Works in Lessons and Reviews
@@ -165,16 +169,15 @@ Running `npm start` will start a development server, that will continually rebui
 - add compatibility with "image radicals"
 - If item or type is null, throws an exception. 
 
-#### 0.2.5 🍛🍚🍚🍚🍚 (current version)
+#### 0.2.5 🍛🍚🍚🍚🍚
 - Make item pages compatiple to WaniKani's move to React. 
+</details>
 
-### 0.3
+### 0.3 🫖🍵 (current version)
 - 📜 Move Codebase to Typescript.
 - 📝 Only display Reading or Meaning on right page. 
 - ❗ Display on list screen if mnemonic is available or requested.
-- ♻ Users can delete their own mnemonic
-- 🔁 Manual refresh button. 
-
+- ♻ Users can delete their own mnemonics
 
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags
@@ -188,6 +191,8 @@ Running `npm start` will start a development server, that will continually rebui
 - sort Mnemonics by score
 
 ## Known Bugs
+- The Reading Mnemonic Box in Review is too large. I think, the one being added after clicking "show all"
+- Buttons Review & Lesson are larger that item view??
 - when switching between items quickly, it can happen, that the first item finishes loading after the current one. (Especially when the current one was cached). Then the display update is triggered for the old one causing the display of the old mnemonic. (Should not happen often any more)
 - Score calculation does not lock DB (originally intentionally). Leads to #ERROR! returned in \*_Score when it wasn't calculated fast enough. Either implement lock in calculation, with speed penalty overall, or wait in Userscript. 
 

@@ -1,6 +1,6 @@
 {
     "name": "WKCM2",
-    "version": "0.2.5",
+    "version": "0.3.0",
     "description": "This script allows WaniKani members to contribute their own mnemonics which appear on any page that includes item info.",
     "keywords": [
         "userscript",

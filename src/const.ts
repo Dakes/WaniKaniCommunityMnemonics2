@@ -2,20 +2,20 @@
  * Global constant values
  */
 
-export const WKCM2_version = "0.2.5";
+export const WKCM2_version = "0.3.0";
 export const scriptName = 'WKCM2';
 export const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-export const sheetApiUrl = "https://script.google.com/macros/s/AKfycby9rPr3pS4rFoLOBpji5veZ5XnxSXAchXh-CytddXxPfbES1sjJXAJPzEkvVLJIiKTV/exec";
+export const sheetApiUrl = "https://script.google.com/macros/s/AKfycby_Kqff92G40TGXr0PSulvQ2gqx6bkHVEl6LplZ-zc5ZIHhJGwe7AA8I4nDErKMiu2GEw/exec";
 
 // "https://script.google.com/macros/s/AKfycbxCxmHz_5ibnHn0un5HxaCLeJTRHxwdrS5fW4nmXBYXyA-Jw6aDPPrrHWrieir3B8kDFQ/exec";
 
-// Maximum number, how many mnemonics one user can submit for one item. 
+// Maximum number, how many mnemonics one user can submit for one item.
 export const mnemMaxCount = 5;
 
-// If date of cached item is older that this days, refetch. 86400000ms == 1d
+// If date of cached item is older than this number of days, refetch.
 // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
 export const cacheDayMaxAge = 7;
 
@@ -30,7 +30,7 @@ export let isList = false;
 export let isItem = false;
 
 // @ts-ignore;  A wrapper for the window, because unsafeWindow doesn't work in Firefox 
-// @ts-ignore;  and window does not have access to wkof?? (How even? idk, it worked before)
+// @ts-ignore;  and window does not have access to wkof in some browsers?? (How even? idk, it worked before)
 export let win: Window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
 
 export function setPageVars() {

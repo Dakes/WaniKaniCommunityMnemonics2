@@ -186,7 +186,6 @@ export async function deleteMnemonic(mnemType: MnemType, item: string,
     let url = sheetApiUrl +
         `?exec=del&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
             userApiKey}&mnemIndex=${currentMnem.userIndex[mnemType]}`;
-    console.log(url);
     url = encodeURI(url);
     return fetch(url, {method: "POST"});
 }
