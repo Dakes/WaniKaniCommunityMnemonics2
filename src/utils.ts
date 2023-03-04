@@ -3,6 +3,7 @@
  */
 
 import { devel } from "./const";
+import { dataUpdateAfterInsert } from "./data";
 import { getItemType } from "./page";
 
 /**
@@ -171,3 +172,21 @@ export function getPossibleMnemTypes(): MnemType[]
     return ["meaning", "reading"];
 }
 
+/**
+ * Handle the API response after inserting or modifying data
+ * @param response 
+ * @param callback optional callback function to execute on success. Default: dataUpdateAfterInsert
+ */
+export function handleApiPutResponse(response: Response, callback=dataUpdateAfterInsert)
+{
+    if (response.status < 300)  // < 200 Informational Response
+    {
+        callback();
+        // do something to celebrate the successfull insertion of the request
+    }
+    else if (response.status >= 300)  // includes error not ==
+    {
+        console.log("WKCM2: API access error: ", response.text());
+        // do something to handle the failure
+    }
+}

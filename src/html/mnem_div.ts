@@ -7,7 +7,7 @@ import { currentMnem, switchCM } from "../mnemonic";
 import { getItem, getItemType } from "../page";
 import { decodeHTMLEntities } from "../text";
 import { WKUser } from "../user";
-import { addClass, addClickEvent, getShortItemType, removeClass } from "../utils";
+import { addClass, addClickEvent, getShortItemType, handleApiPutResponse, removeClass } from "../utils";
 import { getCMForm } from "./form";
 import { getInitialIframe } from "./iframe";
 import { Textarea } from "../mnemonic";
@@ -183,7 +183,7 @@ export class Buttons
             return;
 
         Textarea.submitting = false;
-        
+
         let iframe = document.getElementById(`cm-iframe-${mnemType}`);
         if (!iframe)
             return;
@@ -210,11 +210,14 @@ export class Buttons
             return;
         if (currentMnem.currentUser[mnemType] !== WKUser)
             return
-        
+
         let item = getItem();
         let shortType = getShortItemType(getItemType());
 
-        api.deleteMnemonic(mnemType, item, shortType);
+        api.deleteMnemonic(mnemType, item, shortType).then(response =>
+            {
+                handleApiPutResponse(response);
+            }).catch(reason => console.log("WKCM2: requestCM failed: ", reason));
     }
 
     static requestCM(mnemType: MnemType)
@@ -223,17 +226,8 @@ export class Buttons
         let shortType = getShortItemType(getItemType());
         api.requestMnemonic(mnemType, getItem(), shortType).then(response =>
             {
-                if (response.status < 300)  // < 200 Informational Response
-                {
-                    dataUpdateAfterInsert();
-                    // do something to celebrate the successfull insertion of the request
-                }
-                else if (response.status >= 300)  // includes error not ==
-                {
-                    // do something to handle the failure
-                }
+                handleApiPutResponse(response);
             }).catch(reason => console.log("WKCM2: requestCM failed: ", reason));
-                // .then(dataUpdateAfterInsert(););
     }
 
     static voteCM(mnemType: MnemType, vote: number)
@@ -249,11 +243,6 @@ export class Buttons
         let item = getItem();
         let shortType = getShortItemType(getItemType());
 
-        // user=WKUser: the one who is voting
-        // mnemUser: the one whose mnem is being voted
-        // mnemIndex: Index of mnems by user. NOT index of the whole json, as used by updateCM.
-        
-
         if (Number(vote) >= 1)
             addClass(`cm-${mnemType}-upvote`);
         else if (Number(vote) <= -1)
@@ -261,17 +250,10 @@ export class Buttons
 
         api.voteMnemonic(mnemType, item, shortType, vote).then(response =>
             {
-                if (response.status < 300)  // < 200 Informational Response
-                {
-                    dataUpdateAfterInsert(undefined, undefined, undefined, undefined, undefined,
-                                          currentMnem.mnemIndex[mnemType], mnemType);
-                    // do something to celebrate the successfull insertion of the request
-                }
-                else if (response.status >= 300)  // includes error not ==
-                {
-                    // do something to handle the failure
-                }
-                
+                handleApiPutResponse(response,
+                    function(){return dataUpdateAfterInsert(undefined, undefined,
+                        undefined, undefined, undefined,
+                        currentMnem.mnemIndex[mnemType], mnemType);});
             }).catch(reason => console.log("WKCM2: requestCM failed:\n", reason));
 
     }

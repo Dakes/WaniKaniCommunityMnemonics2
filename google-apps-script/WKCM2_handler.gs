@@ -8,13 +8,14 @@ let SHEET_NAME = "WKCM2";
 // var SCRIPT_PROP = PropertiesService.getScriptProperties(); // new property service
 
 /*
-parameters:
-get: item, type
-put handles, mnemonic submission, edits, and requests
-put: user, item, type, mnemType, mnem
+exec parameters:
+"get": item, type
+"put" handles, mnemonic submission, edits, and requests
+"put": api key, item, type, mnemType, mnem
 request, if mnem === "!"
-vote: user, item, type, mnemType, mnemUser, score
-score=1/-1, mnemUser=User whos mnem is being voted
+"vote": api key, item, type, mnemType, mnemUser, score
+score=1/-1, mnemUser=User whos mnem is being voted on
+"delete": api key, item, type, mnemType, mnemIndex (The nth mnem of user)
  */
 
 // If you don't want to expose either GET or POST methods you can comment out the appropriate
@@ -138,11 +139,11 @@ function handleResponse(e)
 
 function getError(msg="")
 {
-  return ContentService.createTextOutput( "error" + msg ).setMimeType(ContentService.MimeType.TEXT);
+  return ContentService.createTextOutput( "Error" + msg ).setMimeType(ContentService.MimeType.TEXT);
 }
-function getSuccess()
+function getSuccess(msg="")
 {
-  return ContentService.createTextOutput( "success" ).setMimeType(ContentService.MimeType.TEXT);
+  return ContentService.createTextOutput( "Success" + msg ).setMimeType(ContentService.MimeType.TEXT);
 }
 
 function getData(sheet, type, item)
@@ -286,6 +287,8 @@ function deleteMnem(sheet, user, item, type, mnemType, mnemIndex)
   setMnemJson(sheet, item, type, mnemType, mnemJson);
   setVotesJson(sheet, item, type, mnemType, votesJson);
   // TODO: remove row, if no mnem exists any more
+
+  return getSuccess();
 }
 // deleteMnem ▲
 
