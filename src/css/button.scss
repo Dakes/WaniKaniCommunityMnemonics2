@@ -12,6 +12,16 @@
     text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
     transition: text-shadow 0.15s linear;
     text-align: center;
+    font-weight: normal;
+}
+// Fix, because buttons unexplainably are larger in Lessons and Reviews
+#item-info, #supplement-info
+{
+    .cm-submit-highlight, .cm-upvote-highlight, .cm-downvote-highlight
+    {
+        height: 15px;
+        padding: 1px 0px 4px 0px;
+    }
 }
 .cm-btn:hover
 {

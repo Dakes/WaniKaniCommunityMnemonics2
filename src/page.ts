@@ -2,7 +2,7 @@
  * Functions to get information about the currently loaded page/item
  */
 
-import { initItem, initLesson, initList, initReview } from ".";
+import { initItem, initList, initReview } from ".";
 import { isItem, isLesson, isList, isReview, setPageVars, win } from "./const";
 import { getMedItemType, getPossibleMnemTypes, getShortItemType } from "./utils";
 
@@ -199,7 +199,7 @@ export function observeLessonTabs(callback: Function)
         mutations.forEach(function (mutation)
         {
             let ele = mutation.target as HTMLElement;
-            if (ele.id == "supplement-kan" && mutation.addedNodes.length != 0)
+            if (ele.id.includes("supplement-") && mutation.addedNodes.length != 0)
             {
                 let addedNode = mutation.addedNodes[0] as HTMLElement;
                 if (addedNode.id.includes("meaning"))
@@ -234,8 +234,14 @@ export function observeReviewInfo()
             let cmDiv = document.querySelector(`#cm-${mnemType}`) as HTMLElement;
             if (note && !cmDiv)
                 initReview(mnemType);
+
             if (cmDiv && cmDiv?.style.display != note?.style.display)
-                cmDiv.style.display = note.style.display;
+            {
+                if (note.style.display.includes("block"))
+                    cmDiv.style.display = "inline-block";
+                else
+                    cmDiv.style.display = note.style.display;
+            }
         }
     });
 
