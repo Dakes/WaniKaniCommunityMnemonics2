@@ -6,7 +6,7 @@ This is a complete from scratch reimplementation, that is based on some of the o
 
 Google Spreadsheet used as Database: [WKCM2 Sheet](https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing)  
 It is editable only by the owner, me. But viewable and copyable by everyone. Only the WKCM2 sheet (tab) is used.  
-Why a Google Spreadsheet? It is free. It is public, everyone can verify, there is no harmfull code in there. Only one person has direct write access. But it could still be copied by everyone, should I vanish, or loose interest to maintain it. 
+Why a Google Spreadsheet? It is free. It is public, everyone can verify, that there is no harmfull code in there. Only one person has direct write access. But it could still be copied by everyone, should I vanish, or loose interest to maintain it. 
 
 ## Usage instructions
 WKCM2 requires WKOF: [WKOF installation](https://community.wanikani.com/t/installing-wanikani-open-framework/28549)  
@@ -14,7 +14,7 @@ If a Mnemonic is particularly large and gets cut off. You can hover over the mne
 Requests are only possible, as long as no mnemonic got submitted yet.  
 It is only possible to vote on other peoples mnemonics. You can only vote up or down once, but it is possible to change your vote later.  
 
-Submission of new data can take a while. (Like requests, voting, or new mnemonics). Especially when many people use it at the same time. Just be patient. And even if the displayed content, doesn't change, the insert might still have worked.  
+Submission of new data can take a while. (Like requests, voting, or new mnemonics). Especially when many people use it at the same time. Just be patient. And even if the displayed content, doesn't change, the insert likely has worked.  
 ### Clearing the cache
 If you are doubtful, that the currently displayed content is up to date, you can manually clear the local cache, by opening your browsers javascript console with `F12`, paste the following line of code: `wkof.file_cache.delete(/^wkcm2-/);`, execute it and reload the page.  
 Generally this shouldn't be necessary and I will implement a button to do this in future versions.  
@@ -34,7 +34,6 @@ Deleting will be added in version 0.3
 - Completely new implementation; Maintainable
 - Possibility to add Meaning mnemonics for Radicals. 
 - Each user can submit multiple mnemonics. 
-- Both Reading and Meaning Mnemonics now always get displayed next to each other, no matter what tab is activated.
 - Data in sheet is saved, making use of JSONs. Easier to work with & more robust. 
 - To protect from XSS attacks, instead of HTML tags a custom markup syntax is used for highlighting. 
 - *All* HTML tags will be removed during insert into the DB spreadsheet. 
@@ -84,42 +83,60 @@ Form for score in the \*_Score column. Automatically calculated by apps script f
 The `Last_Updated` column was carried over from the legacy WKCM data but is currently unused. 
 
 ### API
+Current API URL: `https://script.google.com/macros/s/AKfycby_Kqff92G40TGXr0PSulvQ2gqx6bkHVEl6LplZ-zc5ZIHhJGwe7AA8I4nDErKMiu2GEw/exec`  
 The only way for data to go into the sheet is via the apps script api, through the `WKCM2_handler.gs` file. It will receive all data as URL parameters, clean and escape them before putting them into the sheet.  
-`*apps_script_url*?exec=put&item=🍜&type=r&user=Dakes&mnemType=m&mnemIndex=0&mnem=Your very creative Mnemonic`
+Since version 0.3, a read only WaniKani API key is required for write operations, instead of the username. The Google Apps script will automatically fetch the username from WaniKani. This is to make abuse harder and to make it possible to ban people who try to abuse the system. 
+`<apps_script_url>?exec=put&item=🍜&type=r&apiKey=<long-string-of-chars>&mnemType=m&mnemIndex=0&mnem=Your very creative Mnemonic`
 #### get mnemonic
 returns a json with data of columns: Type, Item, Meaning_Mnem, Meaning_Votes, Meaning_Score, Reading_Mnem, Reading_Votes, Reading_Score, Last_Updated.  
 `exec = get`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
 ### get all mnemonics
-returns a json of all available items with the key being Type+Item.  
+returns a json of all available items with the key being Type+Item. This might take up to 60s or longer.  
 `exec = getall`
 #### put/update mnemonic
 `exec = put`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
-`user = Dakes` You  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` (The nth of your mnemonics. 1 for second one. If -1, submit new one. New index would work as well)  
 `mnem = "Your very creative Mnemonic" / "Or a correction of an existing mnemonic"`  
 If you use a "!" as the Mnemonic it becomes a request. 
+#### delete mnemonic
+`exec = del`  
+`item = 林`  
+`type = k/v/r` (Kanji, Vocabulary, Radical)  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
+`mnemType = m/r` (Meaning/Reading)  
+`mnemIndex = 0` (The nth of your mnemonics. 1 for second one. If -1, submit new one. New index would work as well)  
 #### vote
 `exec = vote`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
-`user = Dakes` you  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
 `mnemUser = Anonymous` The user whose mnem you are voting  
 `mnemType = m/r` (Meaning/Reading)  
 `mnemIndex = 0` The nth mnemonic by mnemUser. (1 for second one. )  
-`score = -1/0/1` Your new voting for the mnem.   
+`vote = -1/0/1` Your new voting for the mnem.   
 #### request
 `exec = request`  
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
-`user = Dakes` You  
+`apiKey = <long-string-of-chars>` Your WaniKani API key, to authenticate you as a real WK user  
 `mnemType = m/r` (Meaning/Reading)  
 
+## Building instruction
+WKCM2 uses TypeScript now, for easier development. That means, if you want to build it yourself or change the code, the TypeScript and SCSS Code must first be transpiled, before it can be used. 
+This requires an npm installation. Running `npm run build:release` in the root of the project will build the release version and store the final file in `dist/WKCM2.user.js`. 
+
+Running `npm start` will start a development server, that will continually rebuild the script on file changes into `dist/WKCM2_dev.user.js`. It will also start a development server, to host the file locally, so you don't have to change the Tampermonkey Code on every change. Just add the autogenerated script `dist/dev.user.js` to Tampermonkey. 
+
 ## Roadmap
+
+<details>
+  <summary>Past versions</summary>
 
 ### 0.1 🍱
 - Works read only with old data from WKCM
@@ -152,15 +169,15 @@ If you use a "!" as the Mnemonic it becomes a request.
 - add compatibility with "image radicals"
 - If item or type is null, throws an exception. 
 
-#### 0.2.5 🍛🍚🍚🍚🍚 (current version)
+#### 0.2.5 🍛🍚🍚🍚🍚
 - Make item pages compatiple to WaniKani's move to React. 
+</details>
 
-### 0.3
-- 📝 Display on list screen if mnemonic is available or requested. 
-- ❗ Display if mnemonic is available or requested in list. 
-- ♻ Users can delete their own mnemonic
-- 🔁 Manual refresh button. 
-
+### 0.3 🫖🍵 (current version)
+- 📜 Move Codebase to Typescript.
+- 📝 In Lessons and Reviews, only display Reading- and Meaning-CM, whenever Reading or Meaning should be visible. 
+- ❗ Display an icon on list screens (level, kanji, voc. or rad. pages) if a mnemonic is available or requested.
+- ♻ Users can delete their own mnemonics
 
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags
@@ -175,16 +192,15 @@ If you use a "!" as the Mnemonic it becomes a request.
 
 ## Known Bugs
 - when switching between items quickly, it can happen, that the first item finishes loading after the current one. (Especially when the current one was cached). Then the display update is triggered for the old one causing the display of the old mnemonic. (Should not happen often any more)
-- Score calculation does not lock DB (originally intentionally). Leads to #ERROR! returned in \*_Score when it wasn't calculated fast enough. Either implement lock in calculation, with speed penalty overall, or wait in Userscript. 
+- Score calculation does not lock DB (originally intentionally). Leads to #ERROR! returned in \*_Score when it wasn't calculated fast enough.  
 
 ### Sweeper TODO
 - add sweeper. Regularly runs through DB and cleans it etc. 
 - delete rows without \*_Mnem ("" or {})
 - delete downvoted mnems
-- (delete requests, that still exist despite other mnems [shouldn't happen anyway])
 ## Other TODO
+- Apps Script: Return error if voted on mnemonic does not exist any more. (In case a user deleted theirs) Handle error on clientside and redownload data.
 - build a tool that lets people bulk export their notes so that I can import them to the existing data set.  
-- Maybe do something with Timestamp in DB??
 - Think about adding a "Request Deletion" Button
 - Colorize items with especially high or low scores
 - Randomize default messages with alternatives

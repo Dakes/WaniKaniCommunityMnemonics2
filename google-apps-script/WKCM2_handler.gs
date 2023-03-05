@@ -8,19 +8,22 @@ let SHEET_NAME = "WKCM2";
 // var SCRIPT_PROP = PropertiesService.getScriptProperties(); // new property service
 
 /*
-parameters:
-get: item, type
-put handles, mnemonic submission, edits, and requests
-put: user, item, type, mnemType, mnem
+exec parameters:
+"get": item, type
+"put" handles, mnemonic submission, edits, and requests
+"put": api key, item, type, mnemType, mnem
 request, if mnem === "!"
-vote: user, item, type, mnemType, mnemUser, score
-score=1/-1, mnemUser=User whos mnem is being voted
+"vote": api key, item, type, mnemType, mnemUser, score
+score=1/-1, mnemUser=User whos mnem is being voted on
+"delete": api key, item, type, mnemType, mnemIndex (The nth mnem of user)
  */
 
 // If you don't want to expose either GET or POST methods you can comment out the appropriate
+
+// get only downloads data, no lock needed.
 function doGet(e)
 {
-    return handleResponseWaitLock(e);
+    return handleResponse(e);
 }
 
 function doPost(e)
@@ -46,7 +49,6 @@ function handleResponseWaitLock(e)
 
 function handleResponse(e)
 {
-
   if (!e.parameter.exec)
   {
     return getError(", no exec parameter provided");
@@ -54,24 +56,31 @@ function handleResponse(e)
 
   let ac=SpreadsheetApp.getActive();
   // let sheet=ac.getActiveSheet();
-  let sheet=ac.getSheetByName(SHEET_NAME);
+  let sheet = ac.getSheetByName(SHEET_NAME);
 
-
+  
 
   // clean input Data
-  let type = cleanData(e.parameter.type);
+  let type = checkItemType(cleanData(e.parameter.type));
   if (e.parameter.type)
     if (e.parameter.type != "k" && e.parameter.type != "v" && e.parameter.type != "r")
       return getError(", type parameter must be k, v or r. ");
   let item = cleanItem(e.parameter.item);
 
-  let user = cleanData(e.parameter.user);
-  let mnemType = cleanData(e.parameter.mnemType);
+  let user = null;
+  let apiKey = cleanData(e.parameter.apiKey);
+  if (apiKey)
+  {
+    user = getUser(apiKey);
+    console.log("User:", user);
+  }
+  console.log("Function:", e.parameter.exec, ". User:", user);
+  let mnemType = checkMnemType(cleanData(e.parameter.mnemType));
   let mnemIndex = cleanMnemIndex(e.parameter.mnemIndex);
   let mnem = cleanData(e.parameter.mnem);
 
   let mnemUser = cleanData(e.parameter.mnemUser);
-  let score = cleanScore(e.parameter.score);
+  let vote = cleanScore(e.parameter.vote);
 
   if (e.parameter.exec == "get")
   {
@@ -97,9 +106,9 @@ function handleResponse(e)
   else if (e.parameter.exec == "vote")
   {
     // user, item, type, mnemType, mnemUser, score
-    if(user && item && type && mnemType && mnemUser && score && mnemIndex >= 0)
+    if(user && item && type && mnemType && mnemUser && vote && mnemIndex >= 0)
     {
-      return vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score);
+      return voteMnem(sheet, user, item, type, mnemIndex, mnemType, mnemUser, vote);
     }
     else
       return getError(", at least one of the parameters is not valid");
@@ -113,6 +122,15 @@ function handleResponse(e)
     else
       return getError(", one of user, item, type, mnemType was not provided or wrong");
   }
+  else if (e.parameter.exec == "delete" || e.parameter.exec == "del")
+  {
+    if (user && item && type && mnemType && mnemIndex >= 0)
+    {
+      return deleteMnem(sheet, user, item, type, mnemType, mnemIndex);
+    }
+    else
+      return getError(", one of user, item, type, mnemType or mnemIndex was not provided or wrong");
+  }
   else
     return getError();
 
@@ -121,11 +139,11 @@ function handleResponse(e)
 
 function getError(msg="")
 {
-  return ContentService.createTextOutput( "error" + msg ).setMimeType(ContentService.MimeType.TEXT);
+  return ContentService.createTextOutput( "Error" + msg ).setMimeType(ContentService.MimeType.TEXT);
 }
-function getSuccess()
+function getSuccess(msg="")
 {
-  return ContentService.createTextOutput( "success" ).setMimeType(ContentService.MimeType.TEXT);
+  return ContentService.createTextOutput( "Success" + msg ).setMimeType(ContentService.MimeType.TEXT);
 }
 
 function getData(sheet, type, item)
@@ -157,7 +175,7 @@ function getData(sheet, type, item)
   }
   else if (type != "" && item != "")
     json_data = null;
-
+  
   // send back data to client
   return ContentService.createTextOutput(JSON.stringify(json_data) ).setMimeType(ContentService.MimeType.JSON);
 
@@ -166,51 +184,34 @@ function getData(sheet, type, item)
 
 /**
  * @param user: user who is voting
- * @param mnemUser: user whos mnem is being voted on.
+ * @param mnemUser: user whose mnem is being voted on.
  * @param mnemType: meaning / reading
  * @param mnemIndex: User can submit multiple mnems, index of mnem to use, usually 0.
  */
-function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
+function voteMnem(sheet, user, item, type, mnemIndex, mnemType, mnemUser, vote)
 {
-  if (mnemIndex < 0)
-    mnemIndex = 0;
-  let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
-  let votes_col = getFullMnemType(mnemType) + "_Votes";
-  let votes_string = getCellValueByColumnName(sheet ,votes_col, row);
-  let votes_json = {};
-  if (votes_string)
-    votes_json = JSON.parse(votes_string);
-
-  // check if mnemUser actually in mnemonics
-  let mnem_col = getFullMnemType(mnemType) + "_Mnem";
-  let mnem_string = getCellValueByColumnName(sheet ,mnem_col, row);
+  let votes_json = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Votes");
+  let mnem_json = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Mnem");
 
   // if mnem_string is empty, no mnem exists anyway, return
-  if (!mnem_string)
+  if (Object.keys(mnem_json).length == 0)
     return getError();
 
-  let mnem_json = JSON.parse(mnem_string);
-
+  // only vote if mnemUser actually owns a mnem
   if (mnem_json.hasOwnProperty(mnemUser))
   {
     // check if entry for this user exists, otherwise create
     if (!votes_json[mnemUser])
-    {
-      votes_json[mnemUser] = new Array(mnemIndex+1);
-      for (let i=0; i<mnemIndex+1; i++)
-        votes_json[mnemUser][i] = {};
-    }
+      votes_json[mnemUser] = new Array(mnem_json[mnemUser].length).fill(null).map(()=> ({}));
 
     // put new data in / update
     if (!votes_json[mnemUser][mnemIndex])
       votes_json[mnemUser][mnemIndex] = {};
-    votes_json[mnemUser][mnemIndex][user] = score;
+    votes_json[mnemUser][mnemIndex][user] = vote;
   }
 
-  let new_vote_string = JSON.stringify(votes_json);
-  setCellValueByColumnName(sheet, votes_col, row, new_vote_string)
-
-    return getSuccess();
+  setVotesJson(sheet, item, type, mnemType, votes_json)
+  return getSuccess();
 }
 // vote ▲
 
@@ -224,17 +225,7 @@ function vote(sheet, user, item, type, mnemIndex, mnemType, mnemUser, score)
  */
 function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
 {
-  mnemIndex = Number(mnemIndex);
-  let row = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
-  let mnem_col = getFullMnemType(mnemType) + "_Mnem";
-  let mnem_string = "";
-  if (row.length != 0)
-  {
-    mnem_string = getCellValueByColumnName(sheet ,mnem_col, row);
-  }
-  let mnem_json = {};
-  if (mnem_string)
-    mnem_json = JSON.parse(mnem_string);
+  let mnem_json = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Mnem");
 
   // request
   if (mnem == "!")
@@ -273,33 +264,33 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
     delete mnem_json["!"];
   }
 
-  let new_mnem_string = JSON.stringify(mnem_json);
-
-  // case mnem already exists
-  if (row.length != 0)
-  {
-    setCellValueByColumnName(sheet, mnem_col, row, new_mnem_string)
-  }
-  // no entry for this item at all
-  else
-  {
-    // add new row in the bottom
-    let row_count = sheet.getMaxRows();
-    sheet.insertRowAfter(row_count);
-
-    setCellValueByColumnName(sheet, mnem_col, row_count+1, new_mnem_string);
-    setCellValueByColumnName(sheet, "Type", row_count+1, type);
-    setCellValueByColumnName(sheet, "Item", row_count+1, item);
-    // insert new *_Score calculation formula
-    const score_formula = '=calc_score(INDIRECT("RC[-1]",FALSE))';
-    setCellValueByColumnName(sheet, "Meaning_Score", row_count+1, score_formula);
-    setCellValueByColumnName(sheet, "Reading_Score", row_count+1, score_formula);
-
-  }
+  setMnemJson(sheet, item, type, mnemType, mnem_json);
 
   return getSuccess();
 }
 // putMnem ▲
+
+function deleteMnem(sheet, user, item, type, mnemType, mnemIndex)
+{
+  let mnemJson = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Mnem");
+  let votesJson = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Votes");
+
+  mnemJson[user].splice(mnemIndex, 1);
+  if (votesJson[user] != undefined)
+    votesJson[user].splice(mnemIndex, 1);
+
+  if (mnemJson[user].length == 0) {
+    delete mnemJson[user];
+    delete votesJson[user];
+  }
+
+  setMnemJson(sheet, item, type, mnemType, mnemJson);
+  setVotesJson(sheet, item, type, mnemType, votesJson);
+  // TODO: remove row, if no mnem exists any more
+
+  return getSuccess();
+}
+// deleteMnem ▲
 
 function setup()
 {
@@ -308,6 +299,8 @@ function setup()
 }
 
 // helper functions ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+
+
 
 // returns full json
 function getAllRows(sheet)
@@ -329,3 +322,4 @@ function getAllRows(sheet)
   return data;
 }
 // getAllRows ▲
+

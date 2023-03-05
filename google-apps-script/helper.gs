@@ -69,6 +69,49 @@ function cleanScore(score)
   return clean_score;
 }
 
+function checkMnemType(mnemType)
+{
+  if (!mnemType || typeof mnemType != "string")
+    return null;
+  if (mnemType[0] == "m")
+    return "m";
+  else if (mnemType[0] == "r")
+    return "r";
+  return null;
+}
+
+function checkItemType(itemType)
+{
+  if (!itemType || typeof itemType != "string")
+    return null;
+  if (itemType[0] == "v")
+    return "v";
+  else if (itemType[0] == "k")
+    return "k";
+  else if (itemType[0] == "r")
+    return "r";
+  return null;
+}
+
+/**
+ * Get Username from WK API, to validate user
+ */
+function getUser(apiKey) {
+  const headers = {
+    "Authorization": 'Bearer ' + apiKey,
+  };
+
+  let response = UrlFetchApp.fetch('https://api.wanikani.com/v2/user', {
+    method: 'GET',
+    headers: headers
+  });
+
+  let data = JSON.parse(response.getContentText()).data;
+  if (typeof data.username == "string" && data.username.length > 0)
+    return data.username
+  return null
+}
+
 function getFullMnemType(mnemType)
 {
     let fullMnemType = ""
@@ -80,53 +123,6 @@ function getFullMnemType(mnemType)
         throw new TypeError("mnemType in getFullMnemType is not valid. Value: " + mnemType);
     return fullMnemType;
 }
-
-function getRowsWhere(sheet, type, item)
-{
-  let data = [];
-  data.push(sheet.getSheetValues(1, 1, 1, 8)[0]);
-  // console.log(sheet.getSheetValues(1, 1, 1, 8)[0]);
-  let rows = rowWhereTwoColumnsEqual(sheet, type, 1, item, 2);
-  for (let i=0; i < rows.length; i=i+1)
-  {
-    data.push(sheet.getSheetValues(rows[i], 1, 1, 8)[0]);
-  }
-  // console.log(data);
-  return data;
-}
-// getRowsWhere ▲
-
-// if value1="" (type) only match value2 (item)
-function rowWhereTwoColumnsEqual(sheet, value1, col1, value2, col2)
-{
-  // var sheet=SpreadsheetApp.getActive();
-
-  // var sheet=sheet.getActiveSheet();
-  var rg=sheet.getDataRange();
-  var vA=rg.getValues();
-  var rA=[];
-  for(var i=0;i<vA.length;i++)
-  {
-    if (value1)
-    {
-      if(vA[i][col1-1]==value1 && vA[i][col2-1]==value2)
-      {
-        rA.push(i+1);
-      }
-    }
-    else
-    {
-      if(vA[i][col2-1]==value2)
-      {
-        rA.push(i+1);
-      }
-    }
-  }
-  // SpreadsheetApp.getUi().alert(rA.join(','));
-  return rA;//as an array
-  //return rA.join(',');//as a string
-}
-// rowWhereTwoColumnsEqual ▲
 
 // Just converts data with first row containing names to json
 function getJsonArrayFromData(data)
@@ -162,24 +158,5 @@ function getCellRangeByColumnName(sheet, columnName, row) {
   let column = data[0].indexOf(columnName);
   if (column != -1) {
     return sheet.getRange(row, column + 1, 1, 1);
-  }
-}
-
-function getCellValueByColumnName(sheet, columnName, row) {
-  let cell = getCellRangeByColumnName(sheet, columnName, row);
-  if (cell != null) {
-    return cell.getValue();
-  }
-}
-
-function setCellValueByColumnName(sheet, columnName, row, value)
-{
-  if (typeof value == "string")
-  {
-    value = [[value]];
-  }
-  let cell = getCellRangeByColumnName(sheet, columnName, row);
-  if (cell != null) {
-    return cell.setValues(value);
   }
 }

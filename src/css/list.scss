@@ -1,0 +1,83 @@
+@use "colors";
+
+// Evenly spread 6 items
+.subject-legend__item {
+    flex: 0 0 17%;
+}
+
+.subject-legend__item-badge--cm-request {
+    background-color: colors.$request;
+}
+
+.subject-legend__item-badge--cm-available {
+    background-color: colors.$mnen-available;
+}
+
+.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {
+    width: 2em;
+    height: 2em;
+    line-height: 2.1;
+    color: #fff;
+    font-size: 16px;
+    border-radius: 50%;
+    text-shadow: 0 1px 0 rgb(0 0 0 / 20%);
+    box-shadow: 0 -2px 0px rgb(0 0 0 / 20%) inset, 0 0 10px rgb(255 255 255 / 50%);
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+// Position of Badges in vocabulary list, or when page is <767px
+@mixin list-layout-request {
+    left: 0px;
+    transform: translate(45%, 0%);
+}
+@mixin list-layout-available {
+    left: 0px;
+    transform: translate(45%, -112%);
+}
+$small: 767px;
+
+// Position for Badges in grid view
+.character-item__badge__cm-request {
+    background-color: colors.$request;
+    left: 30px;
+    @media screen and (max-width: $small) {
+        @include list-layout-request;
+    }
+}
+
+.character-item__badge__cm-available {
+    background-color: colors.$mnen-available;
+    left: 60px;
+    @media screen and (max-width: $small) {
+        @include list-layout-available;
+    }
+}
+
+// To move content of list right, to make space for Badges
+@mixin list-padding {
+    padding-left: 40px;
+}
+
+.character-grid__item--vocabulary {
+    .character-item__badge__cm- {
+        &request {
+            @include list-layout-request;
+        }
+        &available {
+            @include list-layout-available;
+        }
+    }
+    .character-item {
+        @include list-padding;
+    }
+}
+
+// Overwrite WK CSS, to make space for Badges
+.character-item
+{
+    @media screen and (max-width: $small) {
+        @include list-padding;
+    }
+
+}
