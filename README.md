@@ -6,7 +6,7 @@ This is a complete from scratch reimplementation, that is based on some of the o
 
 Google Spreadsheet used as Database: [WKCM2 Sheet](https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing)  
 It is editable only by the owner, me. But viewable and copyable by everyone. Only the WKCM2 sheet (tab) is used.  
-Why a Google Spreadsheet? It is free. It is public, everyone can verify, there is no harmfull code in there. Only one person has direct write access. But it could still be copied by everyone, should I vanish, or loose interest to maintain it. 
+Why a Google Spreadsheet? It is free. It is public, everyone can verify, that there is no harmfull code in there. Only one person has direct write access. But it could still be copied by everyone, should I vanish, or loose interest to maintain it. 
 
 ## Usage instructions
 WKCM2 requires WKOF: [WKOF installation](https://community.wanikani.com/t/installing-wanikani-open-framework/28549)  
@@ -14,7 +14,7 @@ If a Mnemonic is particularly large and gets cut off. You can hover over the mne
 Requests are only possible, as long as no mnemonic got submitted yet.  
 It is only possible to vote on other peoples mnemonics. You can only vote up or down once, but it is possible to change your vote later.  
 
-Submission of new data can take a while. (Like requests, voting, or new mnemonics). Especially when many people use it at the same time. Just be patient. And even if the displayed content, doesn't change, the insert might still have worked.  
+Submission of new data can take a while. (Like requests, voting, or new mnemonics). Especially when many people use it at the same time. Just be patient. And even if the displayed content, doesn't change, the insert likely has worked.  
 ### Clearing the cache
 If you are doubtful, that the currently displayed content is up to date, you can manually clear the local cache, by opening your browsers javascript console with `F12`, paste the following line of code: `wkof.file_cache.delete(/^wkcm2-/);`, execute it and reload the page.  
 Generally this shouldn't be necessary and I will implement a button to do this in future versions.  
@@ -83,7 +83,7 @@ Form for score in the \*_Score column. Automatically calculated by apps script f
 The `Last_Updated` column was carried over from the legacy WKCM data but is currently unused. 
 
 ### API
-Current API URL: `https://script.google.com/macros/s/AKfycby9rPr3pS4rFoLOBpji5veZ5XnxSXAchXh-CytddXxPfbES1sjJXAJPzEkvVLJIiKTV/exec`
+Current API URL: `https://script.google.com/macros/s/AKfycby_Kqff92G40TGXr0PSulvQ2gqx6bkHVEl6LplZ-zc5ZIHhJGwe7AA8I4nDErKMiu2GEw/exec`  
 The only way for data to go into the sheet is via the apps script api, through the `WKCM2_handler.gs` file. It will receive all data as URL parameters, clean and escape them before putting them into the sheet.  
 Since version 0.3, a read only WaniKani API key is required for write operations, instead of the username. The Google Apps script will automatically fetch the username from WaniKani. This is to make abuse harder and to make it possible to ban people who try to abuse the system. 
 `<apps_script_url>?exec=put&item=🍜&type=r&apiKey=<long-string-of-chars>&mnemType=m&mnemIndex=0&mnem=Your very creative Mnemonic`
@@ -93,7 +93,7 @@ returns a json with data of columns: Type, Item, Meaning_Mnem, Meaning_Votes, Me
 `item = 林`  
 `type = k/v/r` (Kanji, Vocabulary, Radical)  
 ### get all mnemonics
-returns a json of all available items with the key being Type+Item.  
+returns a json of all available items with the key being Type+Item. This might take up to 60s or longer.  
 `exec = getall`
 #### put/update mnemonic
 `exec = put`  
@@ -175,8 +175,8 @@ Running `npm start` will start a development server, that will continually rebui
 
 ### 0.3 🫖🍵 (current version)
 - 📜 Move Codebase to Typescript.
-- 📝 Only display Reading or Meaning on right page. 
-- ❗ Display on list screen if mnemonic is available or requested.
+- 📝 In Lessons and Reviews, only display Reading- and Meaning-CM, whenever Reading or Meaning should be visible. 
+- ❗ Display an icon on list screens (level, kanji, voc. or rad. pages) if a mnemonic is available or requested.
 - ♻ Users can delete their own mnemonics
 
 ### 1.0
@@ -191,19 +191,16 @@ Running `npm start` will start a development server, that will continually rebui
 - sort Mnemonics by score
 
 ## Known Bugs
-- The Reading Mnemonic Box in Review is too large. I think, the one being added after clicking "show all"
-- Buttons Review & Lesson are larger that item view??
 - when switching between items quickly, it can happen, that the first item finishes loading after the current one. (Especially when the current one was cached). Then the display update is triggered for the old one causing the display of the old mnemonic. (Should not happen often any more)
-- Score calculation does not lock DB (originally intentionally). Leads to #ERROR! returned in \*_Score when it wasn't calculated fast enough. Either implement lock in calculation, with speed penalty overall, or wait in Userscript. 
+- Score calculation does not lock DB (originally intentionally). Leads to #ERROR! returned in \*_Score when it wasn't calculated fast enough.  
 
 ### Sweeper TODO
 - add sweeper. Regularly runs through DB and cleans it etc. 
 - delete rows without \*_Mnem ("" or {})
 - delete downvoted mnems
-- (delete requests, that still exist despite other mnems [shouldn't happen anyway])
 ## Other TODO
+- Apps Script: Return error if voted on mnemonic does not exist any more. (In case a user deleted theirs) Handle error on clientside and redownload data.
 - build a tool that lets people bulk export their notes so that I can import them to the existing data set.  
-- Maybe do something with Timestamp in DB??
 - Think about adding a "Request Deletion" Button
 - Colorize items with especially high or low scores
 - Randomize default messages with alternatives
