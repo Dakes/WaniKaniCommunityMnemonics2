@@ -435,7 +435,7 @@ export class Textarea
         let textarea = Textarea.getTextArea(mnemType);
         let cancelConfirm = true;
         // only open dialog if it has content and it was edited
-        if (textarea && currentMnem.mnem[mnemType])
+        if (textarea)// && currentMnem.mnem[mnemType])
             if (textarea.value && decodeHTMLEntities(currentMnem.mnem[mnemType]) !== textarea.value)
                 cancelConfirm = confirm("Your changes will be lost. ");
 

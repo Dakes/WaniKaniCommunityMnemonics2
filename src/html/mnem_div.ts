@@ -204,6 +204,9 @@ export class Buttons
 
     static deleteCM(mnemType: MnemType)
     {
+        if (!confirm("Your mnemonic will be deleted. This can not be undone! Are you sure?"))
+            return;
+
         addClass(`cm-${mnemType}-delete`);
         addClass(`cm-${mnemType}-edit`);
         if (currentMnem.mnem[mnemType] == undefined)

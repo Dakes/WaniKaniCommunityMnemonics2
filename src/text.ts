@@ -37,7 +37,7 @@ export function getMnemRequestedMsg(users: string[]): string
  * */
 export function decodeHTMLEntities(text: string): string
 {
-    if (text === "")
+    if (text === "" || text == null)
         return "";
     if (!text || typeof text != "string")
     {
