@@ -2,12 +2,14 @@
     "namespace": "wkcm2",
     "copyright": "2022, Daniel Ostertag (https://github.com/Dakes)",
     "match": [
-        "https://www.wanikani.com/level/*",
-        "https://www.wanikani.com/kanji*",
-        "https://www.wanikani.com/vocabulary*",
-        "https://www.wanikani.com/radicals*",
-        "https://www.wanikani.com/review/session",
-        "https://www.wanikani.com/lesson/session"
+        "https://*.wanikani.com/subjects/*",
+        "https://*.wanikani.com/level/*",
+        "https://*.wanikani.com/kanji*",
+        "https://*.wanikani.com/vocabulary*",
+        "https://*.wanikani.com/radicals*"
+    ],
+    "require": [
+        "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918"
     ],
     "grant": [
         "none"

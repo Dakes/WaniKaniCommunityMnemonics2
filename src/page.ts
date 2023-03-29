@@ -2,17 +2,11 @@
  * Functions to get information about the currently loaded page/item
  */
 
-import { initItem, initList, initReview } from ".";
-import { isItem, isLesson, isList, isReview, setPageVars, win } from "./const";
-import { getMedItemType, getPossibleMnemTypes, getShortItemType } from "./utils";
+import { infoInjectorInit, initList } from ".";
+import { isItem, isList, setPageVars, win } from "./const";
+import { updateIframe } from "./html/iframe";
+import { getMedItemType } from "./utils";
 
-interface Window {
-    // @ts-ignore
-    $: JQueryStatic
-}
-
-// @ts-ignore
-export const { $ } = win;
 
 /**
  * @returns The current item. (説得, stick, etc.)
@@ -21,66 +15,17 @@ export function getItem(): string
 {
     let item: string|null = null;
 
-    if (isItem)
-    {
-        item = document.querySelector(".page-header__icon--kanji,.page-header__icon--vocabulary,.page-header__icon--radical,.vocabulary-icon")?.textContent?.trim();
-        if (!item)
-            item = null
-        // image radical case
-        if (getShortItemType(getItemType()) === "r" && item == null)
-        {
-            let radImg = document.querySelector(".radical-image") as HTMLImageElement;
-            if (radImg != null && radImg?.alt)
-                item = radImg.alt.trim().toLowerCase();
-        }
-        if (getShortItemType(getItemType()) === "r" && item == null)
-            item = decodeURIComponent( window.location.pathname.slice(window.location.pathname.lastIndexOf("/")+1 ) );
-    }
-    else if (isReview)
-    {
-        item = $.jStorage.get("currentItem")["characters"];
-        // image radical case, two methods, if one breaks
-        if (getShortItemType(getItemType()) === "r" && item == null)
-        {
-            let jstorageEn = $.jStorage.get("currentItem")["en"];
-            if (jstorageEn != null)
-                item = jstorageEn[0].toLowerCase();
-        }
-        if (getShortItemType(getItemType()) === "r" && item == null)
-        {
-            let imgRad = document.querySelector("#item-info-col1 section");
-            if (imgRad != null)
-                item = imgRad.childNodes[2].textContent.trim().toLowerCase();
-        }
-    }
-    else if (isLesson)
-    {
-        item = $.jStorage.get("l/currentLesson")["characters"];
-        // image radical case
-        if (getShortItemType(getItemType()) === "r" && item == null)
-        {
-            let jstorageEn = $.jStorage.get("l/currentLesson")["en"];
-            if (jstorageEn != null)
-                item = jstorageEn[0].toLowerCase();
-        }
-        if (getShortItemType(getItemType()) === "r" && item == null)
-        {
-            let imgRad = document.querySelector("#meaning");
-            if (imgRad != null)
-                item = imgRad.textContent.trim().toLowerCase();
-        }
-        
-    }
+    item = win.wkItemInfo.currentState.characters;
+    if (item == undefined)
+        item = win.wkItemInfo.currentState.meaning[0].toLowerCase()
 
     if (item == null)
     {
         let msg = "Error: getItem, item is null. ";
         console.log("WKCM2: " + msg);
-        // this unfortunately doesn't work. Gets overwritten instantly with "No mnem available"
         // TODO: maybe add flag, that marks the iframe for this item "unupdatable", after an error display
-        // updateIframe(null, msg, user=null);
+        updateIframe(null, msg, null);
     }
-
     return item;
 }
 
@@ -89,26 +34,16 @@ export function getItem(): string
  * */
 export function getItemType(): ItemType
 {
-    let itemType = null;
-    if (isReview)
-        itemType = $.jStorage.get("currentItem")["type"];
-    else if (isLesson)
-        itemType = $.jStorage.get("l/currentLesson")["type"];
-    else if (isItem)
-        itemType = window.location.pathname.slice(1, window.location.pathname.lastIndexOf("/"));
-    else if (isList)
+    let itemType = win.wkItemInfo.currentState.type
+    if (isList)
         itemType = window.location.pathname.slice(1);
 
-
-    
-    if (typeof itemType === "string")
-        itemType = itemType.toLowerCase()
     if (itemType == null)
         console.log("WKCM2: getItemType, itemType null");
-    
+
     if (itemType === "radicals")
         itemType = "radical";
-    
+
     return itemType;
 }
 
@@ -131,7 +66,12 @@ export function detectUrlChange(delay: number=250, callback: Function=function()
                 if (isList)
                     initList();
                 else if (isItem)
-                    initItem();
+                {
+                    infoInjectorInit("meaning");
+                    if (getItemType() != "radical")
+                        infoInjectorInit("reading");
+
+                }
                 callback();
             }, delay);
         }
@@ -224,6 +164,7 @@ export function observeLessonTabs(callback: Function)
  * Show or hide CM div of meaning or reading in Reviews,
  * depending what information should be displayed.
  */
+/*
 export function showHideCm()
 {
     for (let mnemType of getPossibleMnemTypes())
@@ -238,15 +179,15 @@ export function showHideCm()
             if (note.style.display.includes("block"))
                 cmDiv.style.display = "inline-block";
             else
-                cmDiv.style.display = note.style.display;
+                cmDiv.style.display = note.style.display; // copy "display: none"
         }
     }
-}
+}*/
 
 /**
  * Observe item-info field for changes and insert Mnemonic divs if needed.
  * Also copies style from note, to hide/show CM element
- */
+ */ /*
 export function observeReviewInfo()
 {
     // Run once, to make sure div is hidden in the beginning.
@@ -260,6 +201,6 @@ export function observeReviewInfo()
     observer.observe(target, 
         { attributes: true, attributeFilter: ["style"], childList: false, subtree: true }
     )
-}
+}*/
 
 

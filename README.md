@@ -27,7 +27,6 @@ To wrap something in tags after you already wrote it, simply highlight it and pr
 To prevent HTML from entering the DB, everything between Angled brackets will be deleted: `<Will be deleted>`.  
 The maximum length for mnemonics is 5000 characters and you can submit up to 5 mnemonics for each item.  
 You can edit mnemonics, that you wrote as often as you like.  
-Deleting will be added in version 0.3
 
 ## Differences compared to WKCM
 - It works
@@ -170,14 +169,19 @@ Running `npm start` will start a development server, that will continually rebui
 - If item or type is null, throws an exception. 
 
 #### 0.2.5 🍛🍚🍚🍚🍚
-- Make item pages compatiple to WaniKani's move to React. 
+- Make item pages compatible with WaniKani's move to React. 
 </details>
 
-### 0.3 🫖🍵 (current version)
+### 0.3.0 🫖🍵🍘
 - 📜 Move Codebase to Typescript.
 - 📝 In Lessons and Reviews, only display Reading- and Meaning-CM, whenever Reading or Meaning should be visible. 
 - ❗ Display an icon on list screens (level, kanji, voc. or rad. pages) if a mnemonic is available or requested.
 - ♻ Users can delete their own mnemonics
+
+#### 0.3.1 🫖🍵🍘 (current version)
+- Make compatible with WaniKanis 03.2023 Turbo update
+- Uses "WK Item Info Injector" now (thanks Sinyaven) [WK Item Info Injector](https://community.wanikani.com/t/for-userscript-authors-wk-item-info-injector)
+- Thanks to Item Info Injector works now on Extra Study pages as well. 
 
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags

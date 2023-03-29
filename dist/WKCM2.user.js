@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name        WKCM2
-// @description This script allows WaniKani members to contribute their own mnemonics which appear on any page that includes item info.
+// @description Community Mnemonics for WaniKani. Submit your own mnemonics and view other submissions.
 // @namespace   wkcm2
-// @match       https://www.wanikani.com/level/*
-// @match       https://www.wanikani.com/kanji*
-// @match       https://www.wanikani.com/vocabulary*
-// @match       https://www.wanikani.com/radicals*
-// @match       https://www.wanikani.com/review/session
-// @match       https://www.wanikani.com/lesson/session
+// @match       https://*.wanikani.com/subjects/*
+// @match       https://*.wanikani.com/level/*
+// @match       https://*.wanikani.com/kanji*
+// @match       https://*.wanikani.com/vocabulary*
+// @match       https://*.wanikani.com/radicals*
+// @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.3.0
+// @version     0.3.1
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
@@ -39,7 +39,7 @@ var rollupUserScript = (function (exports) {
     /**
      * Global constant values
      */
-    const WKCM2_version = "0.3.0";
+    const WKCM2_version = "0.3.1";
     const scriptName = 'WKCM2';
     // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
     // google sheets apps script url, for sheet access
@@ -50,29 +50,18 @@ var rollupUserScript = (function (exports) {
     // If date of cached item is older than this number of days, refetch.
     // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
     const cacheDayMaxAge = 7;
-    let isReview = false;
-    let isLesson = false;
     let isList = false;
     let isItem = false;
     // @ts-ignore;  A wrapper for the window, because unsafeWindow doesn't work in Firefox 
     // @ts-ignore;  and window does not have access to wkof in some browsers?? (How even? idk, it worked before)
     let win = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
     function setPageVars() {
-        // if current page is Review page
-        isReview = (window.location.pathname.indexOf("/review/") > -1);
-        // if current page is Lesson page
-        isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
-        // Only true in list of items
-        let isListTmp = false;
-        if (!isReview && !isLesson) {
-            isListTmp = (
-            // true if on a level page
-            /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
-                // true if on a /kanji?difficulty=pleasant site
-                /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
-                    .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2) + window.location.search));
-        }
-        isList = isListTmp;
+        isList = (
+        // true if on a level page
+        /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
+            // true if on a /kanji?difficulty=pleasant site
+            /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
+                .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2) + window.location.search));
         isItem = /(kanji|vocabulary|radicals)\/.*/gi
             .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2));
     }
@@ -86,60 +75,19 @@ var rollupUserScript = (function (exports) {
     /**
      * Functions to get information about the currently loaded page/item
      */
-    // @ts-ignore
-    const { $ } = win;
     /**
      * @returns The current item. (説得, stick, etc.)
      */
     function getItem() {
         let item = null;
-        if (isItem) {
-            item = document.querySelector(".page-header__icon--kanji,.page-header__icon--vocabulary,.page-header__icon--radical,.vocabulary-icon")?.textContent?.trim();
-            if (!item)
-                item = null;
-            // image radical case
-            if (getShortItemType(getItemType()) === "r" && item == null) {
-                let radImg = document.querySelector(".radical-image");
-                if (radImg != null && radImg?.alt)
-                    item = radImg.alt.trim().toLowerCase();
-            }
-            if (getShortItemType(getItemType()) === "r" && item == null)
-                item = decodeURIComponent(window.location.pathname.slice(window.location.pathname.lastIndexOf("/") + 1));
-        }
-        else if (isReview) {
-            item = $.jStorage.get("currentItem")["characters"];
-            // image radical case, two methods, if one breaks
-            if (getShortItemType(getItemType()) === "r" && item == null) {
-                let jstorageEn = $.jStorage.get("currentItem")["en"];
-                if (jstorageEn != null)
-                    item = jstorageEn[0].toLowerCase();
-            }
-            if (getShortItemType(getItemType()) === "r" && item == null) {
-                let imgRad = document.querySelector("#item-info-col1 section");
-                if (imgRad != null)
-                    item = imgRad.childNodes[2].textContent.trim().toLowerCase();
-            }
-        }
-        else if (isLesson) {
-            item = $.jStorage.get("l/currentLesson")["characters"];
-            // image radical case
-            if (getShortItemType(getItemType()) === "r" && item == null) {
-                let jstorageEn = $.jStorage.get("l/currentLesson")["en"];
-                if (jstorageEn != null)
-                    item = jstorageEn[0].toLowerCase();
-            }
-            if (getShortItemType(getItemType()) === "r" && item == null) {
-                let imgRad = document.querySelector("#meaning");
-                if (imgRad != null)
-                    item = imgRad.textContent.trim().toLowerCase();
-            }
-        }
+        item = win.wkItemInfo.currentState.characters;
+        if (item == undefined)
+            item = win.wkItemInfo.currentState.meaning[0].toLowerCase();
         if (item == null) {
             let msg = "Error: getItem, item is null. ";
             console.log("WKCM2: " + msg);
-            // this unfortunately doesn't work. Gets overwritten instantly with "No mnem available"
             // TODO: maybe add flag, that marks the iframe for this item "unupdatable", after an error display
-            // updateIframe(null, msg, user=null);
+            updateIframe(null, msg, null);
         }
         return item;
     }
@@ -147,17 +95,9 @@ var rollupUserScript = (function (exports) {
      * Returns radical, kanji or vocabulary
      * */
     function getItemType() {
-        let itemType = null;
-        if (isReview)
-            itemType = $.jStorage.get("currentItem")["type"];
-        else if (isLesson)
-            itemType = $.jStorage.get("l/currentLesson")["type"];
-        else if (isItem)
-            itemType = window.location.pathname.slice(1, window.location.pathname.lastIndexOf("/"));
-        else if (isList)
+        let itemType = win.wkItemInfo.currentState.type;
+        if (isList)
             itemType = window.location.pathname.slice(1);
-        if (typeof itemType === "string")
-            itemType = itemType.toLowerCase();
         if (itemType == null)
             console.log("WKCM2: getItemType, itemType null");
         if (itemType === "radicals")
@@ -178,8 +118,11 @@ var rollupUserScript = (function (exports) {
                 setTimeout(function () {
                     if (isList)
                         initList();
-                    else if (isItem)
-                        initItem();
+                    else if (isItem) {
+                        infoInjectorInit("meaning");
+                        if (getItemType() != "radical")
+                            infoInjectorInit("reading");
+                    }
                     callback();
                 }, delay);
             }
@@ -230,58 +173,46 @@ var rollupUserScript = (function (exports) {
         timer_1.maxIter = 25;
     })(timer || (timer = {}));
     /**
-     * Observe if meaning/reading tabs are activated in Lessons
-     * @param callback requires param MnemType. Initializes HTML
-     */
-    function observeLessonTabs(callback) {
-        const observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                let ele = mutation.target;
-                if (ele.id.includes("supplement-") && mutation.addedNodes.length != 0) {
-                    let addedNode = mutation.addedNodes[0];
-                    if (addedNode.id.includes("meaning")) {
-                        callback("meaning");
-                    }
-                    else if (addedNode.id.includes("reading")) {
-                        callback("reading");
-                    }
-                }
-            });
-        });
-        const target = document.getElementById(`supplement-${getMedItemType(getItemType())}`);
-        observer.observe(target, { attributes: false, childList: true, subtree: true });
-    }
-    /**
      * Show or hide CM div of meaning or reading in Reviews,
      * depending what information should be displayed.
      */
-    function showHideCm() {
-        for (let mnemType of getPossibleMnemTypes()) {
-            let note = document.querySelector(`#note-${mnemType}`);
-            let cmDiv = document.querySelector(`#cm-${mnemType}`);
+    /*
+    export function showHideCm()
+    {
+        for (let mnemType of getPossibleMnemTypes())
+        {
+            let note = document.querySelector(`#note-${mnemType}`) as HTMLElement;
+            let cmDiv = document.querySelector(`#cm-${mnemType}`) as HTMLElement;
             if (note && !cmDiv)
                 initReview(mnemType);
-            if (cmDiv && cmDiv?.style.display != note?.style.display) {
+
+            if (cmDiv && cmDiv?.style.display != note?.style.display)
+            {
                 if (note.style.display.includes("block"))
                     cmDiv.style.display = "inline-block";
                 else
-                    cmDiv.style.display = note.style.display;
+                    cmDiv.style.display = note.style.display; // copy "display: none"
             }
         }
-    }
+    }*/
     /**
      * Observe item-info field for changes and insert Mnemonic divs if needed.
      * Also copies style from note, to hide/show CM element
-     */
-    function observeReviewInfo() {
-        // Run once, to make sure div is hidden in the beginning.
-        showHideCm();
-        const observer = new MutationObserver(function (mutations) {
-            showHideCm();
-        });
-        const target = document.getElementById(`item-info`);
-        observer.observe(target, { attributes: true, attributeFilter: ["style"], childList: false, subtree: true });
-    }
+     */ /*
+    export function observeReviewInfo()
+    {
+       // Run once, to make sure div is hidden in the beginning.
+       showHideCm();
+       const observer = new MutationObserver(function (mutations)
+       {
+           showHideCm();
+       });
+
+       const target = document.getElementById(`item-info`);
+       observer.observe(target,
+           { attributes: true, attributeFilter: ["style"], childList: false, subtree: true }
+       )
+    }*/
 
     /**
      * Miscellaneous utility function used by various functions.
@@ -291,9 +222,6 @@ var rollupUserScript = (function (exports) {
      * */
     function getShortItemType(type) {
         return getItemTypeLen(type, 1);
-    }
-    function getMedItemType(type) {
-        return getItemTypeLen(type, 3);
     }
     function getItemTypeLen(type, len = 99) {
         if (type === "kanji" || type === "k" || type === "kan") // @ts-ignore
@@ -393,11 +321,6 @@ var rollupUserScript = (function (exports) {
         let style = document.createElement('style');
         style.innerHTML = css; //css.replace(/;/g, ' !important;');
         head.appendChild(style);
-    }
-    function getPossibleMnemTypes() {
-        if (getItemType() == "radical")
-            return ["meaning"];
-        return ["meaning", "reading"];
     }
     /**
      * Handle the API response after inserting or modifying data
@@ -647,17 +570,12 @@ ${isItem ?
         }
         // backup method
         const userClass = "user-summary__username";
-        if (isReview || isLesson) {
-            // @ts-ignore
-            WKUser = win.WaniKani.username;
+        // not working in Lesson & Review
+        try {
+            WKUser = document.getElementsByClassName(userClass)[0].innerHTML;
         }
-        else {
-            try {
-                WKUser = document.getElementsByClassName(userClass)[0].innerHTML;
-            }
-            catch (err) {
-                throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
-            }
+        catch (err) {
+            throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
         }
         if (WKUser == null || typeof WKUser != "string" || WKUser == "")
             throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
@@ -707,15 +625,8 @@ ${isItem ?
      * Functions to generate the mnemonic div
      * but also to modify it, like toggle buttons
      */
-    function getMnemOuterHTMLList(radical = false) {
-        let mnemOuterHTML = /* html */ `
-    <div id="wkcm2" class="cm">
-    <br> <h2 class="subject-section__title">Community Mnemonics</h2>
-    ${getCMdivContent("meaning")}`;
-        if (radical == false)
-            mnemOuterHTML = mnemOuterHTML + getCMdivContent("reading");
-        mnemOuterHTML = mnemOuterHTML + `</div>`;
-        return mnemOuterHTML;
+    function getHeader(mnemType) {
+        return `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`;
     }
     /**
      * Creates the initial HTML code for the individual Mnemonic types, including Iframes. But also all Buttons.
@@ -723,12 +634,12 @@ ${isItem ?
      */
     function getCMdivContent(mnemType) {
         const userContentIframe = getInitialIframe(mnemType);
-        let header = `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`;
+        let header = getHeader(mnemType);
         // ◄►
         let content = 
         /*HTML*/ `
 <div id="cm-${mnemType}" class="cm-content">
-    <h2 class="subject-section__subtitle">${header}</h2>
+    <!--  <h2 class="subject-section__subtitle">${header}</h2>  -->
     <div id="cm-${mnemType}-prev"        class="fa-solid fa-angle-left cm-btn cm-prev disabled"><span></span></div>
     ${userContentIframe}
     <div id="cm-${mnemType}-next"         class="fa-solid fa-angle-right cm-btn cm-next disabled"><span></span></div>
@@ -1769,11 +1680,11 @@ ${isItem ?
         return getBadgeClass("available", legend);
     }
 
-    var stylesheet$6=".cm-content {\n  height: 100%;\n  min-height: 300px;\n  text-align: left;\n}\n\n#cm-reading {\n  display: inline-block;\n}\n\n.cm {\n  font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  overflow: auto;\n}";
+    var stylesheet$6=".cm-content {\n  height: 100%;\n  text-align: left;\n  display: inline-block;\n}\n\n#turbo-body .container #wkcm2 .cm-content {\n  padding-bottom: 50px;\n}\n\n.cm {\n  font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  overflow: auto;\n}";
 
     var stylesheet$5=".subject-legend__item {\n  flex: 0 0 17%;\n}\n\n.subject-legend__item-badge--cm-request {\n  background-color: #e1aa00;\n}\n\n.subject-legend__item-badge--cm-available {\n  background-color: #71aa00;\n}\n\n.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {\n  width: 2em;\n  height: 2em;\n  line-height: 2.1;\n  color: #fff;\n  font-size: 16px;\n  border-radius: 50%;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);\n  margin-bottom: 14px;\n  text-align: center;\n}\n\n.character-item__badge__cm-request {\n  background-color: #e1aa00;\n  left: 30px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-request {\n    left: 0px;\n    transform: translate(45%, 0%);\n  }\n}\n\n.character-item__badge__cm-available {\n  background-color: #71aa00;\n  left: 60px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-available {\n    left: 0px;\n    transform: translate(45%, -112%);\n  }\n}\n\n.character-grid__item--vocabulary .character-item__badge__cm-request {\n  left: 0px;\n  transform: translate(45%, 0%);\n}\n.character-grid__item--vocabulary .character-item__badge__cm-available {\n  left: 0px;\n  transform: translate(45%, -112%);\n}\n.character-grid__item--vocabulary .character-item {\n  padding-left: 40px;\n}\n\n@media screen and (max-width: 767px) {\n  .character-item {\n    padding-left: 40px;\n  }\n}";
 
-    var stylesheet$4=".cm-btn {\n  color: white;\n  height: 20px;\n  font-size: 14px;\n  cursor: pointer;\n  filter: contrast(0.9);\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n  transition: text-shadow 0.15s linear;\n  text-align: center;\n  font-weight: normal;\n}\n\n#item-info .cm-submit-highlight, #item-info .cm-upvote-highlight, #item-info .cm-downvote-highlight, #supplement-info .cm-submit-highlight, #supplement-info .cm-upvote-highlight, #supplement-info .cm-downvote-highlight {\n  height: 15px;\n  padding: 1px 0px 4px 0px;\n}\n\n.cm-btn:hover {\n  filter: contrast(1.15) !important;\n}\n\n.cm-btn:active {\n  filter: contrast(1.2) !important;\n  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-btn.disabled.cm-btn.disabled {\n  opacity: 0.3;\n  pointer-events: none;\n}\n\n.cm-prev, .cm-next {\n  color: #333333;\n  font-size: 50px;\n  margin: 0px 0px 0px 0px;\n  padding: 15px 10px 0px 0px;\n  box-shadow: none !important;\n}\n\n.cm-prev:not(.disabled), .cm-next:not(.disabled) {\n  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:hover, .cm-next:hover {\n  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:active, .cm-next:active {\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev {\n  float: left;\n}\n\n.cm-next {\n  float: right;\n}\n\n.cm-prev.disabled, .cm-next.disabled {\n  opacity: 0.25;\n}\n\n.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {\n  text-align: center;\n  font-size: 14px;\n  width: 75px;\n  margin-right: 10px;\n  float: left;\n  padding: 0px 4px;\n}\n\n.cm-upvote-highlight, .cm-downvote-highlight {\n  width: 95px;\n  margin-right: 10px;\n  float: left;\n  padding: 2px;\n  /* padding: 2px 0px 3px 0px;  This is for the redesign. */\n}\n\n.cm-upvote-highlight {\n  background-image: linear-gradient(to bottom, #5c5, #46ad46);\n}\n\n.cm-downvote-highlight {\n  background-image: linear-gradient(to bottom, #c55, #ad4646);\n}\n\n.cm-delete-highlight {\n  background-image: linear-gradient(to bottom, #811, #6d0606);\n  margin-right: 10px;\n}\n\n.cm-edit-highlight {\n  background-image: linear-gradient(to bottom, #ccc, #adadad);\n}\n\n.cm-request-highlight {\n  background-image: linear-gradient(to bottom, #e1aa00, #d57602);\n}\n\n.cm-submit-highlight {\n  width: 125px;\n  margin-left: 75px;\n  float: right;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 2px 0px 3px 0px;\n}\n\n.cm-cancel-highlight, .cm-save-highlight {\n  width: 75px;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 0px 0px 0px 0px;\n}\n\n/*Edit, delete, request are small buttons*/\n.cm-small-btn {\n  font-size: 12px;\n  width: 50px;\n  height: 13px;\n  line-height: 1;\n  /*padding: 1px 0px 13px 0px;  This is for the redesign. */\n}\n\n.cm-submit-highlight.disabled, .cm-form-submit.disabled {\n  color: #8b8b8b !important;\n}\n\n/*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/";
+    var stylesheet$4=".cm-btn {\n  color: white;\n  font-size: 14px;\n  cursor: pointer;\n  filter: contrast(0.9);\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n  transition: text-shadow 0.15s linear;\n  text-align: center;\n  font-weight: normal;\n}\n\n#item-info .cm-submit-highlight, #item-info .cm-upvote-highlight, #item-info .cm-downvote-highlight, #supplement-info .cm-submit-highlight, #supplement-info .cm-upvote-highlight, #supplement-info .cm-downvote-highlight {\n  height: 15px;\n  padding: 1px 0px 4px 0px;\n}\n\n.cm-btn:hover {\n  filter: contrast(1.15) !important;\n}\n\n.cm-btn:active {\n  filter: contrast(1.2) !important;\n  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-btn.disabled.cm-btn.disabled {\n  opacity: 0.3;\n  pointer-events: none;\n}\n\n.cm-prev, .cm-next {\n  color: #333333;\n  font-size: 50px;\n  margin: 0px 0px 0px 0px;\n  padding: 15px 10px 0px 0px;\n  box-shadow: none !important;\n}\n\n.cm-prev:not(.disabled), .cm-next:not(.disabled) {\n  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:hover, .cm-next:hover {\n  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:active, .cm-next:active {\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev {\n  float: left;\n}\n\n.cm-next {\n  float: right;\n}\n\n.cm-prev.disabled, .cm-next.disabled {\n  opacity: 0.25;\n}\n\n.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {\n  text-align: center;\n  font-size: 14px;\n  width: 75px;\n  margin-right: 10px;\n  float: left;\n  padding: 0px 4px;\n}\n\n.cm-upvote-highlight, .cm-downvote-highlight {\n  width: 95px;\n  margin-right: 10px;\n  float: left;\n}\n\n.cm-upvote-highlight {\n  background-image: linear-gradient(to bottom, #5c5, #46ad46);\n}\n\n.cm-downvote-highlight {\n  background-image: linear-gradient(to bottom, #c55, #ad4646);\n}\n\n.cm-delete-highlight {\n  background-image: linear-gradient(to bottom, #811, #6d0606);\n  margin-right: 10px;\n}\n\n.cm-edit-highlight {\n  background-image: linear-gradient(to bottom, #ccc, #adadad);\n}\n\n.cm-request-highlight {\n  background-image: linear-gradient(to bottom, #e1aa00, #d57602);\n}\n\n.cm-submit-highlight {\n  width: 125px;\n  margin-left: 75px;\n  float: right;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n}\n\n.cm-cancel-highlight, .cm-save-highlight {\n  width: 75px;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 0px 0px 0px 0px;\n}\n\n/*Edit, delete, request are small buttons*/\n.cm-small-btn {\n  font-size: 12px;\n  width: 50px;\n  height: 13px;\n  line-height: 1;\n}\n\n.cm-submit-highlight.disabled, .cm-form-submit.disabled {\n  color: #8b8b8b !important;\n}\n\n/*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/";
 
     var stylesheet$3=".cm-format-btn.cm-format-btn {\n  filter: contrast(0.8);\n  text-align: center;\n  width: 35px;\n  height: 30px;\n  font-size: 20px;\n  line-height: 30px;\n  margin-left: 5px;\n  float: left;\n  box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-format-btn:active {\n  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2) inset !important;\n}\n\n.cm-format .cm-kanji, .cm-format .cm-radical, .cm-format .cm-vocabulary, .cm-format .cm-reading {\n  font-weight: bold;\n  display: inline-block;\n  color: #fff;\n  text-align: center;\n  box-sizing: border-box;\n  line-height: 1;\n}\n\n.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-qmark, .cm-format-btn.cm-format-strike {\n  background-color: #f5f5f5;\n  background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a);\n  background-repeat: repeat-x;\n}";
 
@@ -1845,23 +1756,18 @@ ${isItem ?
     run();
     // all code runs from here
     function run() {
-        if (isReview || isLesson) {
-            if (document.readyState != "complete") {
-                window.addEventListener('load', function () {
-                    // character div is needed for lesson & review page
-                    preInit();
-                }, false);
+        // Runs checks if elements exist before running init and waits for them. Then calls init.
+        waitForWKOF().then(exists => {
+            if (exists) {
+                wkof.include('Apiv2');
+                wkof.ready('Apiv2').then(init);
             }
-            else {
-                preInit();
-            }
-        }
-        else if (isList || isItem) {
-            if (document.readyState === "loading")
-                document.addEventListener("DOMContentLoaded", function () { preInit(); });
             else
-                preInit();
-        }
+                console.log("WKCM2: there was a problem with checking for wkof. Please check if it is installed correctly and running. ");
+        }).catch(exists => {
+            console.log("WKCM2: ERROR. WKOF not found.");
+            checkWKOF_old();
+        });
     }
     // CSS
     const generalCSS = stylesheet$6;
@@ -1872,40 +1778,6 @@ ${isItem ?
     const contentCSS = stylesheet$1;
     const highlightCSS = stylesheet;
     // Init ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-    /**
-     * Runs checks if elements exist before running init and waits for them. Then calls init.
-     * */
-    function preInit() {
-        let elePromise = null;
-        // character div only needed in Lesson & Review. For list use dummy Promise.
-        if (isList || isItem)
-            elePromise = Promise.resolve(true);
-        else
-            elePromise = waitForEle('character');
-        elePromise.then(/*waitForWKOF().then()*/ waitForWKOF().then(exists => {
-            if (exists) {
-                wkof.include('Apiv2');
-                wkof.ready('Apiv2').then(init);
-            }
-            else
-                console.log("WKCM2: there was a problem with checking for wkof. Please check if it is installed correctly and running. ");
-        }).catch(exists => {
-            console.log("WKCM2: ERROR. WKOF not found.");
-            checkWKOF_old();
-        })).catch(err => {
-            // Ele "character" does not exist.
-            console.log("WKCM2: Error. The div with the id character does not exist. Exiting");
-        });
-        // !delete
-        /*
-        .then(resp =>
-        {
-            console.log("here2");
-            checkWKOF();
-            wkof.include('Apiv2');
-            wkof.ready('Apiv2').then(init);
-        });*/
-    }
     /**
      * Runs the right code depending if the current page is Lesson, Review or List
      * */
@@ -1924,71 +1796,50 @@ ${isItem ?
         addGlobalStyle(contentCSS);
         addGlobalStyle(textareaCSS);
         addGlobalStyle(highlightCSS);
-        if (isReview) {
-            observeReviewInfo();
-        }
-        else if (isLesson) {
-            observeLessonTabs(initLesson);
-        }
-        else if (isList) {
+        if (isList) {
             fillCacheIfExpired();
             initList();
         }
-        else if (isItem) {
-            initItem();
-        }
         else {
-            console.log("WKCM2: init else");
+            infoInjectorInit("meaning");
+            infoInjectorInit("reading");
         }
-        // call right init functions, after page has changed (without proper reload)
-        detectUrlChange(500);
+        if (isList || isItem)
+            detectUrlChange(500);
     }
-    function initLesson(mnemType) {
-        if (isInitializedReviewLesson(mnemType))
-            return;
-        const selector = `h2`;
-        let headers = document.querySelectorAll(selector);
-        for (let i = 0; i < headers.length; i++)
-            if (headers[i].innerText.includes("Notes")) {
-                addHTMLinEle(headers[i], "<br>", "beforebegin");
-                addHTMLinEle(headers[i], getCMdivContent(mnemType), "beforebegin");
-                initButtons(mnemType);
-                updateCM(undefined, mnemType);
-            }
-    }
-    function initReview(mnemType) {
-        if (isInitializedReviewLesson(mnemType))
-            return;
-        // Add before note
-        const selector = `#note-${mnemType}`;
-        addHTMLinEle(selector, getCMdivContent(mnemType), "beforebegin");
-        initButtons(mnemType);
-        updateCM(undefined, mnemType);
-        /*
-        let characterDiv = document.getElementById("character").firstElementChild;
-        if (characterDiv != null)
-        {
-            characterDiv.addEventListener('DOMSubtreeModified', function(){updateCM()});
-        }
-        else
-            console.log("WKCM2: init, character div NOT FOUND");
-        */
-    }
-    function initItem() {
+    /**
+     * Usese WKItemInfoInjector to inject HTML into page and call init
+     * @param mnemType
+     */
+    function infoInjectorInit(mnemType) {
         if (isInitialized())
             return;
-        if (getItemType() == "radical") {
-            addHTMLinEle('.subject-section', getMnemOuterHTMLList(true), "afterend");
-        }
-        // if (getItemType() != "radical")
-        else {
-            addHTMLinEle('.subject-section--reading', getMnemOuterHTMLList(), "afterend");
-            // document.getElementById("cm-reading").innerHTML = getCMdivContent("reading");
-            initButtons("reading");
-        }
-        // document.getElementById("cm-meaning").innerHTML = getCMdivContent("meaning");
-        initButtons("meaning");
-        updateCM();
+        let cm_div = document.createElement("div");
+        cm_div.innerHTML = getCMdivContent(mnemType);
+        // insert HTML Elements
+        win.wkItemInfo
+            //.on("lesson,lessonQuiz,review,extraStudy,itemPage")
+            //.forType("radical,kanji,vocabulary")
+            .under(mnemType).spoiling(mnemType)
+            .appendSubsection(getHeader(mnemType), cm_div); //, { injectImmediately: true });
+        // callback to initialize HTML Elements inserted above
+        const wkItemInfoSelector = win.wkItemInfo.on("lesson,lessonQuiz,review,extraStudy,itemPage")
+            .forType("radical,kanji,vocabulary").under(mnemType).spoiling(mnemType);
+        let notify = wkItemInfoSelector.notifyWhenVisible || wkItemInfoSelector.notify;
+        // wkItemInfoSelector.notifyWhenVisible(o => {console.log("here")})
+        notify(o => {
+            // console.log(o);
+            waitForEle(`cm-${mnemType}`).then(() => {
+                initCM(mnemType);
+            });
+        });
+    }
+    /**
+     * initializes Buttons and starts first content update.
+     */
+    function initCM(mnemType) {
+        initButtons(mnemType);
+        updateCM(undefined, mnemType);
     }
     function initList() {
         if (isInitialized())
@@ -2004,7 +1855,10 @@ ${isItem ?
      */
     function isInitialized(mnemType = null) {
         if (mnemType == null)
-            return isInitialized("reading") && isInitialized("meaning");
+            if (getItemType() == "radical")
+                return isInitialized("meaning");
+            else
+                return isInitialized("reading") && isInitialized("meaning");
         if (document.querySelector("#wkcm2"))
             return true;
         if (document.querySelector(`#cm-${mnemType}`))
@@ -2016,19 +1870,9 @@ ${isItem ?
             return true;
         return false;
     }
-    function isInitializedReviewLesson(mnemType = null) {
-        if (mnemType == null)
-            return isInitialized("reading") && isInitialized("meaning");
-        if (document.querySelector(`#cm-${mnemType}`))
-            return true;
-    }
-    // Init ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-    exports.initItem = initItem;
-    exports.initLesson = initLesson;
+    exports.infoInjectorInit = infoInjectorInit;
     exports.initList = initList;
-    exports.initReview = initReview;
-    exports.preInit = preInit;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
