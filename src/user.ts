@@ -1,4 +1,3 @@
-import { isLesson, isReview, win } from "./const";
 import { wkof } from "./wkof";
 
 
@@ -32,21 +31,14 @@ export function setUsername(): string
     // backup method
     const userClass = "user-summary__username";
 
-    if(isReview || isLesson)
+    // not working in Lesson & Review
+    try
     {
-        // @ts-ignore
-        WKUser = win.WaniKani.username;
+        WKUser = document.getElementsByClassName(userClass)[0].innerHTML;
     }
-    else
+    catch(err)
     {
-        try
-        {
-            WKUser = document.getElementsByClassName(userClass)[0].innerHTML;
-        }
-        catch(err)
-        {
-            throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
-        }
+        throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
     }
     
     if (WKUser == null || typeof WKUser != "string" || WKUser == "")

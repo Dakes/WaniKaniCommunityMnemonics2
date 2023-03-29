@@ -19,11 +19,20 @@ export function getMnemOuterHTMLList(radical=false)
     let mnemOuterHTML = /* html */`
     <div id="wkcm2" class="cm">
     <br> <h2 class="subject-section__title">Community Mnemonics</h2>
+
+    <h2 class="subject-section__subtitle">${getHeader("meaning")}</h2>
     ${getCMdivContent("meaning")}`;
     if (radical == false)
-        mnemOuterHTML = mnemOuterHTML + getCMdivContent("reading");
+        mnemOuterHTML = mnemOuterHTML + 
+        `<h2 class="subject-section__subtitle">${getHeader("reading")}</h2>`
+         + getCMdivContent("reading");
     mnemOuterHTML = mnemOuterHTML + `</div>`;
     return mnemOuterHTML;
+}
+
+export function getHeader(mnemType: MnemType): string
+{
+    return `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`;
 }
 
 /**
@@ -34,13 +43,13 @@ export function getCMdivContent(mnemType: MnemType): string
 {
     const userContentIframe = getInitialIframe(mnemType);
    
-    let header = `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`
+    let header = getHeader(mnemType);
 
     // ◄►
     let content =
 /*HTML*/`
 <div id="cm-${mnemType}" class="cm-content">
-    <h2 class="subject-section__subtitle">${header}</h2>
+    <!--  <h2 class="subject-section__subtitle">${header}</h2>  -->
     <div id="cm-${mnemType}-prev"        class="fa-solid fa-angle-left cm-btn cm-prev disabled"><span></span></div>
     ${userContentIframe}
     <div id="cm-${mnemType}-next"         class="fa-solid fa-angle-right cm-btn cm-next disabled"><span></span></div>
@@ -282,7 +291,6 @@ export class Buttons
 
     static initInteractionButtons(mnemType: MnemType)
     {
-
         addClickEvent(`cm-${mnemType}-edit`,     Buttons.editCM,    [mnemType]);
         addClickEvent(`cm-${mnemType}-delete`,   Buttons.deleteCM,  [mnemType]);
         addClickEvent(`cm-${mnemType}-request`,  Buttons.requestCM, [mnemType]);

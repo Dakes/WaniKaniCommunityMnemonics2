@@ -2,7 +2,7 @@
  * Global constant values
  */
 
-export const WKCM2_version = "0.3.0";
+export const WKCM2_version = "0.3.1";
 export const scriptName = 'WKCM2';
 export const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
@@ -23,9 +23,6 @@ export const cacheDayMaxAge = 7;
 // whether to use console logs
 export const devel = false;
 
-
-export let isReview = false;
-export let isLesson = false;
 export let isList = false;
 export let isItem = false;
 
@@ -33,25 +30,15 @@ export let isItem = false;
 // @ts-ignore;  and window does not have access to wkof in some browsers?? (How even? idk, it worked before)
 export let win: Window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
 
-export function setPageVars() {
-    // if current page is Review page
-    isReview = (window.location.pathname.indexOf("/review/") > -1);
-    // if current page is Lesson page
-    isLesson = (window.location.pathname.indexOf("/lesson/") > -1);
-
-    // Only true in list of items
-    let isListTmp = false;
-    if (!isReview && !isLesson)
-    {
-        isListTmp = (
+export function setPageVars()
+{
+    isList = (
             // true if on a level page
             /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
             // true if on a /kanji?difficulty=pleasant site
             /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
                 .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2) + window.location.search )
         );
-    }
-    isList = isListTmp;
 
     isItem = /(kanji|vocabulary|radicals)\/.*/gi
         .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2));

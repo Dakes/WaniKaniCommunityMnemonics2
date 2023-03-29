@@ -3,7 +3,7 @@
 .cm-btn
 {
     color: white;
-    height: 20px;
+    // height: 20px;
     font-size: 14px;
     cursor: pointer;
     filter: contrast(0.9);
@@ -65,8 +65,7 @@
 }
 .cm-upvote-highlight, .cm-downvote-highlight
 {
-    width: 95px; margin-right: 10px; float: left; padding: 2px;
-    /* padding: 2px 0px 3px 0px;  This is for the redesign. */
+    width: 95px; margin-right: 10px; float: left;
 }
 
 .cm-upvote-highlight { background-image: linear-gradient(to bottom, #5c5, #46ad46) }
@@ -74,7 +73,12 @@
 .cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 10px }
 .cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
 .cm-request-highlight { background-image: linear-gradient(to bottom, colors.$request, colors.$request-shadow) }
-.cm-submit-highlight { width: 125px; margin-left: 75px; float:right; background-image: linear-gradient(to bottom, #616161, #393939); padding: 2px 0px 3px 0px; }
+.cm-submit-highlight {
+    width: 125px;
+    margin-left: 75px;
+    float:right;
+    background-image: linear-gradient(to bottom, #616161, #393939);
+}
 .cm-cancel-highlight, .cm-save-highlight { 
     width: 75px;
     background-image: linear-gradient(to bottom, #616161, #393939);
@@ -84,7 +88,6 @@
 /*Edit, delete, request are small buttons*/
 .cm-small-btn {
     font-size: 12px; width: 50px; height: 13px; line-height: 1;
-    /*padding: 1px 0px 13px 0px;  This is for the redesign. */
 }
 .cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
 /*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/
