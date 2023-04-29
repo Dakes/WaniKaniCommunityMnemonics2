@@ -183,6 +183,9 @@ Running `npm start` will start a development server, that will continually rebui
 - Uses "WK Item Info Injector" now (thanks Sinyaven) [WK Item Info Injector](https://community.wanikani.com/t/for-userscript-authors-wk-item-info-injector)
 - Thanks to Item Info Injector works now on Extra Study pages as well. 
 
+#### 0.3.2
+- Fix bug: badges not showing on list page
+
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags
 - 🚫 Sheet apps script deletes Mnemonics with rating of -10 or below
