@@ -2,7 +2,7 @@
  * Global constant values
  */
 
-export const WKCM2_version = "0.3.1";
+export const WKCM2_version = "0.3.2";
 export const scriptName = 'WKCM2';
 export const scriptNameLong = 'WaniKani Community Mnemonics 2';
 

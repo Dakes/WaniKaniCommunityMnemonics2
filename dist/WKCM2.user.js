@@ -10,7 +10,7 @@
 // @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.3.1
+// @version     0.3.2
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
@@ -39,7 +39,7 @@ var rollupUserScript = (function (exports) {
     /**
      * Global constant values
      */
-    const WKCM2_version = "0.3.1";
+    const WKCM2_version = "0.3.2";
     const scriptName = 'WKCM2';
     // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
     // google sheets apps script url, for sheet access
@@ -172,47 +172,6 @@ var rollupUserScript = (function (exports) {
         timer_1.iter = {};
         timer_1.maxIter = 25;
     })(timer || (timer = {}));
-    /**
-     * Show or hide CM div of meaning or reading in Reviews,
-     * depending what information should be displayed.
-     */
-    /*
-    export function showHideCm()
-    {
-        for (let mnemType of getPossibleMnemTypes())
-        {
-            let note = document.querySelector(`#note-${mnemType}`) as HTMLElement;
-            let cmDiv = document.querySelector(`#cm-${mnemType}`) as HTMLElement;
-            if (note && !cmDiv)
-                initReview(mnemType);
-
-            if (cmDiv && cmDiv?.style.display != note?.style.display)
-            {
-                if (note.style.display.includes("block"))
-                    cmDiv.style.display = "inline-block";
-                else
-                    cmDiv.style.display = note.style.display; // copy "display: none"
-            }
-        }
-    }*/
-    /**
-     * Observe item-info field for changes and insert Mnemonic divs if needed.
-     * Also copies style from note, to hide/show CM element
-     */ /*
-    export function observeReviewInfo()
-    {
-       // Run once, to make sure div is hidden in the beginning.
-       showHideCm();
-       const observer = new MutationObserver(function (mutations)
-       {
-           showHideCm();
-       });
-
-       const target = document.getElementById(`item-info`);
-       observer.observe(target,
-           { attributes: true, attributeFilter: ["style"], childList: false, subtree: true }
-       )
-    }*/
 
     /**
      * Miscellaneous utility function used by various functions.
@@ -1854,20 +1813,24 @@ ${isItem ?
      * @returns
      */
     function isInitialized(mnemType = null) {
-        if (mnemType == null)
-            if (getItemType() == "radical")
-                return isInitialized("meaning");
-            else
-                return isInitialized("reading") && isInitialized("meaning");
-        if (document.querySelector("#wkcm2"))
-            return true;
-        if (document.querySelector(`#cm-${mnemType}`))
-            return true;
-        // For list
-        if (document.querySelector(".character-item__badge__cm-request"))
-            return true;
-        if (document.querySelector(".character-item__badge__cm-available"))
-            return true;
+        if (!isList) {
+            if (mnemType == null)
+                if (getItemType() == "radical")
+                    return isInitialized("meaning");
+                else
+                    return isInitialized("reading") && isInitialized("meaning");
+            if (document.querySelector("#wkcm2"))
+                return true;
+            if (document.querySelector(`#cm-${mnemType}`))
+                return true;
+        }
+        else // For list
+         {
+            if (document.querySelector(".character-item__badge__cm-request"))
+                return true;
+            if (document.querySelector(".character-item__badge__cm-available"))
+                return true;
+        }
         return false;
     }
 

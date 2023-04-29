@@ -148,20 +148,25 @@ export function initList()
  */
 function isInitialized(mnemType: MnemType|null=null): Boolean
 {
-    if (mnemType == null)
-        if (getItemType() == "radical")
-            return isInitialized("meaning")
-        else
-            return isInitialized("reading") && isInitialized("meaning")
+    if (!isList)
+    {
+        if (mnemType == null)
+            if (getItemType() == "radical")
+                return isInitialized("meaning")
+            else
+                return isInitialized("reading") && isInitialized("meaning")
 
-    if (document.querySelector("#wkcm2"))
-        return true;
-    if (document.querySelector(`#cm-${mnemType}`))
-        return true;
-    // For list
-    if (document.querySelector(".character-item__badge__cm-request"))
-        return true;
-    if (document.querySelector(".character-item__badge__cm-available"))
-        return true;
+        if (document.querySelector("#wkcm2"))
+            return true;
+        if (document.querySelector(`#cm-${mnemType}`))
+            return true;
+    }
+    else  // For list
+    {
+        if (document.querySelector(".character-item__badge__cm-request"))
+            return true;
+        if (document.querySelector(".character-item__badge__cm-available"))
+            return true;
+    }
     return false;
 }
