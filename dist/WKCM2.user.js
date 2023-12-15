@@ -2,7 +2,7 @@
 // @name        WKCM2
 // @description Community Mnemonics for WaniKani. Submit your own mnemonics and view other submissions.
 // @namespace   wkcm2
-// @match       https://*.wanikani.com/subjects/*
+// @match       https://*.wanikani.com/subject-lessons/*
 // @match       https://*.wanikani.com/level/*
 // @match       https://*.wanikani.com/kanji*
 // @match       https://*.wanikani.com/vocabulary*
@@ -10,7 +10,7 @@
 // @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.3.2
+// @version     0.3.2.1
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
