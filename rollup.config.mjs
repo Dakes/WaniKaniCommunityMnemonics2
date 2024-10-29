@@ -55,7 +55,8 @@ export default {
             }
         }),
         sass({
-            output: 'dist/bundle.css'
+            output: 'dist/bundle.css',
+            insert: true,
         })
     ],
     external: id => /^react(-dom)?$/.test(id)

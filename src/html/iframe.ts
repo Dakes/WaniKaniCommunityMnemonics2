@@ -1,7 +1,7 @@
-import { isItem } from "../const";
-import { memoize } from "../utils"
+import {isItem} from "../const";
+import {memoize} from "../utils"
 import * as iframeCss from "../css/iframe.scss"
-import { Escaping } from "../data";
+import {Escaping} from "../data";
 
 // Makes iframe (Mnemonics) pretty. background, hide scrollbar and most importantly highlighting, copied from list page
 // NOTE: fix for different background color on item page
@@ -10,8 +10,8 @@ function iframeCSS(): string
     return /*css*/`<style>
 ${
     isItem ?
-        iframeCss.stylesheet.replaceAll("background-color: #fff", "background-color: #eee") : 
-        iframeCss.stylesheet
+        iframeCss.default.replaceAll("background-color: #fff", "background-color: #eee") : 
+        iframeCss.default
 }
 </style>`;
 }
@@ -25,8 +25,7 @@ export function getInitialIframe(mnemType: MnemType): string
     let iframeId = "cm-iframe-" + mnemType;
     let iframeClass = "cm-mnem-text";
     let initialSrcdoc = getIframeSrcdoc("Loading Community Mnemonic ...");
-    let userContentIframe = `<iframe sandbox referrerpolicy='no-referrer' scrolling='auto' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
-    return userContentIframe;
+    return `<iframe sandbox referrerpolicy='no-referrer' scrolling='auto' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
 }
 
 /**

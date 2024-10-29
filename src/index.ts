@@ -4,20 +4,19 @@ import { getCMdivContent, getHeader } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
 import { getItemType, detectUrlChange, waitForClass} from "./page";
 import { setApiKey, setUsername } from "./user";
-import { waitForEle, addGlobalStyle } from "./utils";
+import { waitForEle } from "./utils";
 import { waitForWKOF, wkof, resetWKOFcache, checkWKOF_old } from "./wkof";
 import { getBadgeBaseClass, getBadgeClassAvail } from "./html/list";
 
-// ? Legacy imports?
-import * as generalCss from "./css/general.scss"
-import * as listCss from "./css/list.scss"
-import * as buttonCss from "./css/button.scss"
-import * as formatButtonCss from "./css/formatButton.scss"
-import * as textareaCss from "./css/textarea.scss"
-import * as contentCss from "./css/content.scss"
-import * as highlightCss from "./css/highlight.scss"
 import { addBadgeToItems, initHeader } from "./list";
 
+import "./css/general.scss"
+import "./css/list.scss"
+import "./css/button.scss"
+import "./css/formatButton.scss"
+import "./css/textarea.scss"
+import "./css/content.scss"
+import "./css/highlight.scss"
 
 run();
 
@@ -39,16 +38,6 @@ function run()
     })
 }
 
-// CSS
-const generalCSS = generalCss.stylesheet;
-const listCSS = listCss.stylesheet;
-const buttonCSS = buttonCss.stylesheet;
-const formatButtonCSS = formatButtonCss.stylesheet;
-const textareaCSS = textareaCss.stylesheet;
-const contentCSS = contentCss.stylesheet;
-const highlightCSS = highlightCss.stylesheet;
-
-
 // Init ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
 /**
@@ -66,13 +55,8 @@ function init()
     if (isInitialized())
         return;
 
-    addGlobalStyle(generalCSS);
-    addGlobalStyle(buttonCSS);
-    addGlobalStyle(formatButtonCSS);
-    addGlobalStyle(contentCSS);
-    addGlobalStyle(textareaCSS);
-    addGlobalStyle(highlightCSS);
-
+    console.log('isList', isList);
+    console.log('isItem', isItem);
     if (isList)
     {
         fillCacheIfExpired();
@@ -88,38 +72,42 @@ function init()
         detectUrlChange(500);
 }
 
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Usese WKItemInfoInjector to inject HTML into page and call init
  * @param mnemType 
  */
-export function infoInjectorInit(mnemType: MnemType)
-{
+export async function infoInjectorInit(mnemType: MnemType) {
     if (isInitialized())
         return;
-    let cm_div = document.createElement("div");
+    await sleep(100)
+
+    let cm_div       = document.createElement("div");
     cm_div.innerHTML = getCMdivContent(mnemType);
 
-    // insert HTML Elements
-    win.wkItemInfo
-        //.on("lesson,lessonQuiz,review,extraStudy,itemPage")
-        //.forType("radical,kanji,vocabulary")
-        .under(mnemType).spoiling(mnemType)
-        .appendSubsection(getHeader(mnemType), cm_div);//, { injectImmediately: true });
+    // Create a handle for this injection
+    const handle = win.wkItemInfo
+        .under(mnemType)
+        .spoiling(mnemType)
+        .appendSubsection(getHeader(mnemType), cm_div);
 
-    // callback to initialize HTML Elements inserted above
-    const wkItemInfoSelector = win.wkItemInfo.on("lesson,lessonQuiz,review,extraStudy,itemPage")
-        .forType("radical,kanji,vocabulary").under(mnemType).spoiling(mnemType);
-    let notify: Function = wkItemInfoSelector.notifyWhenVisible || wkItemInfoSelector.notify
-    // wkItemInfoSelector.notifyWhenVisible(o => {console.log("here")})
-    notify(o =>
-        {
-            // console.log(o);
-            waitForEle(`cm-${mnemType}`).then(() =>
-            {
+    if (handle) {
+        // Set up notification using the same selector configuration
+        const wkItemInfoSelector = win.wkItemInfo
+            .under(mnemType)
+            .spoiling(mnemType);
+
+        let notify: Function = wkItemInfoSelector.notifyWhenVisible || wkItemInfoSelector.notify;
+        notify(o => {
+            waitForEle(`cm-${mnemType}`).then(() => {
                 initCM(mnemType);
-            })
-        }
-    );
+            });
+        });
+    }
 }
 
 /**
@@ -136,7 +124,6 @@ export function initList()
     if (isInitialized())
         return;
 
-    addGlobalStyle(listCSS);
     waitForClass("."+getBadgeClassAvail(true), initHeader, 250);
     waitForClass(`[class*='${getBadgeBaseClass()}']`, addBadgeToItems, 100, 25);
 }

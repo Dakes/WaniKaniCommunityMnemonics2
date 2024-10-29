@@ -1,93 +1,138 @@
 @use "colors";
 
-.cm-btn
-{
-    color: white;
-    // height: 20px;
-    font-size: 14px;
-    cursor: pointer;
-    filter: contrast(0.9);
-    border-radius: 3px;
-    box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
-    text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
-    transition: text-shadow 0.15s linear;
-    text-align: center;
-    font-weight: normal;
+.cm-btn {
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  filter: contrast(0.9);
+  border-radius: 3px;
+  box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
+  transition: text-shadow 0.15s linear;
+  text-align: center;
+  font-weight: normal;
 }
+
 // Fix, because buttons unexplainably are larger in Lessons and Reviews
-#item-info, #supplement-info
-{
-    .cm-submit-highlight, .cm-upvote-highlight, .cm-downvote-highlight
-    {
-        height: 15px;
-        padding: 1px 0px 4px 0px;
-    }
-}
-.cm-btn:hover
-{
-    filter: contrast(1.15) !important;
-}
-.cm-btn:active
-{
-    filter: contrast(1.2) !important;
-    box-shadow: 0 2px 0 rgb(0 0 0 / 20%) inset;
-}
-.cm-btn.disabled.cm-btn.disabled
-{
-    opacity: 0.3;
-    pointer-events: none;
-}
-.cm-prev, .cm-next
-{
-    color: #333333;
-    font-size: 50px;
-    margin: 0px 0px 0px 0px;
-    padding: 15px 10px 0px 0px;
-    box-shadow: none !important;
-}
-.cm-prev:not(.disabled), .cm-next:not(.disabled) { text-shadow: 0 4px 0 rgb(0 0 0 / 30%); }
-.cm-prev:hover, .cm-next:hover { text-shadow: 0 3px 0 rgb(0 0 0 / 30%); }
-.cm-prev:active, .cm-next:active { text-shadow: 0 1px 0 rgb(0 0 0 / 30%); }
-
-.cm-prev{float:left}
-.cm-next{float:right}
-
-.cm-prev.disabled, .cm-next.disabled { opacity: 0.25 }
-
-.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel
-{
-    text-align: center;
-    font-size: 14px;
-    width: 75px;
-    margin-right: 10px;
-    float: left;
-    padding: 0px 4px;
-}
-.cm-upvote-highlight, .cm-downvote-highlight
-{
-    width: 95px; margin-right: 10px; float: left;
+#item-info, #supplement-info {
+  .cm-submit-highlight, .cm-upvote-highlight, .cm-downvote-highlight {
+    height: 15px;
+    padding: 1px 0 4px 0;
+  }
 }
 
-.cm-upvote-highlight { background-image: linear-gradient(to bottom, #5c5, #46ad46) }
-.cm-downvote-highlight { background-image: linear-gradient(to bottom, #c55, #ad4646) }
-.cm-delete-highlight { background-image: linear-gradient(to bottom, #811, #6d0606); margin-right: 10px }
-.cm-edit-highlight { background-image: linear-gradient(to bottom, #ccc, #adadad) }
-.cm-request-highlight { background-image: linear-gradient(to bottom, colors.$request, colors.$request-shadow) }
+.cm-btn:hover {
+  filter: contrast(1.15) !important;
+}
+
+.cm-btn:active {
+  filter: contrast(1.2) !important;
+  box-shadow: 0 2px 0 rgb(0 0 0 / 20%) inset;
+}
+
+.cm-btn.disabled.cm-btn.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.cm-prev, .cm-next {
+  color: #333333;
+  font-size: 50px;
+  margin: 0 0 0 0;
+  padding: 15px 10px 0 0;
+  box-shadow: none !important;
+}
+
+.cm-prev:not(.disabled), .cm-next:not(.disabled) {
+  text-shadow: 0 4px 0 rgb(0 0 0 / 30%);
+}
+
+.cm-prev:hover, .cm-next:hover {
+  text-shadow: 0 3px 0 rgb(0 0 0 / 30%);
+}
+
+.cm-prev:active, .cm-next:active {
+  text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
+}
+
+.cm-prev {
+  float: left;
+}
+
+.cm-next {
+  float: right;
+}
+
+.cm-prev.disabled, .cm-next.disabled {
+  opacity: 0.25;
+}
+
+.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {
+  text-align: center;
+  font-size: 14px;
+  width: 75px;
+  margin-right: 10px;
+  float: left;
+  padding: 0 4px;
+}
+
+.cm-upvote-highlight, .cm-downvote-highlight {
+  width: 95px;
+  margin-right: 10px;
+  float: left;
+}
+
+.cm-upvote-highlight {
+  background-image: linear-gradient(to bottom, #5c5, #46ad46);
+}
+
+.cm-downvote-highlight {
+  background-image: linear-gradient(to bottom, #c55, #ad4646);
+}
+
+.cm-delete-highlight {
+  background-image: linear-gradient(to bottom, #811, #6d0606);
+  margin-right: 10px
+}
+
+.cm-edit-highlight {
+  background-image: linear-gradient(to bottom, #ccc, #adadad);
+}
+
+.cm-request-highlight {
+  background-image: linear-gradient(to bottom, colors.$request, colors.$request-shadow)
+}
+
 .cm-submit-highlight {
-    width: 125px;
-    margin-left: 75px;
-    float:right;
-    background-image: linear-gradient(to bottom, #616161, #393939);
+  width: 125px;
+  margin-left: 75px;
+  float: right;
+  background-image: linear-gradient(to bottom, #616161, #393939);
 }
-.cm-cancel-highlight, .cm-save-highlight { 
+
+.form-button-wrapper {
+  position: absolute;
+  padding-left: 134px;
+  transform: translateY(-26px);
+
+  .cm-cancel-highlight, .cm-save-highlight {
     width: 75px;
     background-image: linear-gradient(to bottom, #616161, #393939);
-    padding: 0px 0px 0px 0px;
+    padding: 0 0 0 0;
+  }
 }
 
 /*Edit, delete, request are small buttons*/
 .cm-small-btn {
-    font-size: 12px; width: 50px; height: 13px; line-height: 1;
+  font-size: 12px;
+  width: 50px;
+  height: 13px;
+  line-height: 1;
+  padding-top: 2px;
 }
-.cm-submit-highlight.disabled, .cm-form-submit.disabled { color: #8b8b8b !important }
+
+.cm-submit-highlight.disabled, .cm-form-submit.disabled {
+  color: #8b8b8b !important
+}
+
 /*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/

@@ -1,14 +1,58 @@
-.cm-user-buttons { position: absolute; margin-top: -20px }
-.cm-info { display: inline-block; margin-top: 20px; margin-left: 65px; }
-.cm-info div { margin-bottom: 0px; }
-.cm-score { float: left; width: 80px }
-.cm-score-num { color: #555 }
-.cm-score-num.pos { color: #5c5 }
-.cm-score-num.neg { color: #c55 }
+.cm-user-buttons {
+  position: absolute;
+  margin-top: -16px;
+  margin-left: 80px;
+}
 
-.cm-nomnem { margin-top: -10px !important } .cm-form fieldset { clear: left }
+.cm-info {
+  display: inline-block;
+  margin-top: 20px;
+  margin-left: 65px;
+}
 
-.cm-format { margin: 0 !important }
+.cm-info div {
+  margin-bottom: 0;
+}
 
-.cm-delete-text { position: absolute; opacity: 0; text-align: center }
-.cm-delete-text h3 { margin: 0 }
+.cm-score {
+  float: left;
+  width: 80px;
+}
+
+.cm-score-num {
+  color: #555;
+}
+
+.cm-score-num.pos {
+  color: #5c5;
+}
+
+.cm-score-num.neg {
+  color: #c55;
+}
+
+.cm-nomnem {
+  margin-top: -10px !important;
+}
+
+.cm-form fieldset {
+  clear: left;
+}
+
+.cm-format {
+  margin: 0 !important;
+}
+
+.cm-delete-text {
+  position: absolute;
+  opacity: 0;
+  text-align: center;
+}
+
+.cm-delete-text h3 {
+  margin: 0;
+}
+
+#cm-meaning-chars-remaining, #cm-reading-chars-remaining {
+  padding-left: 54px;
+}

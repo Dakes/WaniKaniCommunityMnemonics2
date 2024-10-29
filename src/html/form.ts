@@ -4,7 +4,7 @@
  * */
 export function getCMForm(mnemType: MnemType): string
 {
-    let CMForm = /*HTML*/`
+    return /*HTML*/`
 <form id="cm-${mnemType}-form" class="cm-form cm-mnem-text" onsubmit="return false">
 <div id="cm-${mnemType}-format" class="cm-format">
 <div id="cm-format-${mnemType}-bold"      class="cm-btn cm-format-btn cm-format-bold"      title="bold"><b>b</b></div>
@@ -22,11 +22,12 @@ export function getCMForm(mnemType: MnemType): string
 <textarea id="cm-${mnemType}-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemonic"></textarea>
 <div class="flex items-center"><span id="cm-${mnemType}-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>
 <!-- Save and Cancel Buttons -->
-<button type="submit" id="cm-${mnemType}-save" class="cm-btn cm-save-highlight disabled:cursor-not-allowed disabled:opacity-50">Save</button>
-<button type="button" id="cm-${mnemType}-cancel" class="cm-btn cm-cancel-highlight disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
+<div class="form-button-wrapper">
+    <button type="submit" id="cm-${mnemType}-save" class="cm-btn cm-save-highlight disabled:cursor-not-allowed disabled:opacity-50">Save</button>
+    <button type="button" id="cm-${mnemType}-cancel" class="cm-btn cm-cancel-highlight disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
+</div>
 
 </fieldset>
 </form>`;
-    return CMForm;
 }
 
