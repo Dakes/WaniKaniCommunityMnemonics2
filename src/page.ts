@@ -123,7 +123,7 @@ export function waitForClass(selector: string, callback: Function, interval=250,
 
 namespace timer {
     // Array of timers with selector as key
-    export let timer: {string?: NodeJS.Timer} = {};
+    export let timer: {string?: number} = {};
     export let iter: {string?: number} = {};
     export const maxIter = 25;
 }
@@ -159,48 +159,3 @@ export function observeLessonTabs(callback: Function)
         { attributes: false, childList: true, subtree: true }
     );
 }
-
-/**
- * Show or hide CM div of meaning or reading in Reviews,
- * depending what information should be displayed.
- */
-/*
-export function showHideCm()
-{
-    for (let mnemType of getPossibleMnemTypes())
-    {
-        let note = document.querySelector(`#note-${mnemType}`) as HTMLElement;
-        let cmDiv = document.querySelector(`#cm-${mnemType}`) as HTMLElement;
-        if (note && !cmDiv)
-            initReview(mnemType);
-
-        if (cmDiv && cmDiv?.style.display != note?.style.display)
-        {
-            if (note.style.display.includes("block"))
-                cmDiv.style.display = "inline-block";
-            else
-                cmDiv.style.display = note.style.display; // copy "display: none"
-        }
-    }
-}*/
-
-/**
- * Observe item-info field for changes and insert Mnemonic divs if needed.
- * Also copies style from note, to hide/show CM element
- */ /*
-export function observeReviewInfo()
-{
-    // Run once, to make sure div is hidden in the beginning.
-    showHideCm();
-    const observer = new MutationObserver(function (mutations)
-    {
-        showHideCm();
-    });
-
-    const target = document.getElementById(`item-info`);
-    observer.observe(target, 
-        { attributes: true, attributeFilter: ["style"], childList: false, subtree: true }
-    )
-}*/
-
-

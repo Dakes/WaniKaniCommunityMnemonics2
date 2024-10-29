@@ -1,16 +1,17 @@
 // ==UserScript==
-// @name        WKCM2
+// @name        wkcm2
 // @description Community Mnemonics for WaniKani. Submit your own mnemonics and view other submissions.
 // @namespace   wkcm2
 // @match       https://*.wanikani.com/subject-lessons/*
+// @match       https://*.wanikani.com/subjects/review
 // @match       https://*.wanikani.com/level/*
 // @match       https://*.wanikani.com/kanji*
 // @match       https://*.wanikani.com/vocabulary*
 // @match       https://*.wanikani.com/radicals*
-// @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918
+// @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1276693
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.3.2.1
+// @version     0.3.2
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
@@ -30,9 +31,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+along with this program.  If not, see <https://www.gnu.org/licenses/>.*/
 
+/* globals React, ReactDOM */
 var rollupUserScript = (function (exports) {
     'use strict';
 
@@ -299,15 +300,13 @@ var rollupUserScript = (function (exports) {
         }
     }
 
-    var stylesheet$7=".cm-radical {\n  background-color: #0af;\n  background-image: linear-gradient(to bottom, #0af, #0093dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF00AAFF\", endColorstr=\"#FF0093DD\", GradientType=0);\n}\n\n.cm-kanji {\n  background-color: #f0a;\n  background-image: linear-gradient(to bottom, #f0a, #dd0093);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFFF00AA\", endColorstr=\"#FFDD0093\", GradientType=0);\n}\n\n.cm-vocabulary {\n  background-color: #a0f;\n  background-image: linear-gradient(to bottom, #a0f, #9300dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFAA00FF\", endColorstr=\"#FF9300DD\", GradientType=0);\n}\n\n.cm-reading {\n  background-color: #555;\n  background-image: linear-gradient(to bottom, #555, #333);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF555555\", endColorstr=\"#FF333333\", GradientType=0);\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.8) inset;\n}\n\n.cm-request {\n  background-color: #e1aa00;\n  color: black !important;\n  background-image: linear-gradient(to bottom, #e1aa00, #e76000);\n  background-repeat: repeat-x;\n}\n\n.cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request {\n  padding: 1px 4px;\n  color: #fff;\n  font-weight: normal;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  white-space: nowrap;\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\nbody {\n  font-size: 100% !important;\n  font-weight: 300 !important;\n  line-height: 1.5 !important;\n  /*Item Page has different background color. Item: #eee. Other: #fff*/\n  /*background-color: ${(isItem ? '#eee' : '#fff')} !important;*/\n  background-color: #fff !important;\n  font-family: \"Ubuntu\", Helvetica, Arial, sans-serif;\n}\n\n/* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.\n   TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )\n */\n::-webkit-scrollbar {\n  display: none;\n}\n\n* {\n  -ms-overflow-style: none !important;\n  scrollbar-width: none !important;\n}\n\n/*\n.highlight-kanji.highlight-kanji { ${kanHighlight } }\n.highlight-vocabulary.highlight-vocabulary { ${vocHighlight} }\n.highlight-radical.highlight-radical { ${radHighlight} }\n.highlight-reading.highlight-reading { ${readHighlight} }\n*/";
-
     // Makes iframe (Mnemonics) pretty. background, hide scrollbar and most importantly highlighting, copied from list page
     // NOTE: fix for different background color on item page
     function iframeCSS() {
         return /*css*/ `<style>
 ${isItem ?
-        stylesheet$7.replaceAll("background-color: #fff", "background-color: #eee") :
-        stylesheet$7}
+        undefined.replaceAll("background-color: #fff", "background-color: #eee") :
+        undefined}
 </style>`;
     }
     /**
@@ -1639,20 +1638,6 @@ ${isItem ?
         return getBadgeClass("available", legend);
     }
 
-    var stylesheet$6=".cm-content {\n  height: 100%;\n  text-align: left;\n  display: inline-block;\n}\n\n#turbo-body .container #wkcm2 .cm-content {\n  padding-bottom: 50px;\n}\n\n.cm {\n  font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  overflow: auto;\n}";
-
-    var stylesheet$5=".subject-legend__item {\n  flex: 0 0 17%;\n}\n\n.subject-legend__item-badge--cm-request {\n  background-color: #e1aa00;\n}\n\n.subject-legend__item-badge--cm-available {\n  background-color: #71aa00;\n}\n\n.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {\n  width: 2em;\n  height: 2em;\n  line-height: 2.1;\n  color: #fff;\n  font-size: 16px;\n  border-radius: 50%;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);\n  margin-bottom: 14px;\n  text-align: center;\n}\n\n.character-item__badge__cm-request {\n  background-color: #e1aa00;\n  left: 30px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-request {\n    left: 0px;\n    transform: translate(45%, 0%);\n  }\n}\n\n.character-item__badge__cm-available {\n  background-color: #71aa00;\n  left: 60px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-available {\n    left: 0px;\n    transform: translate(45%, -112%);\n  }\n}\n\n.character-grid__item--vocabulary .character-item__badge__cm-request {\n  left: 0px;\n  transform: translate(45%, 0%);\n}\n.character-grid__item--vocabulary .character-item__badge__cm-available {\n  left: 0px;\n  transform: translate(45%, -112%);\n}\n.character-grid__item--vocabulary .character-item {\n  padding-left: 40px;\n}\n\n@media screen and (max-width: 767px) {\n  .character-item {\n    padding-left: 40px;\n  }\n}";
-
-    var stylesheet$4=".cm-btn {\n  color: white;\n  font-size: 14px;\n  cursor: pointer;\n  filter: contrast(0.9);\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n  transition: text-shadow 0.15s linear;\n  text-align: center;\n  font-weight: normal;\n}\n\n#item-info .cm-submit-highlight, #item-info .cm-upvote-highlight, #item-info .cm-downvote-highlight, #supplement-info .cm-submit-highlight, #supplement-info .cm-upvote-highlight, #supplement-info .cm-downvote-highlight {\n  height: 15px;\n  padding: 1px 0px 4px 0px;\n}\n\n.cm-btn:hover {\n  filter: contrast(1.15) !important;\n}\n\n.cm-btn:active {\n  filter: contrast(1.2) !important;\n  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-btn.disabled.cm-btn.disabled {\n  opacity: 0.3;\n  pointer-events: none;\n}\n\n.cm-prev, .cm-next {\n  color: #333333;\n  font-size: 50px;\n  margin: 0px 0px 0px 0px;\n  padding: 15px 10px 0px 0px;\n  box-shadow: none !important;\n}\n\n.cm-prev:not(.disabled), .cm-next:not(.disabled) {\n  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:hover, .cm-next:hover {\n  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:active, .cm-next:active {\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev {\n  float: left;\n}\n\n.cm-next {\n  float: right;\n}\n\n.cm-prev.disabled, .cm-next.disabled {\n  opacity: 0.25;\n}\n\n.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {\n  text-align: center;\n  font-size: 14px;\n  width: 75px;\n  margin-right: 10px;\n  float: left;\n  padding: 0px 4px;\n}\n\n.cm-upvote-highlight, .cm-downvote-highlight {\n  width: 95px;\n  margin-right: 10px;\n  float: left;\n}\n\n.cm-upvote-highlight {\n  background-image: linear-gradient(to bottom, #5c5, #46ad46);\n}\n\n.cm-downvote-highlight {\n  background-image: linear-gradient(to bottom, #c55, #ad4646);\n}\n\n.cm-delete-highlight {\n  background-image: linear-gradient(to bottom, #811, #6d0606);\n  margin-right: 10px;\n}\n\n.cm-edit-highlight {\n  background-image: linear-gradient(to bottom, #ccc, #adadad);\n}\n\n.cm-request-highlight {\n  background-image: linear-gradient(to bottom, #e1aa00, #d57602);\n}\n\n.cm-submit-highlight {\n  width: 125px;\n  margin-left: 75px;\n  float: right;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n}\n\n.cm-cancel-highlight, .cm-save-highlight {\n  width: 75px;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 0px 0px 0px 0px;\n}\n\n/*Edit, delete, request are small buttons*/\n.cm-small-btn {\n  font-size: 12px;\n  width: 50px;\n  height: 13px;\n  line-height: 1;\n}\n\n.cm-submit-highlight.disabled, .cm-form-submit.disabled {\n  color: #8b8b8b !important;\n}\n\n/*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/";
-
-    var stylesheet$3=".cm-format-btn.cm-format-btn {\n  filter: contrast(0.8);\n  text-align: center;\n  width: 35px;\n  height: 30px;\n  font-size: 20px;\n  line-height: 30px;\n  margin-left: 5px;\n  float: left;\n  box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-format-btn:active {\n  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2) inset !important;\n}\n\n.cm-format .cm-kanji, .cm-format .cm-radical, .cm-format .cm-vocabulary, .cm-format .cm-reading {\n  font-weight: bold;\n  display: inline-block;\n  color: #fff;\n  text-align: center;\n  box-sizing: border-box;\n  line-height: 1;\n}\n\n.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-qmark, .cm-format-btn.cm-format-strike {\n  background-color: #f5f5f5;\n  background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a);\n  background-repeat: repeat-x;\n}";
-
-    var stylesheet$2=".cm-form form {\n  min-height: 300px;\n}\n\n.cm-form fieldset {\n  padding: 1px;\n  height: 110px;\n}\n\n.cm-text {\n  overflow: auto;\n  word-wrap: break-word;\n  resize: none;\n  height: calc(100% - 30px);\n  width: 98%;\n}\n\n.counter-note {\n  padding: 0px;\n  margin: 0px;\n  margin-right: 10px;\n  margin-top: 2px;\n}\n\n.cm-mnem-text {\n  float: left;\n  width: calc(100% - 120px);\n  height: 100%;\n  min-height: 125px;\n}";
-
-    var stylesheet$1=".cm-user-buttons {\n  position: absolute;\n  margin-top: -20px;\n}\n\n.cm-info {\n  display: inline-block;\n  margin-top: 20px;\n  margin-left: 65px;\n}\n\n.cm-info div {\n  margin-bottom: 0px;\n}\n\n.cm-score {\n  float: left;\n  width: 80px;\n}\n\n.cm-score-num {\n  color: #555;\n}\n\n.cm-score-num.pos {\n  color: #5c5;\n}\n\n.cm-score-num.neg {\n  color: #c55;\n}\n\n.cm-nomnem {\n  margin-top: -10px !important;\n}\n\n.cm-form fieldset {\n  clear: left;\n}\n\n.cm-format {\n  margin: 0 !important;\n}\n\n.cm-delete-text {\n  position: absolute;\n  opacity: 0;\n  text-align: center;\n}\n\n.cm-delete-text h3 {\n  margin: 0;\n}";
-
-    var stylesheet=".cm-radical {\n  background-color: #0af;\n  background-image: linear-gradient(to bottom, #0af, #0093dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF00AAFF\", endColorstr=\"#FF0093DD\", GradientType=0);\n}\n\n.cm-kanji {\n  background-color: #f0a;\n  background-image: linear-gradient(to bottom, #f0a, #dd0093);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFFF00AA\", endColorstr=\"#FFDD0093\", GradientType=0);\n}\n\n.cm-vocabulary {\n  background-color: #a0f;\n  background-image: linear-gradient(to bottom, #a0f, #9300dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFAA00FF\", endColorstr=\"#FF9300DD\", GradientType=0);\n}\n\n.cm-reading {\n  background-color: #555;\n  background-image: linear-gradient(to bottom, #555, #333);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF555555\", endColorstr=\"#FF333333\", GradientType=0);\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.8) inset;\n}\n\n.cm-request {\n  background-color: #e1aa00;\n  color: black !important;\n  background-image: linear-gradient(to bottom, #e1aa00, #e76000);\n  background-repeat: repeat-x;\n}\n\n.cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request {\n  padding: 1px 4px;\n  color: #fff;\n  font-weight: normal;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  white-space: nowrap;\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n}";
-
     /**
      * Functions for the item lists
      * (wanikani.com/vocabulary)
@@ -1729,13 +1714,13 @@ ${isItem ?
         });
     }
     // CSS
-    const generalCSS = stylesheet$6;
-    const listCSS = stylesheet$5;
-    const buttonCSS = stylesheet$4;
-    const formatButtonCSS = stylesheet$3;
-    const textareaCSS = stylesheet$2;
-    const contentCSS = stylesheet$1;
-    const highlightCSS = stylesheet;
+    const generalCSS = undefined;
+    const listCSS = undefined;
+    const buttonCSS = undefined;
+    const formatButtonCSS = undefined;
+    const textareaCSS = undefined;
+    const contentCSS = undefined;
+    const highlightCSS = undefined;
     // Init ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     /**
      * Runs the right code depending if the current page is Lesson, Review or List
@@ -1836,8 +1821,6 @@ ${isItem ?
 
     exports.infoInjectorInit = infoInjectorInit;
     exports.initList = initList;
-
-    Object.defineProperty(exports, '__esModule', { value: true });
 
     return exports;
 

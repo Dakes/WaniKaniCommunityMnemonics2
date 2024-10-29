@@ -14,7 +14,8 @@
             "./typings.d.ts"
         ],
         "lib": [
-            "ES2021.String",
+            "esnext",
+            "ES2022.String",
             "dom"
         ]
     },
