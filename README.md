@@ -186,6 +186,11 @@ Running `npm start` will start a development server, that will continually rebui
 #### 0.3.2
 - Fix bug: badges not showing on list page
 
+#### 0.4.0
+- Adapt updated WaniKani pages
+- Change styling
+- Caching for getall on the apps script side
+
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags
 - 🚫 Sheet apps script deletes Mnemonics with rating of -10 or below
