@@ -54,13 +54,10 @@ function handleResponse(e)
     return getError(", no exec parameter provided");
   }
 
-  let ac=SpreadsheetApp.getActive();
-  // let sheet=ac.getActiveSheet();
+  let ac = SpreadsheetApp.getActive();
   let sheet = ac.getSheetByName(SHEET_NAME);
 
-  
-
-  // clean input Data
+  // Clean input data
   let type = checkItemType(cleanData(e.parameter.type));
   if (e.parameter.type)
     if (e.parameter.type != "k" && e.parameter.type != "v" && e.parameter.type != "r")
@@ -92,7 +89,8 @@ function handleResponse(e)
   }
   else if (e.parameter.exec == "getall")
   {
-    return getData(sheet, "", "")
+    // Modified to use caching
+    return getAllRowsCached(sheet);
   }
   else if (e.parameter.exec == "put")
   {
@@ -152,7 +150,7 @@ function getData(sheet, type, item)
   if (type != "" && item == "")
   {
     // TODO: get all items of one type
-    // for now just returns all data
+    // For now, just returns all data
     json_data = getAllRows(sheet);
   }
   else if (type == "" && item == "")
@@ -165,8 +163,8 @@ function getData(sheet, type, item)
     json_data = getJsonArrayFromData(data);
   }
 
-  // in case of no mnem empty array: []
-  // delete votes. only scores are relevant to client
+  // In case of no mnem, empty array: []
+  // Delete votes; only scores are relevant to client
   if (json_data[0] != null)
   {
     // delete json_data[0]["Meaning_Votes"];
@@ -175,9 +173,9 @@ function getData(sheet, type, item)
   }
   else if (type != "" && item != "")
     json_data = null;
-  
-  // send back data to client
-  return ContentService.createTextOutput(JSON.stringify(json_data) ).setMimeType(ContentService.MimeType.JSON);
+
+  // Send back data to client
+  return ContentService.createTextOutput(JSON.stringify(json_data)).setMimeType(ContentService.MimeType.JSON);
 
 }
 // getData ▲
@@ -193,18 +191,18 @@ function voteMnem(sheet, user, item, type, mnemIndex, mnemType, mnemUser, vote)
   let votes_json = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Votes");
   let mnem_json = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Mnem");
 
-  // if mnem_string is empty, no mnem exists anyway, return
+  // If mnem_string is empty, no mnem exists anyway, return
   if (Object.keys(mnem_json).length == 0)
     return getError();
 
-  // only vote if mnemUser actually owns a mnem
+  // Only vote if mnemUser actually owns a mnem
   if (mnem_json.hasOwnProperty(mnemUser))
   {
-    // check if entry for this user exists, otherwise create
+    // Check if entry for this user exists, otherwise create
     if (!votes_json[mnemUser])
       votes_json[mnemUser] = new Array(mnem_json[mnemUser].length).fill(null).map(()=> ({}));
 
-    // put new data in / update
+    // Put new data in / update
     if (!votes_json[mnemUser][mnemIndex])
       votes_json[mnemUser][mnemIndex] = {};
     votes_json[mnemUser][mnemIndex][user] = vote;
@@ -217,7 +215,7 @@ function voteMnem(sheet, user, item, type, mnemIndex, mnemType, mnemUser, vote)
 
 /**
  *
- * writes data into db.
+ * Writes data into db.
  * Existing mnem: new mnem, update mnem
  * New mnem: mnem
  * Request: new request or add to request
@@ -227,13 +225,13 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
 {
   let mnem_json = getDataJson(sheet, item, type, getFullMnemType(mnemType) + "_Mnem");
 
-  // request
+  // Request
   if (mnem == "!")
   {
-    // if mnemonic exists no request possible
+    // If mnemonic exists, no request possible
     if (!mnem_json.hasOwnProperty("!") && Object.keys(mnem_json).length > 0)
       return getError();
-    // create new request, if none exists, else concat user to existing
+    // Create new request, if none exists, else add user to existing
     if (Object.keys(mnem_json).length == 0)
       mnem_json["!"] = [user];
     else
@@ -243,9 +241,9 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
     }
 
   }
-  else // not request (mnemonic)
+  else // Not request (mnemonic)
   {
-    // if not existent initialize array for mnemonics
+    // If not existent, initialize array for mnemonics
     if (!mnem_json[user])
     {
       mnem_json[user] = new Array(mnemIndex+1)
@@ -254,13 +252,13 @@ function putMnem(sheet, user, item, type, mnemType, mnemIndex, mnem)
     }
     if (mnem_json[user].length > mnemMaxCount && mnemIndex < 0)
       return getError(", maximum Number of mnems for user reached: "+mnemMaxCount.toString());
-    // append new mnem if mnemIndex == -1
+    // Append new mnem if mnemIndex == -1
     if (mnemIndex < 0)
       mnem_json[user] = mnem_json[user].concat(mnem);
     else
       mnem_json[user][mnemIndex] = mnem;
 
-    // new mnem got submitted, delete request (also works without request)
+    // New mnem got submitted, delete request (also works without request)
     delete mnem_json["!"];
   }
 
@@ -298,28 +296,149 @@ function setup()
     SCRIPT_PROP.setProperty("key", doc.getId());
 }
 
-// helper functions ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// Helper functions ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
-
-
-// returns full json
+// Modified getAllRows to fetch all data at once
 function getAllRows(sheet)
 {
   // {"k海": normalJson, "k点": normalJson}
-  var rg=sheet.getDataRange();
-  var vA=rg.getValues();
+  var vA = sheet.getDataRange().getValues();
   let data = {};
+  let headers = vA[0];
 
-  for(var i=2;i<vA.length;i++)
+  for(var i = 1; i < vA.length; i++)
   {
-    let rowData = [];
-    rowData.push(sheet.getSheetValues(1, 1, 1, 8)[0]);
-    rowData.push(sheet.getSheetValues(i, 1, 1, 8)[0]);
-    let rowJson = getJsonArrayFromData(rowData)[0];
+    let row = vA[i];
+    let rowJson = {};
+    for(let j = 0; j < headers.length; j++)
+    {
+      rowJson[headers[j]] = row[j];
+    }
 
-    data[ rowJson["Type"]+rowJson["Item"] ] = rowJson;
+    data[ rowJson["Type"] + rowJson["Item"] ] = rowJson;
   }
   return data;
 }
 // getAllRows ▲
 
+function getAllRowsCached(sheet)
+{
+  const cache = CacheService.getScriptCache();
+  const cacheKeyPrefix = 'getall_cache_';
+  const types = ['k', 'v', 'r'];
+
+  let allData = {};
+
+  // Attempt to retrieve all type-specific caches
+  let cacheKeys = types.map(type => cacheKeyPrefix + type);
+  let cachedData = cache.getAll(cacheKeys);
+
+  let cacheMiss = false;
+
+  types.forEach(type => {
+    if (cachedData[type]) {
+      // Parse and merge cached data
+      let parsed = JSON.parse(cachedData[type]);
+      for (let key in parsed) {
+        allData[key] = parsed[key];
+      }
+    }
+    else {
+      cacheMiss = true;
+    }
+  });
+
+  if (!cacheMiss) {
+    Logger.log('Returning cached getall data');
+    return ContentService.createTextOutput(JSON.stringify(allData)).setMimeType(ContentService.MimeType.JSON);
+  }
+  else {
+    Logger.log('Fetching new getall data');
+    const fullData = getAllRows(sheet);
+
+    // Validate data: ensure no score fields contain "#ERROR!"
+    if (hasErrorInScores(fullData))
+    {
+      Logger.log('Data contains #ERROR! in score fields. Not caching the response.');
+      return getError(", Score calculations not completed yet.");
+    }
+
+    // Split data by type
+    let splitData = splitDataByType(fullData, types);
+
+    // Cache each type separately
+    types.forEach(type => {
+      let typeData = splitData[type];
+      if (typeData && Object.keys(typeData).length > 0) {
+        let jsonData = JSON.stringify(typeData);
+        // Ensure each cache entry is under 100KB
+        if (jsonData.length <= 100 * 1024) {
+          cache.put(cacheKeyPrefix + type, jsonData, 60 * 60 * 24 * 2); // Cache for two days
+          Logger.log('Caching getall data for type ' + type + ' for two days');
+        }
+        else {
+          Logger.log('Data for type ' + type + ' exceeds cache size limit. Skipping caching for this type.');
+        }
+      }
+    });
+
+    // Merge all data
+    for (let type of types) {
+      let typeData = splitData[type];
+      if (typeData) {
+        for (let key in typeData) {
+          allData[key] = typeData[key];
+        }
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(allData)).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Splits the full data into separate objects based on type.
+ *
+ * @param {Object} fullData - The complete data object.
+ * @param {Array} types - Array of types to split by.
+ * @returns {Object} - An object with types as keys and their respective data as values.
+ */
+function splitDataByType(fullData, types)
+{
+  let splitData = {};
+  types.forEach(type => {
+    splitData[type] = {};
+  });
+
+  for (let key in fullData) {
+    let type = key.charAt(0); // Assuming the first character denotes the type
+    if (types.includes(type)) {
+      splitData[type][key] = fullData[key];
+    }
+    else {
+      // Handle unexpected types if necessary
+      Logger.log('Encountered unexpected type: ' + type + ' for key: ' + key);
+    }
+  }
+
+  return splitData;
+}
+
+/**
+ * Checks if any score fields contain "#ERROR!".
+ *
+ * @param {Object} data - The complete data object.
+ * @returns {boolean} - Returns true if an error is found; otherwise, false.
+ */
+function hasErrorInScores(data)
+{
+  for (let key in data)
+  {
+    const entry = data[key];
+    if (entry["Meaning_Score"] === "#ERROR!" || entry["Reading_Score"] === "#ERROR!")
+    {
+      return true;
+    }
+  }
+  return false;
+}

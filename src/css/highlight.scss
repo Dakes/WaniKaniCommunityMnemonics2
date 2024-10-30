@@ -2,51 +2,52 @@
 
 @use "colors";
 
-.cm-radical /* , .highlight-radical */{
-    background-color: colors.$rad;
-    background-image: linear-gradient(to bottom, colors.$rad, colors.$rad-shadow);
-    background-repeat: repeat-x;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FF00AAFF', endColorstr='#FF0093DD', GradientType=0);
+.cm-radical /* , .highlight-radical */
+{
+  background-color: colors.$rad;
+  background-image: linear-gradient(to bottom, colors.$rad, colors.$rad-shadow);
+  background-repeat: repeat-x;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FF00AAFF', endColorstr='#FF0093DD', GradientType=0);
 }
 
 .cm-kanji {
-    background-color: colors.$kan;
-    background-image: linear-gradient(to bottom, colors.$kan, colors.$kan-shadow);
-    background-repeat: repeat-x;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFF00AA', endColorstr='#FFDD0093', GradientType=0);
+  background-color: colors.$kan;
+  background-image: linear-gradient(to bottom, colors.$kan, colors.$kan-shadow);
+  background-repeat: repeat-x;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFF00AA', endColorstr='#FFDD0093', GradientType=0);
 }
 
 .cm-vocabulary {
-    background-color: colors.$voc;
-    background-image: linear-gradient(to bottom, colors.$voc, colors.$voc-shadow);
-    background-repeat: repeat-x;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFAA00FF', endColorstr='#FF9300DD', GradientType=0);
+  background-color: colors.$voc;
+  background-image: linear-gradient(to bottom, colors.$voc, colors.$voc-shadow);
+  background-repeat: repeat-x;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFAA00FF', endColorstr='#FF9300DD', GradientType=0);
 }
 
 .cm-reading {
-    background-color: colors.$read;
-    background-image: linear-gradient(to bottom, colors.$read, colors.$read-shadow);
-    background-repeat: repeat-x;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FF555555', endColorstr='#FF333333', GradientType=0);
-    box-shadow: 0 -2px 0 rgb(0 0 0 / 80%) inset;
+  background-color: colors.$read;
+  background-image: linear-gradient(to bottom, colors.$read, colors.$read-shadow);
+  background-repeat: repeat-x;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FF555555', endColorstr='#FF333333', GradientType=0);
+  box-shadow: 0 -2px 0 rgb(0 0 0 / 80%) inset;
 }
 
 .cm-request //, .request.request
 {
-    background-color: colors.$request;
+  background-color: colors.$request;
 
-    color: black !important;
-    background-image: linear-gradient(to bottom, colors.$request, colors.$request-dark);
-    background-repeat: repeat-x;
+  color: black !important;
+  background-image: linear-gradient(to bottom, colors.$request, colors.$request-dark);
+  background-repeat: repeat-x;
 }
 
 .cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request // [class^="cm-"] //, .request
 {
-    padding: 1px 4px;
-    color: #fff;
-    font-weight: normal;
-    text-shadow: 0 1px 0 rgb(0 0 0 / 20%);
-    white-space: nowrap;
-    border-radius: 3px;
-    box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
+  padding: 1px 4px;
+  color: #fff;
+  font-weight: normal;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 20%);
+  white-space: nowrap;
+  border-radius: 3px;
+  box-shadow: 0 -2px 0 rgb(0 0 0 / 20%) inset;
 }

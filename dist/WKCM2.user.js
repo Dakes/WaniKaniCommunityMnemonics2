@@ -1,20 +1,22 @@
 // ==UserScript==
-// @name        WKCM2
+// @name        wkcm2
 // @description Community Mnemonics for WaniKani. Submit your own mnemonics and view other submissions.
 // @namespace   wkcm2
 // @match       https://*.wanikani.com/subject-lessons/*
+// @match       https://*.wanikani.com/subjects/review
 // @match       https://*.wanikani.com/level/*
 // @match       https://*.wanikani.com/kanji*
 // @match       https://*.wanikani.com/vocabulary*
 // @match       https://*.wanikani.com/radicals*
-// @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918
+// @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.3.2.1
+// @version     0.4.0
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
 // ==/UserScript==
+
 
 /*
 Copyright (C) 2022  Dakes (Daniel Ostertag) https://github.com/Dakes
@@ -30,29 +32,35 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+along with this program.  If not, see <https://www.gnu.org/licenses/>.*/
 
+/* globals React, ReactDOM */
 var rollupUserScript = (function (exports) {
     'use strict';
 
     /**
      * Global constant values
      */
-    const WKCM2_version = "0.3.2";
-    const scriptName = 'WKCM2';
+    const WKCM2_VERSION = "0.4.0";
+    const SCRIPT_NAME = 'WKCM2';
     // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
     // google sheets apps script url, for sheet access
-    const sheetApiUrl = "https://script.google.com/macros/s/AKfycby_Kqff92G40TGXr0PSulvQ2gqx6bkHVEl6LplZ-zc5ZIHhJGwe7AA8I4nDErKMiu2GEw/exec";
-    // "https://script.google.com/macros/s/AKfycbxCxmHz_5ibnHn0un5HxaCLeJTRHxwdrS5fW4nmXBYXyA-Jw6aDPPrrHWrieir3B8kDFQ/exec";
+    const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz7eJp6Z1gT_eYbrY80aghpB8bzgGiIOFcJR0yztQpRUVvSEUx6ZylBJLML4DCb5rUfPA/exec";
     // Maximum number, how many mnemonics one user can submit for one item.
-    const mnemMaxCount = 5;
-    // If date of cached item is older than this number of days, refetch.
+    const MNEM_MAX_COUNT = 5;
+    // If date of cached item is older than this number of days, re-fetch.
     // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
-    const cacheDayMaxAge = 7;
+    const CACHE_DAY_MAX_AGE = 7;
+    // Only execute getall, if last getall is older than this number of days.
+    const GET_ALL_CACHE_MAX_AGE = 30;
+    const CACHE_FILL_IDENTIFIER = "wkcm2-fillCache";
+    // getData refetch timeout. How long to wait with new execution of updateCM after previous getData fetch.
+    // Especially, if the apps script is overloaded it can take a while (~5s). So it has to be enough time,
+    // to allow for the data to arrive and prevent spamming of the apps script.
+    const REFETCH_TIMEOUT = 10000; // in ms
     let isList = false;
     let isItem = false;
-    // @ts-ignore;  A wrapper for the window, because unsafeWindow doesn't work in Firefox 
+    // @ts-ignore;  A wrapper for the window, because unsafeWindow doesn't work in Firefox
     // @ts-ignore;  and window does not have access to wkof in some browsers?? (How even? idk, it worked before)
     let win = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
     function setPageVars() {
@@ -66,11 +74,6 @@ var rollupUserScript = (function (exports) {
             .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2));
     }
     setPageVars();
-    const cacheFillIdent = "wkcm2-fillCache";
-    // getData refetch timeout. How long to wait with new execution of updateCM after previous getData fetch.
-    // Especially, if the apps script is overloaded it can take a while (~5s). So it has to be enough time,
-    // to allow for the data to arrive and prevent spamming of the apps script. 
-    const refetchTimeout = 10000; // in ms
 
     /**
      * Functions to get information about the currently loaded page/item
@@ -110,7 +113,8 @@ var rollupUserScript = (function (exports) {
      * @param delay delay after URL change, to call functions.
      * @param callback Optional callback, extra function to execute.
      */
-    function detectUrlChange(delay = 250, callback = function () { }) {
+    function detectUrlChange(delay = 250, callback = function () {
+    }) {
         const observer = new MutationObserver((mutations) => {
             if (window.location.href !== observerUrl.previousUrl) {
                 setPageVars();
@@ -233,7 +237,9 @@ var rollupUserScript = (function (exports) {
     function addClickEvent(id, func, params) {
         let div = document.getElementById(id);
         if (div)
-            div.addEventListener("click", function () { func(...params); }, false);
+            div.addEventListener("click", function () {
+                func(...params);
+            }, false);
     }
     /**
      * Adds the given HTML to an element searched by the querySelector search query. Checks, if the element exists.
@@ -271,17 +277,6 @@ var rollupUserScript = (function (exports) {
         });
     }
     /**
-     * Adds css in the head
-     * */
-    function addGlobalStyle(css) {
-        let head = document.getElementsByTagName('head')[0];
-        if (!head)
-            return;
-        let style = document.createElement('style');
-        style.innerHTML = css; //css.replace(/;/g, ' !important;');
-        head.appendChild(style);
-    }
-    /**
      * Handle the API response after inserting or modifying data
      * @param response
      * @param callback optional callback function to execute on success. Default: dataUpdateAfterInsert
@@ -298,17 +293,26 @@ var rollupUserScript = (function (exports) {
             // do something to handle the failure
         }
     }
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
-    var stylesheet$7=".cm-radical {\n  background-color: #0af;\n  background-image: linear-gradient(to bottom, #0af, #0093dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF00AAFF\", endColorstr=\"#FF0093DD\", GradientType=0);\n}\n\n.cm-kanji {\n  background-color: #f0a;\n  background-image: linear-gradient(to bottom, #f0a, #dd0093);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFFF00AA\", endColorstr=\"#FFDD0093\", GradientType=0);\n}\n\n.cm-vocabulary {\n  background-color: #a0f;\n  background-image: linear-gradient(to bottom, #a0f, #9300dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFAA00FF\", endColorstr=\"#FF9300DD\", GradientType=0);\n}\n\n.cm-reading {\n  background-color: #555;\n  background-image: linear-gradient(to bottom, #555, #333);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF555555\", endColorstr=\"#FF333333\", GradientType=0);\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.8) inset;\n}\n\n.cm-request {\n  background-color: #e1aa00;\n  color: black !important;\n  background-image: linear-gradient(to bottom, #e1aa00, #e76000);\n  background-repeat: repeat-x;\n}\n\n.cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request {\n  padding: 1px 4px;\n  color: #fff;\n  font-weight: normal;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  white-space: nowrap;\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\nbody {\n  font-size: 100% !important;\n  font-weight: 300 !important;\n  line-height: 1.5 !important;\n  /*Item Page has different background color. Item: #eee. Other: #fff*/\n  /*background-color: ${(isItem ? '#eee' : '#fff')} !important;*/\n  background-color: #fff !important;\n  font-family: \"Ubuntu\", Helvetica, Arial, sans-serif;\n}\n\n/* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.\n   TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )\n */\n::-webkit-scrollbar {\n  display: none;\n}\n\n* {\n  -ms-overflow-style: none !important;\n  scrollbar-width: none !important;\n}\n\n/*\n.highlight-kanji.highlight-kanji { ${kanHighlight } }\n.highlight-vocabulary.highlight-vocabulary { ${vocHighlight} }\n.highlight-radical.highlight-radical { ${radHighlight} }\n.highlight-reading.highlight-reading { ${readHighlight} }\n*/";
+    function insertStyle(css) {
+      if (!css || typeof window === 'undefined') {
+        return;
+      }
+      const style = document.createElement('style');
+      style.setAttribute('type', 'text/css');
+      style.innerHTML = css;
+      document.head.appendChild(style);
+      return css;
+    }
+
+    var iframe = insertStyle(".cm-radical {\n  background-color: #0af;\n  background-image: linear-gradient(to bottom, #0af, #0093dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF00AAFF\", endColorstr=\"#FF0093DD\", GradientType=0);\n}\n\n.cm-kanji {\n  background-color: #f0a;\n  background-image: linear-gradient(to bottom, #f0a, #dd0093);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFFF00AA\", endColorstr=\"#FFDD0093\", GradientType=0);\n}\n\n.cm-vocabulary {\n  background-color: #a0f;\n  background-image: linear-gradient(to bottom, #a0f, #9300dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFAA00FF\", endColorstr=\"#FF9300DD\", GradientType=0);\n}\n\n.cm-reading {\n  background-color: #555;\n  background-image: linear-gradient(to bottom, #555, #333);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF555555\", endColorstr=\"#FF333333\", GradientType=0);\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.8) inset;\n}\n\n.cm-request {\n  background-color: #e1aa00;\n  color: black !important;\n  background-image: linear-gradient(to bottom, #e1aa00, #e76000);\n  background-repeat: repeat-x;\n}\n\n.cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request {\n  padding: 1px 4px;\n  color: #fff;\n  font-weight: normal;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  white-space: nowrap;\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\nbody {\n  font-size: 100% !important;\n  font-weight: 300 !important;\n  line-height: 1.5 !important;\n  /*Item Page has different background color. Item: #eee. Other: #fff*/\n  /*background-color: ${(isItem ? '#eee' : '#fff')} !important;*/\n  background-color: #fff !important;\n  font-family: \"Ubuntu\", Helvetica, Arial, sans-serif;\n}\n\n/* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.\n   TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )\n */\n::-webkit-scrollbar {\n  display: none;\n}\n\n* {\n  -ms-overflow-style: none !important;\n  scrollbar-width: none !important;\n}\n\n/*\n.highlight-kanji.highlight-kanji { ${kanHighlight } }\n.highlight-vocabulary.highlight-vocabulary { ${vocHighlight} }\n.highlight-radical.highlight-radical { ${radHighlight} }\n.highlight-reading.highlight-reading { ${readHighlight} }\n*/");
 
     // Makes iframe (Mnemonics) pretty. background, hide scrollbar and most importantly highlighting, copied from list page
-    // NOTE: fix for different background color on item page
     function iframeCSS() {
-        return /*css*/ `<style>
-${isItem ?
-        stylesheet$7.replaceAll("background-color: #fff", "background-color: #eee") :
-        stylesheet$7}
-</style>`;
+        return `<style>${iframe}</style>`;
     }
     /**
      * Creates emty Iframe for CM user content later on
@@ -318,8 +322,7 @@ ${isItem ?
         let iframeId = "cm-iframe-" + mnemType;
         let iframeClass = "cm-mnem-text";
         let initialSrcdoc = getIframeSrcdoc("Loading Community Mnemonic ...");
-        let userContentIframe = `<iframe sandbox referrerpolicy='no-referrer' scrolling='auto' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
-        return userContentIframe;
+        return `<iframe sandbox referrerpolicy='no-referrer' scrolling='auto' frameBorder='0' class='${iframeClass}' id='${iframeId}' srcdoc="${initialSrcdoc}"></iframe>`;
     }
     /**
      * wraps iframe update, to not update content, if it is the same as the currently displayed.
@@ -456,12 +459,12 @@ ${isItem ?
     function checkWKOF_old() {
         var wkof_version_needed = '1.0.58';
         if (wkof && wkof.version.compare_to(wkof_version_needed) === 'older') {
-            if (confirm(scriptName + ' requires Wanikani Open Framework version ' + wkof_version_needed + '.\nDo you want to be forwarded to the update page?'))
+            if (confirm(SCRIPT_NAME + ' requires Wanikani Open Framework version ' + wkof_version_needed + '.\nDo you want to be forwarded to the update page?'))
                 window.location.href = 'https://greasyfork.org/en/scripts/38582-wanikani-open-framework';
             return false;
         }
         else if (!wkof) {
-            if (confirm(scriptName + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?'))
+            if (confirm(SCRIPT_NAME + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?'))
                 window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
             return false;
         }
@@ -491,20 +494,20 @@ ${isItem ?
     function resetWKOFcache(versionCheck = true) {
         if (versionCheck === false) {
             wkof.file_cache.delete(/^wkcm2-/);
-            wkof.file_cache.save("wkcm2-version", WKCM2_version);
+            wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
             return;
         }
         wkof.file_cache.load("wkcm2-version").then(value => {
             // found
-            if (WKCM2_version != value) {
+            if (WKCM2_VERSION != value) {
                 // regex delete of all wkcm2 saves
                 wkof.file_cache.delete(/^wkcm2-/);
-                wkof.file_cache.save("wkcm2-version", WKCM2_version);
+                wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
             }
             return value;
         }, reason => {
             // version not saved, save current version
-            wkof.file_cache.save("wkcm2-version", WKCM2_version);
+            wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
         });
     }
 
@@ -515,7 +518,8 @@ ${isItem ?
             if (wkof) {
                 try {
                     WKUser = wkof.Apiv2.user;
-                    return WKUser;
+                    if (WKUser !== undefined)
+                        return WKUser;
                 }
                 catch (err) {
                     console.log("WKCM2: setUsername, ", err);
@@ -553,8 +557,11 @@ ${isItem ?
     /**
      * Create the textbox and all of its buttons for writing mnemonics
      * */
+    const pencilSVG = `
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M18.3785 8.44975L11.4637 15.3647C11.1845 15.6439 10.8289 15.8342 10.4417 15.9117L7.49994 16.5L8.08829 13.5582C8.16572 13.1711 8.35603 12.8155 8.63522 12.5363L15.5501 5.62132M18.3785 8.44975L19.7927 7.03553C20.1832 6.64501 20.1832 6.01184 19.7927 5.62132L18.3785 4.20711C17.988 3.81658 17.3548 3.81658 16.9643 4.20711L15.5501 5.62132M18.3785 8.44975L15.5501 5.62132" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M5 20H19" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+`;
     function getCMForm(mnemType) {
-        let CMForm = /*HTML*/ `
+        return /*HTML*/ `
 <form id="cm-${mnemType}-form" class="cm-form cm-mnem-text" onsubmit="return false">
 <div id="cm-${mnemType}-format" class="cm-format">
 <div id="cm-format-${mnemType}-bold"      class="cm-btn cm-format-btn cm-format-bold"      title="bold"><b>b</b></div>
@@ -570,20 +577,33 @@ ${isItem ?
 <fieldset class="note-${mnemType} noSwipe">
 <!-- Textarea (Textbox) -->
 <textarea id="cm-${mnemType}-text" class="cm-text" maxlength="5000" placeholder="Submit a community mnemonic"></textarea>
-<div class="flex items-center"><span id="cm-${mnemType}-chars-remaining" class="block" title="Characters Remaining">5000<i class="fa fa-pencil ml-2"></i></span>
+<div class="flex items-center"><span id="cm-${mnemType}-chars-remaining" class="block" title="Characters Remaining">5000${pencilSVG}</span>
 <!-- Save and Cancel Buttons -->
-<button type="submit" id="cm-${mnemType}-save" class="cm-btn cm-save-highlight disabled:cursor-not-allowed disabled:opacity-50">Save</button>
-<button type="button" id="cm-${mnemType}-cancel" class="cm-btn cm-cancel-highlight disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
+<div class="form-button-wrapper">
+    <button type="submit" id="cm-${mnemType}-save" class="cm-btn cm-save-highlight disabled:cursor-not-allowed disabled:opacity-50">Save</button>
+    <button type="button" id="cm-${mnemType}-cancel" class="cm-btn cm-cancel-highlight disabled:cursor-not-allowed disabled:opacity-50">Cancel</button></div>
+</div>
 
 </fieldset>
 </form>`;
-        return CMForm;
     }
 
     /**
      * Functions to generate the mnemonic div
      * but also to modify it, like toggle buttons
      */
+    const leftArrowSVG = `
+<svg viewBox="-4.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#333333"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>arrow_left [#335]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-345.000000, -6679.000000)" fill="#333333"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M299.633777,6519.29231 L299.633777,6519.29231 C299.228878,6518.90256 298.573377,6518.90256 298.169513,6519.29231 L289.606572,6527.55587 C288.797809,6528.33636 288.797809,6529.60253 289.606572,6530.38301 L298.231646,6538.70754 C298.632403,6539.09329 299.27962,6539.09828 299.685554,6538.71753 L299.685554,6538.71753 C300.100809,6538.32879 300.104951,6537.68821 299.696945,6537.29347 L291.802968,6529.67648 C291.398069,6529.28574 291.398069,6528.65315 291.802968,6528.26241 L299.633777,6520.70538 C300.038676,6520.31563 300.038676,6519.68305 299.633777,6519.29231" id="arrow_left-[#335]"> </path> </g> </g> </g> </g></svg>
+`;
+    const rightArrowSVG = `
+<svg viewBox="-4.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#333333"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>arrow_right [#336]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-305.000000, -6679.000000)" fill="#333333"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M249.365851,6538.70769 L249.365851,6538.70769 C249.770764,6539.09744 250.426289,6539.09744 250.830166,6538.70769 L259.393407,6530.44413 C260.202198,6529.66364 260.202198,6528.39747 259.393407,6527.61699 L250.768031,6519.29246 C250.367261,6518.90671 249.720021,6518.90172 249.314072,6519.28247 L249.314072,6519.28247 C248.899839,6519.67121 248.894661,6520.31179 249.302681,6520.70653 L257.196934,6528.32352 C257.601847,6528.71426 257.601847,6529.34685 257.196934,6529.73759 L249.365851,6537.29462 C248.960938,6537.68437 248.960938,6538.31795 249.365851,6538.70769" id="arrow_right-[#336]"> </path> </g> </g> </g> </g></svg>
+`;
+    const upArrowSVG = `
+<svg viewBox="0 -4.5 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#FFFFFF"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>arrow_up [#337]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-260.000000, -6684.000000)" fill="#FFFFFF"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M223.707692,6534.63378 L223.707692,6534.63378 C224.097436,6534.22888 224.097436,6533.57338 223.707692,6533.16951 L215.444127,6524.60657 C214.66364,6523.79781 213.397472,6523.79781 212.616986,6524.60657 L204.29246,6533.23165 C203.906714,6533.6324 203.901717,6534.27962 204.282467,6534.68555 C204.671211,6535.10081 205.31179,6535.10495 205.70653,6534.69695 L213.323521,6526.80297 C213.714264,6526.39807 214.346848,6526.39807 214.737591,6526.80297 L222.294621,6534.63378 C222.684365,6535.03868 223.317949,6535.03868 223.707692,6534.63378" id="arrow_up-[#337]"> </path> </g> </g> </g> </g></svg>
+`;
+    const downArrowSVG = `
+<svg viewBox="0 -4.5 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#FFFFFF"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>arrow_down [#338]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-220.000000, -6684.000000)" fill="#FFFFFF"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M164.292308,6524.36583 L164.292308,6524.36583 C163.902564,6524.77071 163.902564,6525.42619 164.292308,6525.83004 L172.555873,6534.39267 C173.33636,6535.20244 174.602528,6535.20244 175.383014,6534.39267 L183.70754,6525.76791 C184.093286,6525.36716 184.098283,6524.71997 183.717533,6524.31405 C183.328789,6523.89985 182.68821,6523.89467 182.29347,6524.30266 L174.676479,6532.19636 C174.285736,6532.60124 173.653152,6532.60124 173.262409,6532.19636 L165.705379,6524.36583 C165.315635,6523.96094 164.683051,6523.96094 164.292308,6524.36583" id="arrow_down-[#338]"> </path> </g> </g> </g> </g></svg>
+`;
     function getHeader(mnemType) {
         return `Community ${mnemType.charAt(0).toUpperCase() + mnemType.slice(1)} Mnemonic`;
     }
@@ -594,14 +614,12 @@ ${isItem ?
     function getCMdivContent(mnemType) {
         const userContentIframe = getInitialIframe(mnemType);
         let header = getHeader(mnemType);
-        // ◄►
-        let content = 
-        /*HTML*/ `
+        return `
 <div id="cm-${mnemType}" class="cm-content">
     <!--  <h2 class="subject-section__subtitle">${header}</h2>  -->
-    <div id="cm-${mnemType}-prev"        class="fa-solid fa-angle-left cm-btn cm-prev disabled"><span></span></div>
+    <div id="cm-${mnemType}-prev"        class="cm-btn cm-prev disabled">${leftArrowSVG}</div>
     ${userContentIframe}
-    <div id="cm-${mnemType}-next"         class="fa-solid fa-angle-right cm-btn cm-next disabled"><span></span></div>
+    <div id="cm-${mnemType}-next"         class="cm-btn cm-next disabled">${rightArrowSVG}</div>
     <div id="cm-${mnemType}-info"         class="cm-info">
 
     <div id="cm-${mnemType}-user-buttons" class="cm-user-buttons">
@@ -611,12 +629,11 @@ ${isItem ?
     </div>
 
     <div class="cm-score">Score: <span id="cm-${mnemType}-score-num" class="cm-score-num">0</span></div>
-    <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote <i class="fa-solid fa-chevrons-up"></i></div>
-    <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote <i class="fa-solid fa-chevrons-down"></i></div>
+    <div id="cm-${mnemType}-upvote"       class="cm-btn cm-upvote-highlight disabled">Upvote ${upArrowSVG}</div>
+    <div id="cm-${mnemType}-downvote"     class="cm-btn cm-downvote-highlight disabled">Downvote ${downArrowSVG}</div>
     <div id="cm-${mnemType}-submit"       class="cm-btn cm-submit-highlight disabled">Submit Yours</div></div>
 </div>
 `;
-        return content;
     }
     function setScore(mnemType, score) {
         let scoreEle = document.getElementById(`cm-${mnemType}-score-num`);
@@ -843,7 +860,9 @@ ${isItem ?
                     updateCM(dataJson, mnemType, index);
             }).catch((reason) => {
                 console.log("WKCM2: updateCM error: ", reason);
-                setTimeout(function () { updateCM(false, mnemType, index); }, refetchTimeout);
+                setTimeout(function () {
+                    updateCM(false, mnemType, index);
+                }, REFETCH_TIMEOUT);
             });
         }
     }
@@ -928,7 +947,7 @@ ${isItem ?
                 if (currentJsonUser[1] == WKUser)
                     currentMnem.mnem[mnemType] = currentJsonUser[0];
                 // disable submit button if user submitted too many mnems
-                if (getUserMnemCount(mnemJson, WKUser) >= mnemMaxCount)
+                if (getUserMnemCount(mnemJson, WKUser) >= MNEM_MAX_COUNT)
                     addClass(`cm-${mnemType}-submit`);
             }
         }
@@ -1202,7 +1221,7 @@ ${isItem ?
             type = getItemType();
         let identifier = getCacheId(item, type);
         if (cacheExpired(identifier)) {
-            fetchData(item, type).then(responseJson => {
+            getItemApi(item, type).then(responseJson => {
                 // fetch worked
                 // wkof.file_cache.save(identifier, responseJson);
                 let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
@@ -1251,7 +1270,7 @@ ${isItem ?
             return Promise.resolve();
         }
         else if (typeof cachedData != "boolean") {
-            fetchData(item, type).then(responseJson => {
+            getItemApi(item, type).then(responseJson => {
                 // fetch worked
                 let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
                 // @ts-ignore
@@ -1290,11 +1309,12 @@ ${isItem ?
                 // sometimes fetch was faster then score calculation => #ERROR!
                 // if found retry. But only a few times. (There may really be #ERROR! in DB)
                 if (jsonString.includes("#ERROR!") || jsonString.includes("#NAME?")) {
-                    if (jsonParse.refetchCounter < 5)
+                    if (jsonParse.refetchCounter < 5) {
                         deleteCacheItem().then(r => {
-                            getData();
+                            void getData();
                             jsonParse.refetchCounter++;
                         });
+                    }
                 }
             }
         }
@@ -1346,7 +1366,7 @@ ${isItem ?
          * Technically redundant, since this is handled better by apps script.
          * */
         static replaceInNewMnem(text) {
-            // is handled by insertion apps script as well. 
+            // is handled by insertion apps script as well.
             // replace newlines with markup
             text = text.replace(/\n/g, '[n]').replace(/\r/g, '[n]');
             return text;
@@ -1415,15 +1435,15 @@ ${isItem ?
         }
         let identifier = getCacheId(item, type);
         // get from wkof cache
-        let data = wkof.file_cache.load(identifier).then((value) => {
+        return wkof.file_cache.load(identifier).then((value) => {
             getData.misses = 0;
-            if (cacheExpired(identifier, cacheDayMaxAge))
+            if (cacheExpired(identifier, CACHE_DAY_MAX_AGE))
                 dataBackgroundUpdate(item, type, value);
             return value;
-        }, (reason) => {
+        }, async (reason) => {
             // cache miss
             if (!fetchOnMiss) {
-                wkof.file_cache.save(identifier, null);
+                await wkof.file_cache.save(identifier, null);
                 return null;
             }
             // fetch data from db, put in cache and return
@@ -1435,25 +1455,25 @@ ${isItem ?
                     throw new Error("WKCM2: There was a problem with fetching the Mnemonic Data.: " + reason);
                 return null;
             }
-            return fetchData(item, type).then(responseJson => {
+            try {
+                const responseJson = await getItemApi(item, type);
                 // fetch worked
-                wkof.file_cache.save(identifier, responseJson);
-                let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+                await wkof.file_cache.save(identifier, responseJson);
+                let responseJsonCopy = JSON.parse(JSON.stringify(responseJson));
                 // only toggle visual update if the original item is still displayed.
                 let curTyIt = getShortItemType(getItemType()) + getItem();
                 let prevTyIt = getShortItemType(type) + item;
                 if (curTyIt == prevTyIt)
-                    updateCM(reponseJsonCopy);
+                    updateCM(responseJsonCopy);
                 return responseJson;
-            }).catch(reason => {
+            }
+            catch (reason_1) {
                 // fetch failed
                 // TODO: handle failed fetch
-                console.log("WKCM2: Error, getData, Fetch of data from spreadsheet failed: " + reason);
-                // create and return "Error" object, to signale failed fetch and display that.
+                console.log("WKCM2: Error, getData, Fetch of data from spreadsheet failed: " + reason_1);
                 return null;
-            });
+            }
         });
-        return data;
     }
     (function (getData) {
         // static miss counter, to protect from infinite cache miss loop (only triggered when an error with the apps script exists)
@@ -1464,14 +1484,16 @@ ${isItem ?
      * @param item required. kanji, vocabluary or radical string
      * @param type k, v, r or empty string to fetch all for that item
      * */
-    async function fetchData(item, type) {
+    async function getItemApi(item, type) {
         // TODO: sleep between failed fetches???
         let shortType = getShortItemType(type);
-        let url = sheetApiUrl + `?item=${item}&type=${shortType}&exec=get`;
+        let url = SHEET_API_URL + `?item=${item}&type=${shortType}&exec=get`;
         url = encodeURI(url);
-        // TODO: handle case of malformed URL
-        return fetch(url)
-            .then(response => response.json()).catch(reason => { console.log("WKCM2: fetchData failed: " + reason); return null; })
+        return fetch(url, { method: "GET", redirect: "follow" })
+            .then(response => response.json()).catch(reason => {
+            console.log("WKCM2: fetchData failed: " + reason);
+            return null;
+        })
             .then((responseJson) => {
             if (responseJson == null)
                 return null;
@@ -1484,11 +1506,13 @@ ${isItem ?
             }
         });
     }
-    async function getAll() {
-        let url = sheetApiUrl + `?exec=getall`;
+    async function getAllApi() {
+        let url = SHEET_API_URL + `?exec=getall`;
         url = encodeURI(url);
-        return fetch(url, { method: "GET" }).then(response => response.json())
-            .catch(reason => {
+        return fetch(url, { method: "GET", redirect: "follow" })
+            .then(response => {
+            return response.json();
+        }).catch(reason => {
             console.log("WKCM2: fillCache failed: ", reason);
             return null;
         });
@@ -1496,31 +1520,31 @@ ${isItem ?
     async function submitMnemonic(mnemType, item, shortType, mnemIndexDB, newMnem) {
         let shortMnemType = getShortMnemType(mnemType);
         newMnem = encodeURIComponent(newMnem);
-        let url = sheetApiUrl +
+        let url = SHEET_API_URL +
             `?exec=put&item=${item}&type=${shortType}&apiKey=${encodeURIComponent(userApiKey)}&mnemType=${shortMnemType}&mnemIndex=${mnemIndexDB}&mnem=${newMnem}`;
-        return fetch(url, { method: "POST" });
+        return fetch(url, { method: "POST", redirect: "follow" });
     }
     async function voteMnemonic(mnemType, item, shortType, vote) {
         let shortMnemType = getShortMnemType(mnemType);
-        let url = sheetApiUrl +
+        let url = SHEET_API_URL +
             `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${userApiKey}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${currentMnem.userIndex[mnemType]}&vote=${vote}`;
         url = encodeURI(url);
-        return fetch(url, { method: "POST" });
+        return fetch(url, { method: "POST", redirect: "follow" });
     }
     async function requestMnemonic(mnemType, item, shortType) {
         let shortMnemType = getShortMnemType(mnemType);
-        let url = sheetApiUrl + `?exec=request&item=${item}&type=${shortType}&apiKey=${userApiKey}&mnemType=${shortMnemType}`;
+        let url = SHEET_API_URL + `?exec=request&item=${item}&type=${shortType}&apiKey=${userApiKey}&mnemType=${shortMnemType}`;
         url = encodeURI(url);
-        return fetch(url, { method: "POST" });
+        return fetch(url, { method: "POST", redirect: "follow" });
     }
     async function deleteMnemonic(mnemType, item, shortType) {
         if (currentMnem.currentUser[mnemType] != WKUser)
             return;
         let shortMnemType = getShortMnemType(mnemType);
-        let url = sheetApiUrl +
+        let url = SHEET_API_URL +
             `?exec=del&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${userApiKey}&mnemIndex=${currentMnem.userIndex[mnemType]}`;
         url = encodeURI(url);
-        return fetch(url, { method: "POST" });
+        return fetch(url, { method: "POST", redirect: "follow" });
     }
 
     /**
@@ -1536,7 +1560,7 @@ ${isItem ?
      * @param maxAge Age of cache to compare against in days.
      * @return true if older than daydiff, else false
      * */
-    function cacheExpired(identifier, maxAge = cacheDayMaxAge) {
+    function cacheExpired(identifier, maxAge = CACHE_DAY_MAX_AGE) {
         // 86400000ms == 1d
         let cachedDate = 0;
         try {
@@ -1549,22 +1573,19 @@ ${isItem ?
             return true;
         }
         let cacheAge = Math.floor((Date.now() - cachedDate) / 86400000);
-        if (cacheAge > maxAge)
-            return true;
-        else
-            return false;
+        return cacheAge > maxAge;
     }
     /**
      * Only fills cache, if cache is expired.
      * */
     function fillCacheIfExpired() {
-        wkof.file_cache.load(cacheFillIdent).then(value => {
+        wkof.file_cache.load(CACHE_FILL_IDENTIFIER).then(value => {
             // found
-            if (cacheExpired(cacheFillIdent, cacheDayMaxAge)) {
+            if (cacheExpired(CACHE_FILL_IDENTIFIER, GET_ALL_CACHE_MAX_AGE)) {
                 // regex; delete whole wkcm2 cache
                 wkof.file_cache.delete(/^wkcm2-/);
                 fillCache();
-                wkof.file_cache.save("wkcm2-version", WKCM2_version);
+                wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
             }
         }, reason => {
             fillCache();
@@ -1578,7 +1599,7 @@ ${isItem ?
      * But the No mnem available message is displayed prematurely, so it should be fine.
      * */
     async function fillCache() {
-        getAll().then((responseJson) => {
+        getAllApi().then((responseJson) => {
             if (responseJson == null)
                 return null;
             else {
@@ -1587,7 +1608,7 @@ ${isItem ?
                     let identifier = getCacheId(responseJson[typeItem]["Item"], responseJson[typeItem]["Type"]);
                     wkof.file_cache.save(identifier, responseJson[typeItem]);
                 }
-                wkof.file_cache.save(cacheFillIdent, "Cache Filled");
+                wkof.file_cache.save(CACHE_FILL_IDENTIFIER, "Cache Filled");
             }
         }).catch(err => console.log("WKCM2: fillCache, ", err));
     }
@@ -1638,20 +1659,6 @@ ${isItem ?
     function getBadgeClassAvail(legend = false) {
         return getBadgeClass("available", legend);
     }
-
-    var stylesheet$6=".cm-content {\n  height: 100%;\n  text-align: left;\n  display: inline-block;\n}\n\n#turbo-body .container #wkcm2 .cm-content {\n  padding-bottom: 50px;\n}\n\n.cm {\n  font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  overflow: auto;\n}";
-
-    var stylesheet$5=".subject-legend__item {\n  flex: 0 0 17%;\n}\n\n.subject-legend__item-badge--cm-request {\n  background-color: #e1aa00;\n}\n\n.subject-legend__item-badge--cm-available {\n  background-color: #71aa00;\n}\n\n.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {\n  width: 2em;\n  height: 2em;\n  line-height: 2.1;\n  color: #fff;\n  font-size: 16px;\n  border-radius: 50%;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);\n  margin-bottom: 14px;\n  text-align: center;\n}\n\n.character-item__badge__cm-request {\n  background-color: #e1aa00;\n  left: 30px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-request {\n    left: 0px;\n    transform: translate(45%, 0%);\n  }\n}\n\n.character-item__badge__cm-available {\n  background-color: #71aa00;\n  left: 60px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-available {\n    left: 0px;\n    transform: translate(45%, -112%);\n  }\n}\n\n.character-grid__item--vocabulary .character-item__badge__cm-request {\n  left: 0px;\n  transform: translate(45%, 0%);\n}\n.character-grid__item--vocabulary .character-item__badge__cm-available {\n  left: 0px;\n  transform: translate(45%, -112%);\n}\n.character-grid__item--vocabulary .character-item {\n  padding-left: 40px;\n}\n\n@media screen and (max-width: 767px) {\n  .character-item {\n    padding-left: 40px;\n  }\n}";
-
-    var stylesheet$4=".cm-btn {\n  color: white;\n  font-size: 14px;\n  cursor: pointer;\n  filter: contrast(0.9);\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n  transition: text-shadow 0.15s linear;\n  text-align: center;\n  font-weight: normal;\n}\n\n#item-info .cm-submit-highlight, #item-info .cm-upvote-highlight, #item-info .cm-downvote-highlight, #supplement-info .cm-submit-highlight, #supplement-info .cm-upvote-highlight, #supplement-info .cm-downvote-highlight {\n  height: 15px;\n  padding: 1px 0px 4px 0px;\n}\n\n.cm-btn:hover {\n  filter: contrast(1.15) !important;\n}\n\n.cm-btn:active {\n  filter: contrast(1.2) !important;\n  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-btn.disabled.cm-btn.disabled {\n  opacity: 0.3;\n  pointer-events: none;\n}\n\n.cm-prev, .cm-next {\n  color: #333333;\n  font-size: 50px;\n  margin: 0px 0px 0px 0px;\n  padding: 15px 10px 0px 0px;\n  box-shadow: none !important;\n}\n\n.cm-prev:not(.disabled), .cm-next:not(.disabled) {\n  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:hover, .cm-next:hover {\n  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev:active, .cm-next:active {\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n}\n\n.cm-prev {\n  float: left;\n}\n\n.cm-next {\n  float: right;\n}\n\n.cm-prev.disabled, .cm-next.disabled {\n  opacity: 0.25;\n}\n\n.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {\n  text-align: center;\n  font-size: 14px;\n  width: 75px;\n  margin-right: 10px;\n  float: left;\n  padding: 0px 4px;\n}\n\n.cm-upvote-highlight, .cm-downvote-highlight {\n  width: 95px;\n  margin-right: 10px;\n  float: left;\n}\n\n.cm-upvote-highlight {\n  background-image: linear-gradient(to bottom, #5c5, #46ad46);\n}\n\n.cm-downvote-highlight {\n  background-image: linear-gradient(to bottom, #c55, #ad4646);\n}\n\n.cm-delete-highlight {\n  background-image: linear-gradient(to bottom, #811, #6d0606);\n  margin-right: 10px;\n}\n\n.cm-edit-highlight {\n  background-image: linear-gradient(to bottom, #ccc, #adadad);\n}\n\n.cm-request-highlight {\n  background-image: linear-gradient(to bottom, #e1aa00, #d57602);\n}\n\n.cm-submit-highlight {\n  width: 125px;\n  margin-left: 75px;\n  float: right;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n}\n\n.cm-cancel-highlight, .cm-save-highlight {\n  width: 75px;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 0px 0px 0px 0px;\n}\n\n/*Edit, delete, request are small buttons*/\n.cm-small-btn {\n  font-size: 12px;\n  width: 50px;\n  height: 13px;\n  line-height: 1;\n}\n\n.cm-submit-highlight.disabled, .cm-form-submit.disabled {\n  color: #8b8b8b !important;\n}\n\n/*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/";
-
-    var stylesheet$3=".cm-format-btn.cm-format-btn {\n  filter: contrast(0.8);\n  text-align: center;\n  width: 35px;\n  height: 30px;\n  font-size: 20px;\n  line-height: 30px;\n  margin-left: 5px;\n  float: left;\n  box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-format-btn:active {\n  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2) inset !important;\n}\n\n.cm-format .cm-kanji, .cm-format .cm-radical, .cm-format .cm-vocabulary, .cm-format .cm-reading {\n  font-weight: bold;\n  display: inline-block;\n  color: #fff;\n  text-align: center;\n  box-sizing: border-box;\n  line-height: 1;\n}\n\n.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-qmark, .cm-format-btn.cm-format-strike {\n  background-color: #f5f5f5;\n  background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a);\n  background-repeat: repeat-x;\n}";
-
-    var stylesheet$2=".cm-form form {\n  min-height: 300px;\n}\n\n.cm-form fieldset {\n  padding: 1px;\n  height: 110px;\n}\n\n.cm-text {\n  overflow: auto;\n  word-wrap: break-word;\n  resize: none;\n  height: calc(100% - 30px);\n  width: 98%;\n}\n\n.counter-note {\n  padding: 0px;\n  margin: 0px;\n  margin-right: 10px;\n  margin-top: 2px;\n}\n\n.cm-mnem-text {\n  float: left;\n  width: calc(100% - 120px);\n  height: 100%;\n  min-height: 125px;\n}";
-
-    var stylesheet$1=".cm-user-buttons {\n  position: absolute;\n  margin-top: -20px;\n}\n\n.cm-info {\n  display: inline-block;\n  margin-top: 20px;\n  margin-left: 65px;\n}\n\n.cm-info div {\n  margin-bottom: 0px;\n}\n\n.cm-score {\n  float: left;\n  width: 80px;\n}\n\n.cm-score-num {\n  color: #555;\n}\n\n.cm-score-num.pos {\n  color: #5c5;\n}\n\n.cm-score-num.neg {\n  color: #c55;\n}\n\n.cm-nomnem {\n  margin-top: -10px !important;\n}\n\n.cm-form fieldset {\n  clear: left;\n}\n\n.cm-format {\n  margin: 0 !important;\n}\n\n.cm-delete-text {\n  position: absolute;\n  opacity: 0;\n  text-align: center;\n}\n\n.cm-delete-text h3 {\n  margin: 0;\n}";
-
-    var stylesheet=".cm-radical {\n  background-color: #0af;\n  background-image: linear-gradient(to bottom, #0af, #0093dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF00AAFF\", endColorstr=\"#FF0093DD\", GradientType=0);\n}\n\n.cm-kanji {\n  background-color: #f0a;\n  background-image: linear-gradient(to bottom, #f0a, #dd0093);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFFF00AA\", endColorstr=\"#FFDD0093\", GradientType=0);\n}\n\n.cm-vocabulary {\n  background-color: #a0f;\n  background-image: linear-gradient(to bottom, #a0f, #9300dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFAA00FF\", endColorstr=\"#FF9300DD\", GradientType=0);\n}\n\n.cm-reading {\n  background-color: #555;\n  background-image: linear-gradient(to bottom, #555, #333);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF555555\", endColorstr=\"#FF333333\", GradientType=0);\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.8) inset;\n}\n\n.cm-request {\n  background-color: #e1aa00;\n  color: black !important;\n  background-image: linear-gradient(to bottom, #e1aa00, #e76000);\n  background-repeat: repeat-x;\n}\n\n.cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request {\n  padding: 1px 4px;\n  color: #fff;\n  font-weight: normal;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  white-space: nowrap;\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n}";
 
     /**
      * Functions for the item lists
@@ -1712,14 +1719,31 @@ ${isItem ?
         }
     }
 
+    insertStyle(".cm-content {\n  height: 100%;\n  text-align: left;\n  display: inline-block;\n}\n\n#turbo-body .container #wkcm2 .cm-content {\n  padding-bottom: 50px;\n}\n\n.cm {\n  font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  overflow: auto;\n}");
+
+    insertStyle(".subject-legend__item {\n  flex: 0 0 17%;\n}\n\n.subject-legend__item-badge--cm-request {\n  background-color: #e1aa00;\n}\n\n.subject-legend__item-badge--cm-available {\n  background-color: #71aa00;\n}\n\n.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {\n  width: 2em;\n  height: 2em;\n  line-height: 2.1;\n  color: #fff;\n  font-size: 16px;\n  border-radius: 50%;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);\n  margin-bottom: 14px;\n  text-align: center;\n}\n\n.character-item__badge__cm-request {\n  background-color: #e1aa00;\n  left: 30px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-request {\n    left: 0px;\n    transform: translate(45%, 0%);\n  }\n}\n\n.character-item__badge__cm-available {\n  background-color: #71aa00;\n  left: 60px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-available {\n    left: 0px;\n    transform: translate(45%, -112%);\n  }\n}\n\n.character-grid__item--vocabulary .character-item__badge__cm-request {\n  left: 0px;\n  transform: translate(45%, 0%);\n}\n.character-grid__item--vocabulary .character-item__badge__cm-available {\n  left: 0px;\n  transform: translate(45%, -112%);\n}\n.character-grid__item--vocabulary .character-item {\n  padding-left: 40px;\n}\n\n@media screen and (max-width: 767px) {\n  .character-item {\n    padding-left: 40px;\n  }\n}");
+
+    insertStyle(".cm-btn {\n  color: white;\n  font-size: 14px;\n  cursor: pointer;\n  filter: contrast(0.9);\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n  transition: text-shadow 0.15s linear;\n  text-align: center;\n  font-weight: normal;\n}\n\n#item-info .cm-submit-highlight, #item-info .cm-upvote-highlight, #item-info .cm-downvote-highlight, #supplement-info .cm-submit-highlight, #supplement-info .cm-upvote-highlight, #supplement-info .cm-downvote-highlight {\n  height: 15px;\n  padding: 1px 0 4px 0;\n}\n\n.cm-btn:hover {\n  filter: contrast(1.15) !important;\n}\n\n.cm-btn:active {\n  filter: contrast(1.2) !important;\n  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-btn.disabled.cm-btn.disabled {\n  opacity: 0.3;\n  pointer-events: none;\n}\n\n.cm-prev {\n  padding-right: 10px;\n}\n\n.cm-prev, .cm-next {\n  margin: 0 0 0 0;\n  box-shadow: none !important;\n}\n.cm-prev svg, .cm-next svg {\n  height: 50px;\n  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.3));\n  transition: filter 0.2s ease, transform 0.2s ease;\n}\n\n.cm-prev:not(.disabled) svg, .cm-next:not(.disabled) svg {\n  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.3));\n}\n\n.cm-prev:hover:not(.disabled) svg,\n.cm-next:hover:not(.disabled) svg {\n  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.3));\n}\n\n.cm-prev:active:not(.disabled) svg,\n.cm-next:active:not(.disabled) svg {\n  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.3));\n  transform: translateY(3px);\n}\n\n.cm-btn.disabled svg {\n  filter: none;\n}\n\n.cm-prev {\n  float: left;\n}\n\n.cm-next {\n  float: right;\n}\n\n.cm-prev.disabled, .cm-next.disabled {\n  opacity: 0.25;\n}\n\n.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {\n  text-align: center;\n  font-size: 14px;\n  width: 75px;\n  margin-right: 10px;\n  float: left;\n  padding: 0 4px;\n}\n\n.cm-upvote-highlight, .cm-downvote-highlight {\n  width: 95px;\n  margin-right: 10px;\n  float: left;\n}\n.cm-upvote-highlight svg, .cm-downvote-highlight svg {\n  height: 1rem;\n  transform: translateY(0.25rem);\n}\n\n.cm-upvote-highlight {\n  background-image: linear-gradient(to bottom, #5c5, #46ad46);\n}\n\n.cm-downvote-highlight {\n  background-image: linear-gradient(to bottom, #c55, #ad4646);\n}\n\n.cm-delete-highlight {\n  background-image: linear-gradient(to bottom, #811, #6d0606);\n  margin-right: 10px;\n}\n\n.cm-edit-highlight {\n  background-image: linear-gradient(to bottom, #ccc, #adadad);\n}\n\n.cm-request-highlight {\n  background-image: linear-gradient(to bottom, #e1aa00, #d57602);\n}\n\n.cm-submit-highlight {\n  width: 125px;\n  margin-left: 75px;\n  float: right;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n}\n\n.form-button-wrapper {\n  position: absolute;\n  padding-left: 84px;\n  transform: translateY(-26px);\n}\n.form-button-wrapper .cm-cancel-highlight, .form-button-wrapper .cm-save-highlight {\n  width: 98px;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 0 0 0 0;\n}\n\n/*Edit, delete, request are small buttons*/\n.cm-small-btn {\n  font-size: 12px;\n  width: 60px;\n  height: 13px;\n  line-height: 1;\n}\n@-moz-document url-prefix() {\n  .cm-small-btn {\n    padding-top: 2px;\n  }\n}\n\n.cm-submit-highlight.disabled, .cm-form-submit.disabled {\n  color: #8b8b8b !important;\n}");
+
+    insertStyle(".cm-format-btn.cm-format-btn {\n  filter: contrast(0.8);\n  text-align: center;\n  width: 35px;\n  height: 30px;\n  font-size: 20px;\n  line-height: 30px;\n  margin-left: 5px;\n  float: left;\n  box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-format-btn:active {\n  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2) inset !important;\n}\n\n.cm-format .cm-kanji, .cm-format .cm-radical, .cm-format .cm-vocabulary, .cm-format .cm-reading {\n  font-weight: bold;\n  display: inline-block;\n  color: #fff;\n  text-align: center;\n  box-sizing: border-box;\n  line-height: 1;\n  padding-top: 7px;\n}\n\n.cm-format-btn.cm-format-bold, .cm-format-btn.cm-format-italic, .cm-format-btn.cm-format-underline, .cm-format-btn.cm-format-newline, .cm-format-btn.cm-format-qmark, .cm-format-btn.cm-format-strike {\n  background-color: #f5f5f5;\n  background-image: linear-gradient(to bottom, #7a7a7a, #4a4a4a);\n  background-repeat: repeat-x;\n}");
+
+    insertStyle(".cm-form form {\n  min-height: 300px;\n}\n\n.cm-form fieldset {\n  padding: 1px;\n  height: 110px;\n}\n\n.cm-text {\n  overflow: auto;\n  word-wrap: break-word;\n  resize: none;\n  height: calc(100% - 30px);\n  width: 98%;\n}\n\n.counter-note {\n  padding: 0;\n  margin: 2px 10px 0 0;\n}\n\n.cm-mnem-text {\n  float: left;\n  width: calc(100% - 120px);\n  height: 100%;\n  min-height: 125px;\n}");
+
+    insertStyle(".cm-user-buttons {\n  position: absolute;\n  margin-top: -16px;\n  margin-left: 80px;\n}\n\n.cm-info {\n  display: inline-block;\n  margin-top: 20px;\n  margin-left: 65px;\n}\n\n.cm-info div {\n  margin-bottom: 0;\n}\n\n.cm-score {\n  float: left;\n  width: 80px;\n}\n\n.cm-score-num {\n  color: #555;\n}\n\n.cm-score-num.pos {\n  color: #5c5;\n}\n\n.cm-score-num.neg {\n  color: #c55;\n}\n\n.cm-nomnem {\n  margin-top: -10px !important;\n}\n\n.cm-form fieldset {\n  clear: left;\n}\n\n.cm-format {\n  margin: 0 !important;\n}\n\n.cm-delete-text {\n  position: absolute;\n  opacity: 0;\n  text-align: center;\n}\n\n.cm-delete-text h3 {\n  margin: 0;\n}\n\n#cm-meaning-chars-remaining, #cm-reading-chars-remaining {\n  padding-left: 4px;\n}\n#cm-meaning-chars-remaining svg, #cm-reading-chars-remaining svg {\n  height: 1rem;\n  transform: translateY(0.2rem);\n}");
+
+    insertStyle(".cm-radical {\n  background-color: #0af;\n  background-image: linear-gradient(to bottom, #0af, #0093dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF00AAFF\", endColorstr=\"#FF0093DD\", GradientType=0);\n}\n\n.cm-kanji {\n  background-color: #f0a;\n  background-image: linear-gradient(to bottom, #f0a, #dd0093);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFFF00AA\", endColorstr=\"#FFDD0093\", GradientType=0);\n}\n\n.cm-vocabulary {\n  background-color: #a0f;\n  background-image: linear-gradient(to bottom, #a0f, #9300dd);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FFAA00FF\", endColorstr=\"#FF9300DD\", GradientType=0);\n}\n\n.cm-reading {\n  background-color: #555;\n  background-image: linear-gradient(to bottom, #555, #333);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=\"#FF555555\", endColorstr=\"#FF333333\", GradientType=0);\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.8) inset;\n}\n\n.cm-request {\n  background-color: #e1aa00;\n  color: black !important;\n  background-image: linear-gradient(to bottom, #e1aa00, #e76000);\n  background-repeat: repeat-x;\n}\n\n.cm-kanji, .cm-radical, .cm-reading, .cm-vocabulary, .cm-request {\n  padding: 1px 4px;\n  color: #fff;\n  font-weight: normal;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  white-space: nowrap;\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n}");
+
     run();
     // all code runs from here
     function run() {
         // Runs checks if elements exist before running init and waits for them. Then calls init.
         waitForWKOF().then(exists => {
             if (exists) {
-                wkof.include('Apiv2');
-                wkof.ready('Apiv2').then(init);
+                wkof.include('Apiv2').then(() => {
+                    wkof.ready('Apiv2').then(() => {
+                        init();
+                    });
+                });
             }
             else
                 console.log("WKCM2: there was a problem with checking for wkof. Please check if it is installed correctly and running. ");
@@ -1728,14 +1752,6 @@ ${isItem ?
             checkWKOF_old();
         });
     }
-    // CSS
-    const generalCSS = stylesheet$6;
-    const listCSS = stylesheet$5;
-    const buttonCSS = stylesheet$4;
-    const formatButtonCSS = stylesheet$3;
-    const textareaCSS = stylesheet$2;
-    const contentCSS = stylesheet$1;
-    const highlightCSS = stylesheet;
     // Init ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     /**
      * Runs the right code depending if the current page is Lesson, Review or List
@@ -1749,19 +1765,13 @@ ${isItem ?
         setApiKey();
         if (isInitialized())
             return;
-        addGlobalStyle(generalCSS);
-        addGlobalStyle(buttonCSS);
-        addGlobalStyle(formatButtonCSS);
-        addGlobalStyle(contentCSS);
-        addGlobalStyle(textareaCSS);
-        addGlobalStyle(highlightCSS);
         if (isList) {
             fillCacheIfExpired();
             initList();
         }
         else {
-            infoInjectorInit("meaning");
-            infoInjectorInit("reading");
+            void infoInjectorInit("meaning");
+            void infoInjectorInit("reading");
         }
         if (isList || isItem)
             detectUrlChange(500);
@@ -1770,28 +1780,29 @@ ${isItem ?
      * Usese WKItemInfoInjector to inject HTML into page and call init
      * @param mnemType
      */
-    function infoInjectorInit(mnemType) {
+    async function infoInjectorInit(mnemType) {
         if (isInitialized())
             return;
+        await sleep(100);
         let cm_div = document.createElement("div");
         cm_div.innerHTML = getCMdivContent(mnemType);
-        // insert HTML Elements
-        win.wkItemInfo
-            //.on("lesson,lessonQuiz,review,extraStudy,itemPage")
-            //.forType("radical,kanji,vocabulary")
-            .under(mnemType).spoiling(mnemType)
-            .appendSubsection(getHeader(mnemType), cm_div); //, { injectImmediately: true });
-        // callback to initialize HTML Elements inserted above
-        const wkItemInfoSelector = win.wkItemInfo.on("lesson,lessonQuiz,review,extraStudy,itemPage")
-            .forType("radical,kanji,vocabulary").under(mnemType).spoiling(mnemType);
-        let notify = wkItemInfoSelector.notifyWhenVisible || wkItemInfoSelector.notify;
-        // wkItemInfoSelector.notifyWhenVisible(o => {console.log("here")})
-        notify(o => {
-            // console.log(o);
-            waitForEle(`cm-${mnemType}`).then(() => {
-                initCM(mnemType);
+        // Create a handle for this injection
+        const handle = win.wkItemInfo
+            .under(mnemType)
+            .spoiling(mnemType)
+            .appendSubsection(getHeader(mnemType), cm_div);
+        if (handle) {
+            // Set up notification using the same selector configuration
+            const wkItemInfoSelector = win.wkItemInfo
+                .under(mnemType)
+                .spoiling(mnemType);
+            let notify = wkItemInfoSelector.notifyWhenVisible || wkItemInfoSelector.notify;
+            notify(o => {
+                waitForEle(`cm-${mnemType}`).then(() => {
+                    initCM(mnemType);
+                });
             });
-        });
+        }
     }
     /**
      * initializes Buttons and starts first content update.
@@ -1803,7 +1814,6 @@ ${isItem ?
     function initList() {
         if (isInitialized())
             return;
-        addGlobalStyle(listCSS);
         waitForClass("." + getBadgeClassAvail(true), initHeader, 250);
         waitForClass(`[class*='${getBadgeBaseClass()}']`, addBadgeToItems, 100, 25);
     }
@@ -1836,8 +1846,6 @@ ${isItem ?
 
     exports.infoInjectorInit = infoInjectorInit;
     exports.initList = initList;
-
-    Object.defineProperty(exports, '__esModule', { value: true });
 
     return exports;
 

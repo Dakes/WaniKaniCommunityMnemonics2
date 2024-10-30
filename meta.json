@@ -1,15 +1,16 @@
 {
     "namespace": "wkcm2",
-    "copyright": "2022, Daniel Ostertag (https://github.com/Dakes)",
+    "copyright": "2023, Daniel Ostertag (https://github.com/Dakes)",
     "match": [
-        "https://*.wanikani.com/subjects/*",
+        "https://*.wanikani.com/subject-lessons/*",
+        "https://*.wanikani.com/subjects/review",
         "https://*.wanikani.com/level/*",
         "https://*.wanikani.com/kanji*",
         "https://*.wanikani.com/vocabulary*",
         "https://*.wanikani.com/radicals*"
     ],
     "require": [
-        "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1166918"
+        "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982"
     ],
     "grant": [
         "none"

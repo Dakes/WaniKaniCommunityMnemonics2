@@ -1,4 +1,3 @@
-/*  globals GM */
 
 'use strict';
 

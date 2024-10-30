@@ -1,31 +1,29 @@
 
 .cm-form form {
-    min-height: 300px;
+  min-height: 300px;
 }
 
 .cm-form fieldset {
-    padding: 1px;
-    height: 110px;
+  padding: 1px;
+  height: 110px;
 }
 
 .cm-text {
-    overflow: auto;
-    word-wrap: break-word;
-    resize: none;
-    height: calc(100% - 30px);
-    width: 98%;
+  overflow: auto;
+  word-wrap: break-word;
+  resize: none;
+  height: calc(100% - 30px);
+  width: 98%;
 }
 
 .counter-note {
-    padding: 0px;
-    margin: 0px;
-    margin-right: 10px;
-    margin-top: 2px;
+  padding: 0;
+  margin: 2px 10px 0 0;
 }
 
 .cm-mnem-text {
-    float: left;
-    width: calc(100% - 120px);
-    height: 100%;
-    min-height: 125px;
+  float: left;
+  width: calc(100% - 120px);
+  height: 100%;
+  min-height: 125px;
 }
