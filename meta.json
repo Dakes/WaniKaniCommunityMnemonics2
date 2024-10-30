@@ -10,7 +10,7 @@
         "https://*.wanikani.com/radicals*"
     ],
     "require": [
-        "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1276693"
+        "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982"
     ],
     "grant": [
         "none"
