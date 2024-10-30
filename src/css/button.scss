@@ -35,24 +35,39 @@
   pointer-events: none;
 }
 
+.cm-prev {
+  padding-right: 10px;
+}
+
 .cm-prev, .cm-next {
-  color: #333333;
-  font-size: 50px;
   margin: 0 0 0 0;
-  padding: 15px 10px 0 0;
   box-shadow: none !important;
+  svg {
+    height: 50px;
+    filter: drop-shadow(0 4px 0 rgb(0 0 0 / 30%));
+    transition: filter 0.2s ease, transform 0.2s ease;
+  }
 }
 
 .cm-prev:not(.disabled), .cm-next:not(.disabled) {
-  text-shadow: 0 4px 0 rgb(0 0 0 / 30%);
+  svg {
+    filter: drop-shadow(0 2px 0 rgb(0 0 0 / 30%));
+  }
 }
 
-.cm-prev:hover, .cm-next:hover {
-  text-shadow: 0 3px 0 rgb(0 0 0 / 30%);
+.cm-prev:hover:not(.disabled) svg,
+.cm-next:hover:not(.disabled) svg {
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 30%));
 }
 
-.cm-prev:active, .cm-next:active {
-  text-shadow: 0 1px 0 rgb(0 0 0 / 30%);
+.cm-prev:active:not(.disabled) svg,
+.cm-next:active:not(.disabled) svg {
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 30%));
+  transform: translateY(3px);
+}
+
+.cm-btn.disabled svg {
+  filter: none;
 }
 
 .cm-prev {
@@ -80,6 +95,11 @@
   width: 95px;
   margin-right: 10px;
   float: left;
+
+  svg {
+    height: 1rem;
+    transform: translateY(0.25rem);
+  }
 }
 
 .cm-upvote-highlight {
@@ -112,11 +132,11 @@
 
 .form-button-wrapper {
   position: absolute;
-  padding-left: 134px;
+  padding-left: 84px;
   transform: translateY(-26px);
 
   .cm-cancel-highlight, .cm-save-highlight {
-    width: 75px;
+    width: 98px;
     background-image: linear-gradient(to bottom, #616161, #393939);
     padding: 0 0 0 0;
   }
@@ -125,10 +145,12 @@
 /*Edit, delete, request are small buttons*/
 .cm-small-btn {
   font-size: 12px;
-  width: 50px;
+  width: 60px;
   height: 13px;
   line-height: 1;
-  padding-top: 2px;
+  @-moz-document url-prefix() {
+    padding-top: 2px;
+  }
 }
 
 .cm-submit-highlight.disabled, .cm-form-submit.disabled {

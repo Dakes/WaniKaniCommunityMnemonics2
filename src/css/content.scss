@@ -54,5 +54,9 @@
 }
 
 #cm-meaning-chars-remaining, #cm-reading-chars-remaining {
-  padding-left: 54px;
+  padding-left: 4px;
+  svg {
+    height: 1rem;
+    transform: translateY(0.2rem);
+  }
 }
