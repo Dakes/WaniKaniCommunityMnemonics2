@@ -3,7 +3,7 @@
  * and the fetch of data belonging to displayed mnemonics
  */
 
-import { mnemMaxCount, refetchTimeout } from "./const";
+import { MNEM_MAX_COUNT, REFETCH_TIMEOUT } from "./const";
 import { dataUpdateAfterInsert, Escaping, jsonParse } from "./data";
 import { getInitialIframe, updateIframe } from "./html/iframe";
 import { Buttons, setScore } from "./html/mnem_div";
@@ -73,7 +73,7 @@ export function updateCM(dataJson: boolean | DataJson | null                    
       console.log("WKCM2: updateCM error: ", reason);
       setTimeout(function () {
         updateCM(false, mnemType, index)
-      }, refetchTimeout);
+      }, REFETCH_TIMEOUT);
     });
   }
 }
@@ -173,7 +173,7 @@ function updateCMelements(mnemType: MnemType, type: ItemType, dataJson: DataJson
         currentMnem.mnem[mnemType] = currentJsonUser[0];
 
       // disable submit button if user submitted too many mnems
-      if (getUserMnemCount(mnemJson, WKUser) >= mnemMaxCount)
+      if (getUserMnemCount(mnemJson, WKUser) >= MNEM_MAX_COUNT)
         addClass(`cm-${mnemType}-submit`);
 
     }

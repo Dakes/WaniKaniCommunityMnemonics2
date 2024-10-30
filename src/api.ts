@@ -3,7 +3,7 @@
  */
 
 import { cacheExpired, getCacheId } from "./cache";
-import { cacheDayMaxAge, sheetApiUrl } from "./const";
+import { CACHE_DAY_MAX_AGE, SHEET_API_URL } from "./const";
 import { dataBackgroundUpdate } from "./data";
 import { currentMnem, updateCM } from "./mnemonic";
 import { getItem, getItemType } from "./page";
@@ -39,7 +39,7 @@ export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss =
       printDev("Cache hit for", identifier, value);
       getData.misses = 0;
 
-      if (cacheExpired(identifier, cacheDayMaxAge))
+      if (cacheExpired(identifier, CACHE_DAY_MAX_AGE))
         dataBackgroundUpdate(item, type, value);
 
       return value;
@@ -99,7 +99,7 @@ export namespace getData {
 export async function getItemApi(item: string, type: ItemTypeAny): Promise<DataJson | null> {
   // TODO: sleep between failed fetches???
   let shortType = getShortItemType(type);
-  let url       = sheetApiUrl + `?item=${item}&type=${shortType}&exec=get`;
+  let url       = SHEET_API_URL + `?item=${item}&type=${shortType}&exec=get`;
   url           = encodeURI(url);
   // TODO: handle case of malformed URL
   return fetch(url, { method: "GET", redirect: "follow" })
@@ -122,7 +122,7 @@ export async function getItemApi(item: string, type: ItemTypeAny): Promise<DataJ
 }
 
 export async function getAllApi(): Promise<Object | null> {
-  let url = sheetApiUrl + `?exec=getall`;
+  let url = SHEET_API_URL + `?exec=getall`;
   url     = encodeURI(url);
   return fetch(url, { method: "GET", redirect: "follow" }).then(response => response.json())
   .catch(reason => {
@@ -135,7 +135,7 @@ export async function submitMnemonic(mnemType: MnemType, item: string,
                                      shortType: ItemTypeShort, mnemIndexDB: number, newMnem: string): Promise<Response> {
   let shortMnemType = getShortMnemType(mnemType);
   newMnem           = encodeURIComponent(newMnem);
-  let url           = sheetApiUrl +
+  let url           = SHEET_API_URL +
     `?exec=put&item=${item}&type=${shortType}&apiKey=${
       encodeURIComponent(userApiKey)}&mnemType=${shortMnemType}&mnemIndex=${
       mnemIndexDB}&mnem=${newMnem}`;
@@ -146,7 +146,7 @@ export async function submitMnemonic(mnemType: MnemType, item: string,
 export async function voteMnemonic(mnemType: MnemType, item: string,
                                    shortType: ItemTypeShort, vote: number): Promise<Response> {
   let shortMnemType = getShortMnemType(mnemType);
-  let url           = sheetApiUrl +
+  let url           = SHEET_API_URL +
     `?exec=vote&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
       userApiKey}&mnemUser=${currentMnem.currentUser[mnemType]}&mnemIndex=${
       currentMnem.userIndex[mnemType]}&vote=${vote}`;
@@ -158,7 +158,7 @@ export async function requestMnemonic(mnemType: MnemType, item: string,
                                       shortType: ItemTypeShort) {
   let shortMnemType = getShortMnemType(mnemType);
 
-  let url = sheetApiUrl + `?exec=request&item=${item}&type=${shortType}&apiKey=${
+  let url = SHEET_API_URL + `?exec=request&item=${item}&type=${shortType}&apiKey=${
     userApiKey}&mnemType=${shortMnemType}`;
   url     = encodeURI(url);
   return fetch(url, { method: "POST", redirect: "follow" });
@@ -169,7 +169,7 @@ export async function deleteMnemonic(mnemType: MnemType, item: string,
   if (currentMnem.currentUser[mnemType] != WKUser)
     return;
   let shortMnemType = getShortMnemType(mnemType);
-  let url           = sheetApiUrl +
+  let url           = SHEET_API_URL +
     `?exec=del&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
       userApiKey}&mnemIndex=${currentMnem.userIndex[mnemType]}`;
   url               = encodeURI(url);

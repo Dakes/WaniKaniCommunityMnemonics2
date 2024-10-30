@@ -2,7 +2,7 @@
  * Miscellaneous utility function used by various functions.
  */
 
-import { devel } from "./const";
+import { DEVEL } from "./const";
 import { dataUpdateAfterInsert } from "./data";
 import { getItemType } from "./page";
 
@@ -10,7 +10,7 @@ import { getItemType } from "./page";
  * calls console.log only when global devel variable is true
  * */
 export function printDev(...params: any[]) {
-  if (devel)
+  if (DEVEL)
     console.log(...params);
 }
 

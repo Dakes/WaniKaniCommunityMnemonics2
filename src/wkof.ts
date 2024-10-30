@@ -3,7 +3,7 @@
  * https://community.wanikani.com/t/wanikani-open-framework-developer-thread/22231
  */
 
-import { scriptName, win, WKCM2_version } from "./const";
+import { SCRIPT_NAME, win, WKCM2_VERSION } from "./const";
 import { printDev } from "./utils";
 import { Apiv2, ItemData, Menu, Settings, WKOF } from "./wkof_types"
 
@@ -23,7 +23,7 @@ export const { wkof } = win;
 export async function checkWKOF(): Promise<boolean> {
   if (!wkof) {
     let response = confirm(
-      `${scriptName} requires WaniKani Open Framework.\nClick "OK" to be forwarded to installation instructions.`,
+      `${SCRIPT_NAME} requires WaniKani Open Framework.\nClick "OK" to be forwarded to installation instructions.`,
     )
     if (response) {
       window.location.href =
@@ -37,11 +37,11 @@ export async function checkWKOF(): Promise<boolean> {
 export function checkWKOF_old(): boolean {
   var wkof_version_needed = '1.0.58';
   if (wkof && wkof.version.compare_to(wkof_version_needed) === 'older') {
-    if (confirm(scriptName + ' requires Wanikani Open Framework version ' + wkof_version_needed + '.\nDo you want to be forwarded to the update page?'))
+    if (confirm(SCRIPT_NAME + ' requires Wanikani Open Framework version ' + wkof_version_needed + '.\nDo you want to be forwarded to the update page?'))
       window.location.href = 'https://greasyfork.org/en/scripts/38582-wanikani-open-framework';
     return false;
   } else if (!wkof) {
-    if (confirm(scriptName + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?'))
+    if (confirm(SCRIPT_NAME + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?'))
       window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
     return false;
   } else
@@ -75,22 +75,22 @@ export async function waitForWKOF(): Promise<boolean> {
 export function resetWKOFcache(versionCheck = true) {
   if (versionCheck === false) {
     wkof.file_cache.delete(/^wkcm2-/);
-    wkof.file_cache.save("wkcm2-version", WKCM2_version);
+    wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
     return;
   }
 
   wkof.file_cache.load("wkcm2-version").then(value => {
       // found
-      if (WKCM2_version != value) {
+      if (WKCM2_VERSION != value) {
         printDev("WKCM2: New version detected. Deleting wkcm2 cache.");
         // regex delete of all wkcm2 saves
         wkof.file_cache.delete(/^wkcm2-/);
-        wkof.file_cache.save("wkcm2-version", WKCM2_version);
+        wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
       }
       return value;
     }, reason => {
       // version not saved, save current version
-      wkof.file_cache.save("wkcm2-version", WKCM2_version);
+      wkof.file_cache.save("wkcm2-version", WKCM2_VERSION);
     }
   );
 }
