@@ -135,11 +135,12 @@ export function jsonParse(jsonString: string): MnemJson | ScoreJson | VotesJson 
       // sometimes fetch was faster then score calculation => #ERROR!
       // if found retry. But only a few times. (There may really be #ERROR! in DB)
       if (jsonString.includes("#ERROR!") || jsonString.includes("#NAME?")) {
-        if (jsonParse.refetchCounter < 5)
+        if (jsonParse.refetchCounter < 5) {
           deleteCacheItem().then(r => {
-            api.getData();
+            void api.getData();
             jsonParse.refetchCounter++;
           });
+        }
       }
     }
   }

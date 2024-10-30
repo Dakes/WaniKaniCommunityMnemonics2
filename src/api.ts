@@ -33,7 +33,7 @@ export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss =
   let identifier = getCacheId(item, type);
 
   // get from wkof cache
-  let data = wkof.file_cache.load(identifier).then((value: DataJson) => {
+  return wkof.file_cache.load(identifier).then((value: DataJson) => {
       // cache hit
       // return from cache
       printDev("Cache hit for", identifier, value);
@@ -43,10 +43,10 @@ export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss =
         dataBackgroundUpdate(item, type, value);
 
       return value;
-    }, (reason) => {
+    }, async (reason: string) => {
       // cache miss
       if (!fetchOnMiss) {
-        wkof.file_cache.save(identifier, null);
+        await wkof.file_cache.save(identifier, null);
         return null;
       }
       // fetch data from db, put in cache and return
@@ -62,28 +62,26 @@ export async function getData(item?: string, type?: ItemTypeShort, fetchOnMiss =
       }
       printDev("Cache miss for", reason);
 
-      return getItemApi(item, type).then(responseJson => {
+      try {
+        const responseJson = await getItemApi(item, type);
         // fetch worked
-        wkof.file_cache.save(identifier, responseJson);
-        let reponseJsonCopy = JSON.parse(JSON.stringify(responseJson));
+        await wkof.file_cache.save(identifier, responseJson);
+        let responseJsonCopy = JSON.parse(JSON.stringify(responseJson));
 
         // only toggle visual update if the original item is still displayed.
         let curTyIt  = getShortItemType(getItemType()) + getItem();
         let prevTyIt = getShortItemType(type) + item;
         if (curTyIt == prevTyIt)
-          updateCM(reponseJsonCopy);
+          updateCM(responseJsonCopy);
         return responseJson;
-
-      }).catch(reason => {
+      } catch (reason_1) {
         // fetch failed
         // TODO: handle failed fetch
-        console.log("WKCM2: Error, getData, Fetch of data from spreadsheet failed: " + reason);
-        // create and return "Error" object, to signale failed fetch and display that.
+        console.log("WKCM2: Error, getData, Fetch of data from spreadsheet failed: " + reason_1);
         return null;
-      });
+      }
     }
   );
-  return data;
 }
 
 export namespace getData {
@@ -101,7 +99,6 @@ export async function getItemApi(item: string, type: ItemTypeAny): Promise<DataJ
   let shortType = getShortItemType(type);
   let url       = SHEET_API_URL + `?item=${item}&type=${shortType}&exec=get`;
   url           = encodeURI(url);
-  // TODO: handle case of malformed URL
   return fetch(url, { method: "GET", redirect: "follow" })
     .then(response => response.json()).catch(reason => {
       console.log("WKCM2: fetchData failed: " + reason);
@@ -124,8 +121,10 @@ export async function getItemApi(item: string, type: ItemTypeAny): Promise<DataJ
 export async function getAllApi(): Promise<Object | null> {
   let url = SHEET_API_URL + `?exec=getall`;
   url     = encodeURI(url);
-  return fetch(url, { method: "GET", redirect: "follow" }).then(response => response.json())
-    .catch(reason => {
+  return fetch(url, { method: "GET", redirect: "follow" })
+    .then(response => {
+      return response.json();
+    }).catch(reason => {
       console.log("WKCM2: fillCache failed: ", reason);
       return null;
     });

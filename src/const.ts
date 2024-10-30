@@ -8,9 +8,7 @@ export const SCRIPT_NAME_LONG = 'WaniKani Community Mnemonics 2';
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-export const SHEET_API_URL = "https://script.google.com/macros/s/AKfycby_Kqff92G40TGXr0PSulvQ2gqx6bkHVEl6LplZ-zc5ZIHhJGwe7AA8I4nDErKMiu2GEw/exec";
-
-// "https://script.google.com/macros/s/AKfycbxCxmHz_5ibnHn0un5HxaCLeJTRHxwdrS5fW4nmXBYXyA-Jw6aDPPrrHWrieir3B8kDFQ/exec";
+export const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz7eJp6Z1gT_eYbrY80aghpB8bzgGiIOFcJR0yztQpRUVvSEUx6ZylBJLML4DCb5rUfPA/exec";
 
 // Maximum number, how many mnemonics one user can submit for one item.
 export const MNEM_MAX_COUNT = 5;
