@@ -2,8 +2,8 @@
  * Global constant values
  */
 
-export const WKCM2_version = "0.3.2";
-export const scriptName = 'WKCM2';
+export const WKCM2_version  = "0.3.3";
+export const scriptName     = 'WKCM2';
 export const scriptNameLong = 'WaniKani Community Mnemonics 2';
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
@@ -15,9 +15,11 @@ export const sheetApiUrl = "https://script.google.com/macros/s/AKfycby_Kqff92G40
 // Maximum number, how many mnemonics one user can submit for one item.
 export const mnemMaxCount = 5;
 
-// If date of cached item is older than this number of days, refetch.
+// If date of cached item is older than this number of days, re-fetch.
 // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
-export const cacheDayMaxAge = 7;
+export const cacheDayMaxAge        = 7;
+// Only execute getall, if last getall is older than this number of days.
+export const GET_ALL_CACHE_MAX_AGE = 60;
 
 
 // whether to use console logs
@@ -30,19 +32,19 @@ export let isItem = false;
 // @ts-ignore;  and window does not have access to wkof in some browsers?? (How even? idk, it worked before)
 export let win: Window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
 
-export function setPageVars()
-{
-    isList = (
-            // true if on a level page
-            /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
-            // true if on a /kanji?difficulty=pleasant site
-            /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
-                .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2) + window.location.search )
-        );
+export function setPageVars() {
+  isList = (
+    // true if on a level page
+    /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
+    // true if on a /kanji?difficulty=pleasant site
+    /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
+    .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2) + window.location.search)
+  );
 
-    isItem = /(kanji|vocabulary|radicals)\/.*/gi
-        .test(window.location.pathname.slice( window.location.pathname.indexOf("com/") + 2));
+  isItem = /(kanji|vocabulary|radicals)\/.*/gi
+  .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2));
 }
+
 setPageVars();
 
 export const cacheFillIdent = "wkcm2-fillCache";

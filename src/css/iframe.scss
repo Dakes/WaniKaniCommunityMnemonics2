@@ -1,25 +1,26 @@
 @use "highlight";
 @use "colors";
 
-body
-{
-    padding: 8px;
-    font-size: 100% !important;
-    font-weight: 300 !important;
-    line-height: 1.5 !important;
-    /*Item Page has different background color. Item: #eee. Other: #fff*/
-    /*background-color: ${(isItem ? '#eee' : '#fff')} !important;*/
-    background-color: #fff !important;
-    font-family: "Ubuntu",Helvetica,Arial,sans-serif;
+body {
+  font-size: 100% !important;
+  font-weight: 300 !important;
+  line-height: 1.5 !important;
+  /*Item Page has different background color. Item: #eee. Other: #fff*/
+  /*background-color: ${(isItem ? '#eee' : '#fff')} !important;*/
+  background-color: #fff !important;
+  font-family: "Ubuntu", Helvetica, Arial, sans-serif;
 }
 
 /* The scrollbar is ugly af. At least on Chrom*. Hide scrollbar in iframe, but it is still scrolable, if mnem is long.
    TODO: display scrollbar again, only when mnem is long. (Maybe determine by line count. )
  */
-::-webkit-scrollbar{display: none;}
+::-webkit-scrollbar {
+  display: none;
+}
+
 * {
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 

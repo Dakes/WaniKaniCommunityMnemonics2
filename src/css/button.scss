@@ -13,7 +13,7 @@
   font-weight: normal;
 }
 
-// Fix, because buttons unexplainably are larger in Lessons and Reviews
+// Fix, because buttons unexplainable are larger in Lessons and Reviews
 #item-info, #supplement-info {
   .cm-submit-highlight, .cm-upvote-highlight, .cm-downvote-highlight {
     height: 15px;
@@ -134,5 +134,3 @@
 .cm-submit-highlight.disabled, .cm-form-submit.disabled {
   color: #8b8b8b !important
 }
-
-/*.cm-request-highlight { margin-top: 10px; width: 100px; background-image: linear-gradient(to bottom, #ea5, #d69646)}*/

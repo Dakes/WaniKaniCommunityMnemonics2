@@ -1,10 +1,8 @@
-
 /**
  * Create the textbox and all of its buttons for writing mnemonics
  * */
-export function getCMForm(mnemType: MnemType): string
-{
-    return /*HTML*/`
+export function getCMForm(mnemType: MnemType): string {
+  return /*HTML*/`
 <form id="cm-${mnemType}-form" class="cm-form cm-mnem-text" onsubmit="return false">
 <div id="cm-${mnemType}-format" class="cm-format">
 <div id="cm-format-${mnemType}-bold"      class="cm-btn cm-format-btn cm-format-bold"      title="bold"><b>b</b></div>

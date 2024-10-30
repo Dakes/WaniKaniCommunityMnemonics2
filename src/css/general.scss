@@ -1,20 +1,17 @@
 // Styles for the general page layout
 
 .cm-content {
-    height: 100%;
-    //! Spacing gets handled by wkiteminfo injector now
-    // min-height: 200px;
-    text-align: left;
-    display: inline-block;
+  height: 100%;
+  text-align: left;
+  display: inline-block;
 }
 
 // fix spacing at the bottom on list page
 #turbo-body .container #wkcm2 .cm-content {
-    padding-bottom: 50px;
+  padding-bottom: 50px;
 }
 
 .cm {
-    font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
-    overflow: auto;
-    // text-align: center;
+  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  overflow: auto;
 }

@@ -1,9 +1,8 @@
-
 declare global {
-    interface Window {
-        // @ts-ignore
-        wkItemInfo: wkItemInfo<{  }>
-    }
+  interface Window {
+    // @ts-ignore
+    wkItemInfo: wkItemInfo<{}>
+  }
 }
 
 // @ts-ignore
