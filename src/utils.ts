@@ -171,3 +171,7 @@ export function handleApiPutResponse(response: Response, callback = dataUpdateAf
     // do something to handle the failure
   }
 }
+
+export function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}

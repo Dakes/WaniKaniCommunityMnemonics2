@@ -103,32 +103,32 @@ export async function getItemApi(item: string, type: ItemTypeAny): Promise<DataJ
   url           = encodeURI(url);
   // TODO: handle case of malformed URL
   return fetch(url, { method: "GET", redirect: "follow" })
-  .then(response => response.json()).catch(reason => {
-    console.log("WKCM2: fetchData failed: " + reason);
-    return null;
-  })
-  .then((responseJson) => {
-      if (responseJson == null)
-        return null;
-      else {
-        // Object.keys... .length on "" is 0. neat
-        if (Object.keys(responseJson["Meaning_Mnem"]).length == 0 || responseJson["Meaning_Mnem"] == "{}")
-          if (Object.keys(responseJson["Reading_Mnem"]).length == 0 || responseJson["Reading_Mnem"] == "{}")
-            return null;
-        return responseJson;
+    .then(response => response.json()).catch(reason => {
+      console.log("WKCM2: fetchData failed: " + reason);
+      return null;
+    })
+    .then((responseJson) => {
+        if (responseJson == null)
+          return null;
+        else {
+          // Object.keys... .length on "" is 0. neat
+          if (Object.keys(responseJson["Meaning_Mnem"]).length == 0 || responseJson["Meaning_Mnem"] == "{}")
+            if (Object.keys(responseJson["Reading_Mnem"]).length == 0 || responseJson["Reading_Mnem"] == "{}")
+              return null;
+          return responseJson;
+        }
       }
-    }
-  );
+    );
 }
 
 export async function getAllApi(): Promise<Object | null> {
   let url = SHEET_API_URL + `?exec=getall`;
   url     = encodeURI(url);
   return fetch(url, { method: "GET", redirect: "follow" }).then(response => response.json())
-  .catch(reason => {
-    console.log("WKCM2: fillCache failed: ", reason);
-    return null;
-  });
+    .catch(reason => {
+      console.log("WKCM2: fillCache failed: ", reason);
+      return null;
+    });
 }
 
 export async function submitMnemonic(mnemType: MnemType, item: string,

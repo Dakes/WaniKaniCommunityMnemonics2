@@ -375,13 +375,13 @@ export class Textarea {
     // api call to put data
     api.submitMnemonic(mnemType, item, getShortItemType(type),
       mnemUserIndexDB, newMnem)
-    .then(a => {
-      addClass(`cm-${mnemType}-cancel`);
-      // with undefined, uses default parameter.
-      dataUpdateAfterInsert(undefined, undefined, undefined, undefined, undefined,
-        currentMnem.mnemIndex[mnemType], mnemType);
-    })
-    .catch(reason => console.log("WKCM2: editSaveCM failed: ", reason));
+      .then(a => {
+        addClass(`cm-${mnemType}-cancel`);
+        // with undefined, uses default parameter.
+        dataUpdateAfterInsert(undefined, undefined, undefined, undefined, undefined,
+          currentMnem.mnemIndex[mnemType], mnemType);
+      })
+      .catch(reason => console.log("WKCM2: editSaveCM failed: ", reason));
 
 
     Textarea.submitting             = false;

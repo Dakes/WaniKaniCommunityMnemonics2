@@ -19,7 +19,7 @@ import { wkof } from "./wkof";
  * @param wait number of ms to wait with execution, or false. (Because after insertion into sheet it takes a moment for the updated version to be returned. Annoyingly even when using promises. )
  * */
 export async function dataBackgroundUpdate(item: string | null = null, type: ItemTypeAny | null = null,
-                                           cachedData: DataJson | null                          = null, wait             = false) {
+                                           cachedData: DataJson | null                          = null, wait = false) {
   if (wait && typeof wait == "number") {
     setTimeout(function () {
       dataBackgroundUpdate(item, type, cachedData, wait = false);
@@ -86,10 +86,10 @@ export function dataUpdateAfterInsert(item: string | null                       
   if (cachedData === false) {
     wkof.file_cache.load(identifier).then(cachedData =>
       dataUpdateAfterInsert(item, type, cachedData, tries, wait, index, mnemType))
-    .catch(err => {
-      printDev("WKCM2: dataUpdateAfterInsert, cache miss: ", err);
-      dataUpdateAfterInsert(item, type, null, tries, wait, index, mnemType);
-    });
+      .catch(err => {
+        printDev("WKCM2: dataUpdateAfterInsert, cache miss: ", err);
+        dataUpdateAfterInsert(item, type, null, tries, wait, index, mnemType);
+      });
     return Promise.resolve();
   } else if (typeof cachedData != "boolean") {
     api.getItemApi(item, type).then(responseJson => {

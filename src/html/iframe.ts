@@ -64,7 +64,7 @@ function getIframeSrcdoc(text: string, user: string | null = null) {
 
   // just to be sure replace those signs here again. But those shouldn't be in the sheet to begin with.
   text = text.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
   text = Escaping.replaceMarkup(text);
 
   // text = escape(text);
@@ -73,7 +73,7 @@ function getIframeSrcdoc(text: string, user: string | null = null) {
   // user can be null, if it is a system message
   if (user != null && typeof user === "string" && user != "") {
     user    = user.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+      .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
     userMsg = "by " + Escaping.getUserProfileLink(user);
   }
   if (user == "!")

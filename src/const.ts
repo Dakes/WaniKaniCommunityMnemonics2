@@ -2,7 +2,7 @@
  * Global constant values
  */
 
-export const WKCM2_VERSION  = "0.3.3";
+export const WKCM2_VERSION    = "0.3.3";
 export const SCRIPT_NAME      = 'WKCM2';
 export const SCRIPT_NAME_LONG = 'WaniKani Community Mnemonics 2';
 
@@ -17,7 +17,7 @@ export const MNEM_MAX_COUNT = 5;
 
 // If date of cached item is older than this number of days, re-fetch.
 // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
-export const CACHE_DAY_MAX_AGE = 7;
+export const CACHE_DAY_MAX_AGE     = 7;
 // Only execute getall, if last getall is older than this number of days.
 export const GET_ALL_CACHE_MAX_AGE = 60;
 
@@ -44,11 +44,11 @@ export function setPageVars() {
     /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||
     // true if on a /kanji?difficulty=pleasant site
     /(kanji|vocabulary|radicals)\?(difficulty=[A-Za-z].*)/gi
-    .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2) + window.location.search)
+      .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2) + window.location.search)
   );
 
   isItem = /(kanji|vocabulary|radicals)\/.*/gi
-  .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2));
+    .test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2));
 }
 
 setPageVars();

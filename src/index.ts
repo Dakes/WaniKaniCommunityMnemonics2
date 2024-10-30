@@ -4,7 +4,7 @@ import { getCMdivContent, getHeader } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
 import { detectUrlChange, getItemType, waitForClass } from "./page";
 import { setApiKey, setUsername } from "./user";
-import { waitForEle } from "./utils";
+import { sleep, waitForEle } from "./utils";
 import { checkWKOF_old, resetWKOFcache, waitForWKOF, wkof } from "./wkof";
 import { getBadgeBaseClass, getBadgeClassAvail } from "./html/list";
 
@@ -22,19 +22,13 @@ run();
 
 // all code runs from here
 function run() {
-  console.log('run');
   // Runs checks if elements exist before running init and waits for them. Then calls init.
   waitForWKOF().then(exists => {
-    console.log('exists', exists);
     if (exists) {
-      console.log("here 1: WKCM2: WKOF found.");
       wkof.include('Apiv2').then(() => {
-        console.log('here 2');
         wkof.ready('Apiv2').then(() => {
-          console.log('here 3');
           init();
         });
-        console.log('here 4');
       });
     } else
       console.log("WKCM2: there was a problem with checking for wkof. Please check if it is installed correctly and running. ");
@@ -50,7 +44,6 @@ function run() {
  * Runs the right code depending if the current page is Lesson, Review or List
  * */
 function init() {
-  console.log('init');
   // resets cache on new version of WKCM2
   resetWKOFcache();
   // refills whole cache, if not already filled or old.
@@ -61,23 +54,16 @@ function init() {
   if (isInitialized())
     return;
 
-  console.log('isList', isList);
-  console.log('isItem', isItem);
   if (isList) {
     fillCacheIfExpired();
     initList();
   } else {
-    infoInjectorInit("meaning");
-    infoInjectorInit("reading");
+    void infoInjectorInit("meaning");
+    void infoInjectorInit("reading");
   }
 
   if (isList || isItem)
     detectUrlChange(500);
-}
-
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
@@ -87,22 +73,22 @@ function sleep(ms) {
 export async function infoInjectorInit(mnemType: MnemType) {
   if (isInitialized())
     return;
-  await sleep(100)
+  await sleep(100);
 
   let cm_div       = document.createElement("div");
   cm_div.innerHTML = getCMdivContent(mnemType);
 
   // Create a handle for this injection
   const handle = win.wkItemInfo
-  .under(mnemType)
-  .spoiling(mnemType)
-  .appendSubsection(getHeader(mnemType), cm_div);
+    .under(mnemType)
+    .spoiling(mnemType)
+    .appendSubsection(getHeader(mnemType), cm_div);
 
   if (handle) {
     // Set up notification using the same selector configuration
     const wkItemInfoSelector = win.wkItemInfo
-    .under(mnemType)
-    .spoiling(mnemType);
+      .under(mnemType)
+      .spoiling(mnemType);
 
     let notify: Function = wkItemInfoSelector.notifyWhenVisible || wkItemInfoSelector.notify;
     notify(o => {

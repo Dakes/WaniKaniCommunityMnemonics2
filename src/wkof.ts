@@ -58,8 +58,6 @@ export async function waitForWKOF(): Promise<boolean> {
   // or not met or the timeout has been exceeded which means
   // this promise will be rejected
   function waitForFoo(resolve, reject): boolean {
-    console.log('wkof here');
-
     if (wkof)
       return resolve(true);
     else if (timeout && (Date.now() - start) >= timeout)
