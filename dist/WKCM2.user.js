@@ -52,7 +52,7 @@ var rollupUserScript = (function (exports) {
     // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
     const CACHE_DAY_MAX_AGE = 7;
     // Only execute getall, if last getall is older than this number of days.
-    const GET_ALL_CACHE_MAX_AGE = 60;
+    const GET_ALL_CACHE_MAX_AGE = 30;
     const CACHE_FILL_IDENTIFIER = "wkcm2-fillCache";
     // getData refetch timeout. How long to wait with new execution of updateCM after previous getData fetch.
     // Especially, if the apps script is overloaded it can take a while (~5s). So it has to be enough time,

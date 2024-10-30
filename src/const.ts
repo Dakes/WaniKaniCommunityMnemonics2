@@ -17,7 +17,7 @@ export const MNEM_MAX_COUNT = 5;
 // NOTE: If too many people use WKCM2, it might be necessary to turn this up, so the API doesn't get spammed with requests.
 export const CACHE_DAY_MAX_AGE     = 7;
 // Only execute getall, if last getall is older than this number of days.
-export const GET_ALL_CACHE_MAX_AGE = 60;
+export const GET_ALL_CACHE_MAX_AGE = 30;
 
 export const CACHE_FILL_IDENTIFIER = "wkcm2-fillCache";
 
