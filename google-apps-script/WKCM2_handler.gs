@@ -336,9 +336,10 @@ function getAllRowsCached(sheet)
   let cacheMiss = false;
 
   types.forEach(type => {
-    if (cachedData[type]) {
+    const cacheKey = cacheKeyPrefix + type;
+    if (cachedData[cacheKey]) {
       // Parse and merge cached data
-      let parsed = JSON.parse(cachedData[type]);
+      let parsed = JSON.parse(cachedData[cacheKey]);
       for (let key in parsed) {
         allData[key] = parsed[key];
       }
@@ -356,15 +357,11 @@ function getAllRowsCached(sheet)
     Logger.log('Fetching new getall data');
     const fullData = getAllRows(sheet);
 
-    // Validate data: ensure no score fields contain "#ERROR!"
-    if (hasErrorInScores(fullData))
-    {
-      Logger.log('Data contains #ERROR! in score fields. Not caching the response.');
-      return getError(", Score calculations not completed yet.");
-    }
+    // Filter out entries that contain "#ERROR!" in score fields
+    const filteredData = filterOutErrorEntries(fullData);
 
     // Split data by type
-    let splitData = splitDataByType(fullData, types);
+    let splitData = splitDataByType(filteredData, types);
 
     // Cache each type separately
     types.forEach(type => {
@@ -373,7 +370,7 @@ function getAllRowsCached(sheet)
         let jsonData = JSON.stringify(typeData);
         // Ensure each cache entry is under 100KB
         if (jsonData.length <= 100 * 1024) {
-          cache.put(cacheKeyPrefix + type, jsonData, 60 * 60 * 24 * 2); // Cache for two days
+          cache.put(cacheKeyPrefix + type, jsonData, 60 * 60 * 24 * 7); // Cache for seven days
           Logger.log('Caching getall data for type ' + type + ' for two days');
         }
         else {
@@ -394,6 +391,26 @@ function getAllRowsCached(sheet)
 
     return ContentService.createTextOutput(JSON.stringify(allData)).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Filters out entries that have "#ERROR!" in their score fields.
+ *
+ * @param {Object} data - The complete data object.
+ * @returns {Object} - Returns a new object with entries that do not contain errors.
+ */
+function filterOutErrorEntries(data)
+{
+  let filteredData = {};
+  for (let key in data)
+  {
+    const entry = data[key];
+    if (entry["Meaning_Score"] !== "#ERROR!" && entry["Reading_Score"] !== "#ERROR!")
+    {
+      filteredData[key] = entry;
+    }
+  }
+  return filteredData;
 }
 
 /**
@@ -422,23 +439,4 @@ function splitDataByType(fullData, types)
   }
 
   return splitData;
-}
-
-/**
- * Checks if any score fields contain "#ERROR!".
- *
- * @param {Object} data - The complete data object.
- * @returns {boolean} - Returns true if an error is found; otherwise, false.
- */
-function hasErrorInScores(data)
-{
-  for (let key in data)
-  {
-    const entry = data[key];
-    if (entry["Meaning_Score"] === "#ERROR!" || entry["Reading_Score"] === "#ERROR!")
-    {
-      return true;
-    }
-  }
-  return false;
 }

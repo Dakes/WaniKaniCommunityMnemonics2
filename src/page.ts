@@ -6,6 +6,8 @@ import { infoInjectorInit, initList } from ".";
 import { isItem, isList, setPageVars, win } from "./const";
 import { updateIframe } from "./html/iframe";
 import { getMedItemType } from "./utils";
+import { ItemData } from "./wkof_types";
+import Item = ItemData.Item;
 
 
 /**
@@ -31,17 +33,24 @@ export function getItem(): string {
  * Returns radical, kanji or vocabulary
  * */
 export function getItemType(): ItemType {
-  let itemType = win.wkItemInfo.currentState.type
+  let itemType: string;
   if (isList)
     itemType = window.location.pathname.slice(1);
+  else
+    itemType = win.wkItemInfo.currentState.type
 
-  if (itemType == null)
-    console.log("WKCM2: getItemType, itemType null");
+  if (itemType == null) {
+    console.error("WKCM2: getItemType, itemType null");
+    return null;
+  }
+
+  if (itemType.toLowerCase().includes("vocabulary"))
+    itemType = "vocabulary";
 
   if (itemType === "radicals")
     itemType = "radical";
 
-  return itemType;
+  return itemType as ItemType;
 }
 
 /**
