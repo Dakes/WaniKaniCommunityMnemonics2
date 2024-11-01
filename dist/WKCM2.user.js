@@ -11,7 +11,7 @@
 // @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.4.1
+// @version     0.4.2
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
@@ -41,7 +41,7 @@ var rollupUserScript = (function (exports) {
     /**
      * Global constant values
      */
-    const WKCM2_VERSION = "0.4.1";
+    const WKCM2_VERSION = "0.4.2";
     const SCRIPT_NAME = 'WKCM2';
     // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
     // google sheets apps script url, for sheet access
@@ -1652,12 +1652,12 @@ var rollupUserScript = (function (exports) {
     }
     function getBadgeClass(type = "available", legend = false) {
         if (legend)
-            return "subject-legend__item-badge--cm-" + type;
+            return "wkcm-legend-badge-" + type;
         else
-            return `character-item__badge ${getBadgeBaseClass(type)}`;
+            return `subject-character__badge ${getBadgeBaseClass(type)}`;
     }
     function getBadgeBaseClass(type = "") {
-        return `character-item__badge__cm-${type}`;
+        return `wkcm-list-badge-cm-${type}`;
     }
     function getBadgeClassReq(legend = false) {
         return getBadgeClass("request", legend);
@@ -1681,20 +1681,20 @@ var rollupUserScript = (function (exports) {
         //let typeShort = getShortItemType(getItemType());
         // needed for "levels" Overview, where all three are present
         for (let type of types) {
-            let itemList = document.querySelectorAll(`.character-item--${type}`);
+            let itemList = document.querySelectorAll(`.subject-character--${type}`);
             for (let i = 0; i < itemList.length; i++) {
                 if (typeof itemList[i] != "object" || itemList[i] == null) {
                     console.log(type, itemList[i]);
                     console.log(typeof itemList[i]);
                     continue;
                 }
-                let spanItem = itemList[i].querySelector(".character-item__characters");
+                let spanItem = itemList[i].querySelector(".subject-character__characters");
                 let item = "";
                 if (spanItem.innerText) {
                     item = spanItem.innerText;
                 }
-                else if (type == "radical") // Image Radical
-                 {
+                else if (type == "radical") {
+                    // Image Radical
                     let radImg = spanItem.querySelector("img.radical-image");
                     item = radImg.alt;
                 }
@@ -1717,17 +1717,20 @@ var rollupUserScript = (function (exports) {
      * @param selector
      */
     function addBadge(node, badgeHTML, selector) {
-        if (!node.parentNode.querySelector(`.${selector}`)) {
-            let range = document.createRange();
-            range.selectNode(document.body);
-            let newElement = range.createContextualFragment(badgeHTML);
-            node.parentNode.insertBefore(newElement, node);
+        if (!node.querySelector(`.${selector}`)) {
+            let existingBadge = node.querySelector('.subject-character__badge');
+            if (existingBadge) {
+                existingBadge.insertAdjacentHTML('afterend', badgeHTML);
+            }
+            else {
+                node.insertAdjacentHTML('afterbegin', badgeHTML);
+            }
         }
     }
 
     insertStyle(".cm-content {\n  height: 100%;\n  text-align: left;\n  display: inline-block;\n}\n\n#turbo-body .container #wkcm2 .cm-content {\n  padding-bottom: 50px;\n}\n\n.cm {\n  font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  overflow: auto;\n}");
 
-    insertStyle(".subject-legend__item {\n  flex: 0 0 17%;\n}\n\n.subject-legend__item-badge--cm-request {\n  background-color: #e1aa00;\n}\n\n.subject-legend__item-badge--cm-available {\n  background-color: #71aa00;\n}\n\n.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {\n  width: 2em;\n  height: 2em;\n  line-height: 2.1;\n  color: #fff;\n  font-size: 16px;\n  border-radius: 50%;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);\n  margin-bottom: 14px;\n  text-align: center;\n}\n\n.character-item__badge__cm-request {\n  background-color: #e1aa00;\n  left: 30px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-request {\n    left: 0px;\n    transform: translate(45%, 0%);\n  }\n}\n\n.character-item__badge__cm-available {\n  background-color: #71aa00;\n  left: 60px;\n}\n@media screen and (max-width: 767px) {\n  .character-item__badge__cm-available {\n    left: 0px;\n    transform: translate(45%, -112%);\n  }\n}\n\n.character-grid__item--vocabulary .character-item__badge__cm-request {\n  left: 0px;\n  transform: translate(45%, 0%);\n}\n.character-grid__item--vocabulary .character-item__badge__cm-available {\n  left: 0px;\n  transform: translate(45%, -112%);\n}\n.character-grid__item--vocabulary .character-item {\n  padding-left: 40px;\n}\n\n@media screen and (max-width: 767px) {\n  .character-item {\n    padding-left: 40px;\n  }\n}");
+    insertStyle(".subject-legend__item {\n  flex: 0 0 17%;\n}\n\n.wkcm-legend-badge-request {\n  background-color: #e1aa00;\n}\n\n.wkcm-legend-badge-available {\n  background-color: #71aa00;\n}\n\n.wkcm-legend-badge-request, .wkcm-legend-badge-available {\n  width: 2em;\n  height: 2em;\n  line-height: 2.1;\n  color: #fff;\n  font-size: 16px;\n  border-radius: 50%;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);\n  box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.2) inset, 0 0 10px rgba(255, 255, 255, 0.5);\n  margin-bottom: 14px;\n  text-align: center;\n}\n\n.wkcm-list-badge-cm-request {\n  background-color: #e1aa00;\n  left: 30px;\n}\n@media screen and (max-width: 767px) {\n  .wkcm-list-badge-cm-request {\n    left: 0;\n    transform: translate(45%, 0%) !important;\n  }\n}\n\n.wkcm-list-badge-cm-available {\n  background-color: #71aa00;\n  left: 60px;\n}\n@media screen and (max-width: 767px) {\n  .wkcm-list-badge-cm-available {\n    left: 0;\n    transform: translate(45%, -112%) !important;\n  }\n}\n\n.subject-character--vocabulary.subject-character--grid .wkcm-list-badge-cm-request {\n  left: 0;\n  transform: translate(45%, 0%) !important;\n}\n.subject-character--vocabulary.subject-character--grid .wkcm-list-badge-cm-available {\n  left: 0;\n  transform: translate(45%, -112%) !important;\n}\n.subject-character--vocabulary.subject-character--grid .subject-character__characters {\n  padding-left: 40px;\n}\n\n@media screen and (max-width: 767px) {\n  .subject-character__characters {\n    padding-left: 40px;\n  }\n}");
 
     insertStyle(".cm-btn {\n  color: white;\n  font-size: 14px;\n  cursor: pointer;\n  filter: contrast(0.9);\n  border-radius: 3px;\n  box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2) inset;\n  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);\n  transition: text-shadow 0.15s linear;\n  text-align: center;\n  font-weight: normal;\n}\n\n#item-info .cm-submit-highlight, #item-info .cm-upvote-highlight, #item-info .cm-downvote-highlight, #supplement-info .cm-submit-highlight, #supplement-info .cm-upvote-highlight, #supplement-info .cm-downvote-highlight {\n  height: 15px;\n  padding: 1px 0 4px 0;\n}\n\n.cm-btn:hover {\n  filter: contrast(1.15) !important;\n}\n\n.cm-btn:active {\n  filter: contrast(1.2) !important;\n  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) inset;\n}\n\n.cm-btn.disabled.cm-btn.disabled {\n  opacity: 0.3;\n  pointer-events: none;\n}\n\n.cm-prev {\n  padding-right: 10px;\n}\n\n.cm-prev, .cm-next {\n  margin: 0 0 0 0;\n  box-shadow: none !important;\n}\n.cm-prev svg, .cm-next svg {\n  height: 50px;\n  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.3));\n  transition: filter 0.2s ease, transform 0.2s ease;\n}\n\n.cm-prev:not(.disabled) svg, .cm-next:not(.disabled) svg {\n  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.3));\n}\n\n.cm-prev:hover:not(.disabled) svg,\n.cm-next:hover:not(.disabled) svg {\n  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.3));\n}\n\n.cm-prev:active:not(.disabled) svg,\n.cm-next:active:not(.disabled) svg {\n  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.3));\n  transform: translateY(3px);\n}\n\n.cm-btn.disabled svg {\n  filter: none;\n}\n\n.cm-prev {\n  float: left;\n}\n\n.cm-next {\n  float: right;\n}\n\n.cm-prev.disabled, .cm-next.disabled {\n  opacity: 0.25;\n}\n\n.cm-small-btn, .cm-submit-highlight, .cm-form-submit, .cm-form-cancel {\n  text-align: center;\n  font-size: 14px;\n  width: 75px;\n  margin-right: 10px;\n  float: left;\n  padding: 0 4px;\n}\n\n.cm-upvote-highlight, .cm-downvote-highlight {\n  width: 95px;\n  margin-right: 10px;\n  float: left;\n}\n.cm-upvote-highlight svg, .cm-downvote-highlight svg {\n  height: 1rem;\n  transform: translateY(0.25rem);\n}\n\n.cm-upvote-highlight {\n  background-image: linear-gradient(to bottom, #5c5, #46ad46);\n}\n\n.cm-downvote-highlight {\n  background-image: linear-gradient(to bottom, #c55, #ad4646);\n}\n\n.cm-delete-highlight {\n  background-image: linear-gradient(to bottom, #811, #6d0606);\n  margin-right: 10px;\n}\n\n.cm-edit-highlight {\n  background-image: linear-gradient(to bottom, #ccc, #adadad);\n}\n\n.cm-request-highlight {\n  background-image: linear-gradient(to bottom, #e1aa00, #d57602);\n}\n\n.cm-submit-highlight {\n  width: 125px;\n  margin-left: 75px;\n  float: right;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n}\n\n.form-button-wrapper {\n  position: absolute;\n  padding-left: 84px;\n  transform: translateY(-26px);\n}\n.form-button-wrapper .cm-cancel-highlight, .form-button-wrapper .cm-save-highlight {\n  width: 98px;\n  background-image: linear-gradient(to bottom, #616161, #393939);\n  padding: 0 0 0 0;\n}\n\n/*Edit, delete, request are small buttons*/\n.cm-small-btn {\n  font-size: 12px;\n  width: 60px;\n  height: 13px;\n  line-height: 1;\n}\n@-moz-document url-prefix() {\n  .cm-small-btn {\n    padding-top: 2px;\n  }\n}\n\n.cm-submit-highlight.disabled, .cm-form-submit.disabled {\n  color: #8b8b8b !important;\n}");
 
@@ -1842,9 +1845,9 @@ var rollupUserScript = (function (exports) {
         }
         else // For list
          {
-            if (document.querySelector(".character-item__badge__cm-request"))
+            if (document.querySelector(".wkcm-list-badge-cm-request"))
                 return true;
-            if (document.querySelector(".character-item__badge__cm-available"))
+            if (document.querySelector(".wkcm-list-badge-cm-available"))
                 return true;
         }
         return false;

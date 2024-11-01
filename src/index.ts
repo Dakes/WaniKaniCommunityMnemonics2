@@ -134,9 +134,9 @@ function isInitialized(mnemType: MnemType | null = null): Boolean {
       return true;
   } else  // For list
   {
-    if (document.querySelector(".character-item__badge__cm-request"))
+    if (document.querySelector(".wkcm-list-badge-cm-request"))
       return true;
-    if (document.querySelector(".character-item__badge__cm-available"))
+    if (document.querySelector(".wkcm-list-badge-cm-available"))
       return true;
   }
   return false;
