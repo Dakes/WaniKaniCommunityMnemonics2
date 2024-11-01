@@ -191,6 +191,10 @@ Running `npm start` will start a development server, that will continually rebui
 - Change styling
 - Caching for getall on the apps script side
 
+#### 0.4.1
+- Fix kanji type in lesson
+- Don't include error entries in caching on apps script
+
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags
 - 🚫 Sheet apps script deletes Mnemonics with rating of -10 or below

@@ -2,13 +2,13 @@
  * Global constant values
  */
 
-export const WKCM2_VERSION    = "0.4.0";
+export const WKCM2_VERSION    = "0.4.1";
 export const SCRIPT_NAME      = 'WKCM2';
 export const SCRIPT_NAME_LONG = 'WaniKani Community Mnemonics 2';
 
 // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
 // google sheets apps script url, for sheet access
-export const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz7eJp6Z1gT_eYbrY80aghpB8bzgGiIOFcJR0yztQpRUVvSEUx6ZylBJLML4DCb5rUfPA/exec";
+export const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzvZIOvmZa8K3A4sqRRWjhsWo88HgmolOZQDypZqucUIFgjxjC_NInDKXa7lEjeqJ0k8w/exec";
 
 // Maximum number, how many mnemonics one user can submit for one item.
 export const MNEM_MAX_COUNT = 5;
@@ -50,4 +50,3 @@ export function setPageVars() {
 }
 
 setPageVars();
-

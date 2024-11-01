@@ -11,7 +11,7 @@
 // @require     https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982
 // @homepage    https://github.com/Dakes/WaniKaniCommunityMnemonics2/
 // @downloadURL https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js
-// @version     0.4.0
+// @version     0.4.1
 // @author      Daniel Ostertag (Dakes)
 // @license     GPL-3.0
 // @grant       none
@@ -41,11 +41,11 @@ var rollupUserScript = (function (exports) {
     /**
      * Global constant values
      */
-    const WKCM2_VERSION = "0.4.0";
+    const WKCM2_VERSION = "0.4.1";
     const SCRIPT_NAME = 'WKCM2';
     // Google sheet: https://docs.google.com/spreadsheets/d/13oZkp8eS059nxsYc6fOJNC3PjXVnFvUC8ntRt8fdoCs/edit?usp=sharing
     // google sheets apps script url, for sheet access
-    const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz7eJp6Z1gT_eYbrY80aghpB8bzgGiIOFcJR0yztQpRUVvSEUx6ZylBJLML4DCb5rUfPA/exec";
+    const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzvZIOvmZa8K3A4sqRRWjhsWo88HgmolOZQDypZqucUIFgjxjC_NInDKXa7lEjeqJ0k8w/exec";
     // Maximum number, how many mnemonics one user can submit for one item.
     const MNEM_MAX_COUNT = 5;
     // If date of cached item is older than this number of days, re-fetch.
@@ -98,11 +98,17 @@ var rollupUserScript = (function (exports) {
      * Returns radical, kanji or vocabulary
      * */
     function getItemType() {
-        let itemType = win.wkItemInfo.currentState.type;
+        let itemType;
         if (isList)
             itemType = window.location.pathname.slice(1);
-        if (itemType == null)
-            console.log("WKCM2: getItemType, itemType null");
+        else
+            itemType = win.wkItemInfo.currentState.type;
+        if (itemType == null) {
+            console.error("WKCM2: getItemType, itemType null");
+            return null;
+        }
+        if (itemType.toLowerCase().includes("vocabulary"))
+            itemType = "vocabulary";
         if (itemType === "radicals")
             itemType = "radical";
         return itemType;

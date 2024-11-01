@@ -1,6 +1,6 @@
 {
     "namespace": "wkcm2",
-    "copyright": "2023, Daniel Ostertag (https://github.com/Dakes)",
+    "copyright": "2024, Daniel Ostertag (https://github.com/Dakes)",
     "match": [
         "https://*.wanikani.com/subject-lessons/*",
         "https://*.wanikani.com/subjects/review",
