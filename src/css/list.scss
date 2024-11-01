@@ -5,15 +5,15 @@
   flex: 0 0 17%;
 }
 
-.subject-legend__item-badge--cm-request {
+.wkcm-legend-badge-request {
   background-color: colors.$request;
 }
 
-.subject-legend__item-badge--cm-available {
+.wkcm-legend-badge-available {
   background-color: colors.$mnen-available;
 }
 
-.subject-legend__item-badge--cm-request, .subject-legend__item-badge--cm-available {
+.wkcm-legend-badge-request, .wkcm-legend-badge-available {
   width: 2em;
   height: 2em;
   line-height: 2.1;
@@ -28,19 +28,19 @@
 
 // Position of Badges in vocabulary list, or when page is <767px
 @mixin list-layout-request {
-  left: 0px;
-  transform: translate(45%, 0%);
+  left: 0;
+  transform: translate(45%, 0%) !important;
 }
 
 @mixin list-layout-available {
-  left: 0px;
-  transform: translate(45%, -112%);
+  left: 0;
+  transform: translate(45%, -112%) !important;
 }
 
 $small: 767px;
 
 // Position for Badges in grid view
-.character-item__badge__cm-request {
+.wkcm-list-badge-cm-request {
   background-color: colors.$request;
   left: 30px;
   @media screen and (max-width: $small) {
@@ -48,7 +48,7 @@ $small: 767px;
   }
 }
 
-.character-item__badge__cm-available {
+.wkcm-list-badge-cm-available {
   background-color: colors.$mnen-available;
   left: 60px;
   @media screen and (max-width: $small) {
@@ -61,8 +61,8 @@ $small: 767px;
   padding-left: 40px;
 }
 
-.character-grid__item--vocabulary {
-  .character-item__badge__cm- {
+.subject-character--vocabulary.subject-character--grid {
+  .wkcm-list-badge-cm- {
     &request {
       @include list-layout-request;
     }
@@ -72,13 +72,13 @@ $small: 767px;
     }
   }
 
-  .character-item {
+  .subject-character__characters {
     @include list-padding;
   }
 }
 
 // Overwrite WK CSS, to make space for Badges
-.character-item {
+.subject-character__characters {
   @media screen and (max-width: $small) {
     @include list-padding;
   }

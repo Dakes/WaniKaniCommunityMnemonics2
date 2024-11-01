@@ -195,6 +195,9 @@ Running `npm start` will start a development server, that will continually rebui
 - Fix kanji type in lesson
 - Don't include error entries in caching on apps script
 
+#### 0.4.2
+- Fix list view
+
 ### 1.0
 - 🚫 Sheet apps script regularly cleans database from HTML tags
 - 🚫 Sheet apps script deletes Mnemonics with rating of -10 or below

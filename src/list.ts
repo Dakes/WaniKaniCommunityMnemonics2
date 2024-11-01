@@ -24,7 +24,7 @@ export async function addBadgeToItems() {
   // needed for "levels" Overview, where all three are present
   for (let type of types) {
     let itemList = document.querySelectorAll<HTMLElement>(
-      `.character-item--${type}`);
+      `.subject-character--${type}`);
 
     for (let i = 0; i < itemList.length; i++) {
       if (typeof itemList[i] != "object" || itemList[i] == null) {
@@ -34,13 +34,13 @@ export async function addBadgeToItems() {
       }
 
       let spanItem = itemList[i].querySelector<HTMLElement>(
-        ".character-item__characters")
+        ".subject-character__characters")
 
       let item = "";
       if (spanItem.innerText) {
         item = spanItem.innerText;
-      } else if (type == "radical")  // Image Radical
-      {
+      } else if (type == "radical") {
+        // Image Radical
         let radImg = spanItem.querySelector("img.radical-image") as HTMLImageElement;
         item       = radImg.alt;
       } else {
@@ -68,10 +68,14 @@ export async function addBadgeToItems() {
  * @param selector
  */
 function addBadge(node: HTMLElement, badgeHTML: string, selector: string) {
-  if (!node.parentNode.querySelector(`.${selector}`)) {
-    let range = document.createRange();
-    range.selectNode(document.body);
-    let newElement = range.createContextualFragment(badgeHTML);
-    node.parentNode.insertBefore(newElement, node);
+  if (!node.querySelector(`.${selector}`)) {
+    let existingBadge = node.querySelector('.subject-character__badge');
+
+    if (existingBadge) {
+      existingBadge.insertAdjacentHTML('afterend', badgeHTML);
+    } else {
+      node.insertAdjacentHTML('afterbegin', badgeHTML);
+    }
   }
 }
+
