@@ -1,8 +1,8 @@
 import { wkof } from "./wkof";
 
 
-export let WKUser: string | null     = null;
-export let userApiKey: string | null = null;
+export let WKUser: string;
+export let userApiKey: string;
 
 export function setUsername(): string {
   try {
@@ -11,6 +11,7 @@ export function setUsername(): string {
         WKUser = wkof.Apiv2.user;
         if (WKUser !== undefined)
           return WKUser;
+        throw new Error("WKCM2: setUsername, WKUser not set.");
       } catch (err) {
         console.log("WKCM2: setUsername, ", err);
         WKUser = wkof.user["username"];
@@ -31,7 +32,7 @@ export function setUsername(): string {
     throw new Error("WKCM2 Warning: CMUser not set. \n" + err);
   }
 
-  if (WKUser == null || typeof WKUser != "string" || WKUser == "")
+  if (WKUser == null || WKUser == "")
     throw new Error("WKCM2 Error: WKUser not set: " + WKUser);
 
   return WKUser;
@@ -47,6 +48,8 @@ export function getUsername(): string {
 export function setApiKey(): string {
   try {
     userApiKey = wkof.Apiv2.key;
+    if (userApiKey == undefined)
+      throw new Error("WKCM2 Error: API key not set.");
   } catch (err) {
     throw new Error("WKCM2 Error: API key not set.");
   }

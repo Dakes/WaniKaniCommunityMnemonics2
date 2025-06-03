@@ -10,6 +10,8 @@ import { getBadgeBaseClass, getBadgeClassAvail } from "./html/list";
 
 import { addBadgeToItems, initHeader } from "./list";
 
+import TestComponent from "./components/TestComponent.svelte";
+
 import "./css/general.scss"
 import "./css/list.scss"
 import "./css/button.scss"
@@ -22,6 +24,20 @@ run();
 
 // all code runs from here
 function run() {
+  if (window.location.href === "https://www.wanikani.com/") {
+    export function initSvelteComponent() {
+    const targetElement = document.createElement('div');
+    document.body.appendChild(targetElement);
+
+    new TestComponent({
+      target: targetElement,
+      props: {
+        // Pass any props if necessary
+      },
+    });
+  }
+
+
   // Runs checks if elements exist before running init and waits for them. Then calls init.
   waitForWKOF().then(exists => {
     if (exists) {

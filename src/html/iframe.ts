@@ -71,7 +71,7 @@ function getIframeSrcdoc(text: string, user: string | null = null) {
 
   let userMsg = "";
   // user can be null, if it is a system message
-  if (user != null && typeof user === "string" && user != "") {
+  if (user != null && user != "") {
     user    = user.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
     userMsg = "by " + Escaping.getUserProfileLink(user);
@@ -79,8 +79,7 @@ function getIframeSrcdoc(text: string, user: string | null = null) {
   if (user == "!")
     userMsg = "This is a request. It should have been deleted after submission of a mnemonic. If you are seeing this, please post in the forum, open an issue on GitHub, or just downvote it. ";
 
-  let srcdoc = `<html><head>${cssString}</head><body><div class='col2'>${text}</div><div id='user-link'>${userMsg}</div></body></html>`;
-  return srcdoc;
+  return `<html><head>${cssString}</head><body><div class='col2'>${text}</div><div id='user-link'>${userMsg}</div></body></html>`;
 }
 
 // getIframeSrcdoc ▲

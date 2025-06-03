@@ -1,3 +1,4 @@
+
 import babel from '@rollup/plugin-babel';
 import commonjs from '@rollup/plugin-commonjs';
 import nodeResolve from '@rollup/plugin-node-resolve';
@@ -8,41 +9,109 @@ import metablock from 'rollup-plugin-userscript-metablock';
 import sass from 'rollup-plugin-sass';
 
 import fs from 'fs';
+import path from 'path';
 
 import pkg from './package.json' with { type: 'json' };
 
-fs.mkdir('dist/', {recursive: true}, () => null);
+import svelte from 'rollup-plugin-svelte';
+import sveltePreprocess from 'svelte-preprocess';
+import css from 'rollup-plugin-css-only';
+import terser from '@rollup/plugin-terser';
+import MagicString from 'magic-string';
+
+// Create the 'dist' directory if it doesn't exist
+fs.mkdir('dist/', { recursive: true }, () => null);
+
+// Determine if we are in production mode
+const production = !process.env.ROLLUP_WATCH;
 
 export default {
-    input: 'src/index.ts',
+    input: 'src/index.ts', // Adjust if your main Svelte file is different
     output: {
         file: 'dist/WKCM2_dev.user.js',
         format: 'iife',
         name: 'rollupUserScript',
-        banner: () => ('\n/*\n' + fs.readFileSync('./LICENSE', 'utf8') + '*/\n\n/* globals React, ReactDOM */'),
+        banner: () => (
+            '\n/*\n' +
+            fs.readFileSync('./LICENSE', 'utf8') +
+            '*/\n\n/* globals React, ReactDOM */'
+        ),
         sourcemap: true,
         globals: {
-            react: 'React',
-            'react-dom': 'ReactDOM'
+            // react: 'React',
+            // 'react-dom': 'ReactDOM'
         }
     },
     plugins: [
+        // Svelte plugin
+        svelte({
+            extensions: ['.svelte'],
+            preprocess: [
+                sveltePreprocess({
+                    sourceMap: !production,
+                    scss: {
+                        includePaths: ['src'],
+                    },
+                    typescript: {
+                        transpileOnly: true,
+                    },
+                }),
+            ],
+            compilerOptions: {
+                dev: !production,
+            },
+        }),
+
+        // Extract CSS from Svelte components
+        css({
+            output: 'bundle.css',
+        }),
+
+        // Custom plugin to inject CSS for Tampermonkey
+        (() => ({
+            name: 'rollup-plugin-tampermonkey-css',
+            renderChunk(code, renderedChunk, outputOptions) {
+                let magicString = new MagicString(code);
+                magicString.prepend(`GM_addStyle(GM_getResourceText('css'));\n`);
+                const result = { code: magicString.toString() };
+                if (outputOptions.sourceMap !== false) {
+                    result.map = magicString.generateMap({ hires: true });
+                }
+                return result;
+            },
+        }))(),
+
+        // SASS plugin for global styles (optional if you handle styles within Svelte)
+        sass({
+            output: 'dist/global.css', // Renamed to avoid conflict with Svelte's bundle.css
+            insert: true,
+        }),
+
+        // Replace environment variables
         replace({
             'process.env.NODE_ENV': JSON.stringify('production'),
             ENVIRONMENT: JSON.stringify('production'),
             preventAssignment: true
         }),
-        nodeResolve({extensions: ['.js', '.ts', '.tsx']}),
-        typescriptPlugin({typescript}),
-        commonjs({
-            include: [
-                'node_modules/**'
-            ],
-            exclude: [
-                'node_modules/process-es6/**'
-            ]
+
+        // Resolve node modules
+        nodeResolve({ extensions: ['.js', '.ts', '.tsx', '.svelte'] }), // Include .svelte
+        commonjs(),
+
+        // TypeScript plugin
+        typescriptPlugin({
+            typescript,
+            sourceMap: !production,
+            inlineSources: !production,
         }),
-        babel({babelHelpers: 'bundled'}),
+
+        // Babel plugin (if needed for further transpilation)
+        babel({
+            babelHelpers: 'bundled',
+            extensions: ['.js', '.jsx', '.ts', '.tsx', '.svelte'], // Ensure Babel processes Svelte files if needed
+        }),
+
+        // Metablock for userscript metadata
         metablock({
             file: './meta.json',
             override: {
@@ -54,10 +123,12 @@ export default {
                 license: pkg.license
             }
         }),
-        sass({
-            output: 'dist/bundle.css',
-            insert: true,
-        })
+
+        // Minify the bundle in production
+        production && terser(),
     ],
-    external: id => /^react(-dom)?$/.test(id)
+    watch: {
+        clearScreen: false,
+    },
+    external: id => /^react(-dom)?$/.test(id) // Externalize React dependencies
 }

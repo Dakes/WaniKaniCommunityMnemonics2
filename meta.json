@@ -2,12 +2,7 @@
     "namespace": "wkcm2",
     "copyright": "2024, Daniel Ostertag (https://github.com/Dakes)",
     "match": [
-        "https://*.wanikani.com/subject-lessons/*",
-        "https://*.wanikani.com/subjects/review",
-        "https://*.wanikani.com/level/*",
-        "https://*.wanikani.com/kanji*",
-        "https://*.wanikani.com/vocabulary*",
-        "https://*.wanikani.com/radicals*"
+        "https://*.wanikani.com/*"
     ],
     "require": [
         "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982"

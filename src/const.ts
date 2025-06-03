@@ -27,7 +27,7 @@ export const CACHE_FILL_IDENTIFIER = "wkcm2-fillCache";
 export const REFETCH_TIMEOUT = 10_000;  // in ms
 
 // whether to use console logs
-export const DEVEL = false;
+export const DEVEL = true;
 
 export let isList = false;
 export let isItem = false;

@@ -69,9 +69,15 @@ export async function dataBackgroundUpdate(item: string | null = null, type: Ite
  * @param index Index to use for displayed mnemonic. So user sees their changed mnem directly after submission. Should only be used togetcher with mnemType.
  * @param mnemType just as index, mnemType to pass through.
  * */
-export function dataUpdateAfterInsert(item: string | null                                                           = null, type: ItemType | null = null,
-                                      cachedData: DataJson | boolean | null = false, tries = 10, wait = 1000, index = 0,
-                                      mnemType: MnemType | undefined                                                = undefined): Promise<void> {
+export function dataUpdateAfterInsert(
+  item: string | null                   = null,
+  type: ItemType | null                 = null,
+  cachedData: DataJson | boolean | null = false,
+  tries                                 = 10,
+  wait                                  = 1000,
+  index                                 = 0,
+  mnemType: MnemType | undefined        = undefined
+): Promise<void> {
   if (tries < 0) {
     console.log("WKCM2: dataUpdateAfterInsert, Maximum number of tries reached, giving up. Currently displayed Mnemonic will not be updated. ");
     updateCM(undefined, mnemType, index);
@@ -112,7 +118,7 @@ export function dataUpdateAfterInsert(item: string | null                       
       console.log("WKCM2: Error, dataUpdateAfterInsert, Fetch of data from spreadsheet failed: " + reason);
     });
   }
-
+  return Promise.resolve();
 }
 
 // dataUpdateAfterInsert ▲
@@ -171,8 +177,10 @@ export function isEqualsJson(obj1: null | WKCMJson, obj2: null | WKCMJson): bool
 export function hasRequest(dataJson: DataJson | null): boolean {
   if (dataJson == null)
     return false;
+  // @ts-ignore
   if (dataJson["Meaning_Mnem"][2] == "!")
     return true
+  // @ts-ignore
   if (dataJson["Reading_Mnem"][2] == "!")
     return true
   return false
@@ -181,8 +189,10 @@ export function hasRequest(dataJson: DataJson | null): boolean {
 export function mnemAvailable(dataJson: DataJson | null): boolean {
   if (dataJson == null)
     return false;
+  // @ts-ignore
   if (dataJson["Meaning_Mnem"][2] && dataJson["Meaning_Mnem"][2] != "!")
     return true
+  // @ts-ignore
   if (dataJson["Reading_Mnem"][2] && dataJson["Reading_Mnem"][2] != "!")
     return true
   return false

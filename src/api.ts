@@ -166,7 +166,7 @@ export async function requestMnemonic(mnemType: MnemType, item: string,
 export async function deleteMnemonic(mnemType: MnemType, item: string,
                                      shortType: ItemTypeShort): Promise<Response> {
   if (currentMnem.currentUser[mnemType] != WKUser)
-    return;
+    return new Response("WKCM2: Error, deleteMnemonic, User does not own this mnemonic.", { status: 403 });
   let shortMnemType = getShortMnemType(mnemType);
   let url           = SHEET_API_URL +
     `?exec=del&item=${item}&type=${shortType}&mnemType=${shortMnemType}&apiKey=${
