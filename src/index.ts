@@ -10,7 +10,6 @@ import { getBadgeBaseClass, getBadgeClassAvail } from "./html/list";
 
 import { addBadgeToItems, initHeader } from "./list";
 
-import TestComponent from "./components/TestComponent.svelte";
 
 import "./css/general.scss"
 import "./css/list.scss"
@@ -19,6 +18,7 @@ import "./css/formatButton.scss"
 import "./css/textarea.scss"
 import "./css/content.scss"
 import "./css/highlight.scss"
+import TestComponent from "./components/TestComponent.svelte";
 
 run();
 
