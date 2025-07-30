@@ -121,8 +121,8 @@ export default {
             extensions: ['.js', '.jsx', '.ts', '.tsx', '.svelte'], // Ensure Babel processes Svelte files if needed
         }),
 
-        // Minify the bundle in production
-        production && terser(),
+        // Disabled minification for userscript compatibility
+        // production && terser(),
     ],
     watch: {
         clearScreen: false,
