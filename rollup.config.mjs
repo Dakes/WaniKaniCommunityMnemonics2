@@ -28,21 +28,29 @@ const production = !process.env.ROLLUP_WATCH;
 export default {
     input: 'src/index.ts', // Adjust if your main Svelte file is different
     output: {
-        file: 'dist/WKCM2_dev.user.js',
+        file: process.env.ROLLUP_WATCH ? 'dist/WKCM2_dev.user.js' : 'dist/WKCM2.user.js',
         format: 'iife',
         name: 'rollupUserScript',
-        banner: () => (
-            '\n/*\n' +
-            fs.readFileSync('./LICENSE', 'utf8') +
-            '*/\n\n/* globals React, ReactDOM */'
-        ),
-        sourcemap: true,
+        sourcemap: process.env.ROLLUP_WATCH ? true : false,
         globals: {
             // react: 'React',
             // 'react-dom': 'ReactDOM'
         }
     },
     plugins: [
+        // Metablock for userscript metadata - IMPORTANT: Needs to be FIRST to ensure headers come before code
+        metablock({
+            file: './meta.json',
+            override: {
+                name: pkg.name,
+                version: pkg.version,
+                description: pkg.description,
+                homepage: pkg.homepage,
+                author: pkg.author,
+                license: pkg.license
+            }
+        }),
+        
         // Svelte plugin
         svelte({
             extensions: ['.svelte'],
@@ -72,7 +80,9 @@ export default {
             name: 'rollup-plugin-tampermonkey-css',
             renderChunk(code, renderedChunk, outputOptions) {
                 let magicString = new MagicString(code);
-                magicString.prepend(`GM_addStyle(GM_getResourceText('css'));\n`);
+                // Simple GM_addStyle call - the metablock plugin should have already added the necessary @grant permissions
+                // Note: We'll handle this in the post-processing script
+                // magicString.prepend(`GM_addStyle(GM_getResourceText('css'));\n`);
                 const result = { code: magicString.toString() };
                 if (outputOptions.sourceMap !== false) {
                     result.map = magicString.generateMap({ hires: true });
@@ -109,19 +119,6 @@ export default {
         babel({
             babelHelpers: 'bundled',
             extensions: ['.js', '.jsx', '.ts', '.tsx', '.svelte'], // Ensure Babel processes Svelte files if needed
-        }),
-
-        // Metablock for userscript metadata
-        metablock({
-            file: './meta.json',
-            override: {
-                name: pkg.name,
-                version: pkg.version,
-                description: pkg.description,
-                homepage: pkg.homepage,
-                author: pkg.author,
-                license: pkg.license
-            }
         }),
 
         // Minify the bundle in production

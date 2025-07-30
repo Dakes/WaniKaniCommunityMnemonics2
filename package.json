@@ -20,7 +20,7 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "npx rollup --config rollup.config.mjs",
-        "build:release": "npx rollup --config rollup.config.mjs --sourcemap 0 --file dist/WKCM2.user.js",
+        "build:release": "npx rollup --config rollup.config.mjs && node prepend_header.js",
         "watch": "npx rollup --config rollup.config.mjs --watch",
         "serve": "node server.js",
         "start": "node server.js",

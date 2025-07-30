@@ -18,24 +18,24 @@ import "./css/formatButton.scss"
 import "./css/textarea.scss"
 import "./css/content.scss"
 import "./css/highlight.scss"
+// @ts-ignore
 import TestComponent from "./components/TestComponent.svelte";
 
 run();
 
+function initSvelteComponent() {
+  const targetElement = document.createElement('div');
+  document.body.appendChild(targetElement);
+
+  new TestComponent({
+    target: targetElement,
+    props: {},
+  });
+}
+
 // all code runs from here
 function run() {
-  if (window.location.href === "https://www.wanikani.com/") {
-    export function initSvelteComponent() {
-    const targetElement = document.createElement('div');
-    document.body.appendChild(targetElement);
-
-    new TestComponent({
-      target: targetElement,
-      props: {
-        // Pass any props if necessary
-      },
-    });
-  }
+  initSvelteComponent();
 
 
   // Runs checks if elements exist before running init and waits for them. Then calls init.

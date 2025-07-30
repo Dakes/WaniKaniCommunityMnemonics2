@@ -8,8 +8,12 @@
         "https://greasyfork.org/scripts/430565-wanikani-item-info-injector/code/WaniKani%20Item%20Info%20Injector.user.js?version=1416982"
     ],
     "grant": [
-        "none"
+        "GM_addStyle", 
+        "GM_getResourceText"
     ],
+    "resource": {
+        "css": "dist/global.css"
+    },
     "homepage": "https://github.com/Dakes/WaniKaniCommunityMnemonics2/",
     "downloadURL": "https://raw.githubusercontent.com/Dakes/WaniKaniCommunityMnemonics2/main/dist/WKCM2.user.js"
 }
