@@ -26,7 +26,7 @@ fs.mkdir('dist/', { recursive: true }, () => null);
 const production = !process.env.ROLLUP_WATCH;
 
 export default {
-    input: 'src/index.ts', // Adjust if your main Svelte file is different
+    input: 'src/index.ts',
     output: {
         file: process.env.ROLLUP_WATCH ? 'dist/WKCM2_dev.user.js' : 'dist/WKCM2.user.js',
         format: 'iife',

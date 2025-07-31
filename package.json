@@ -22,8 +22,8 @@
         "build": "npx rollup --config rollup.config.mjs",
         "build:release": "npx rollup --config rollup.config.mjs && node prepend_header.js",
         "watch": "npx rollup --config rollup.config.mjs --watch",
-        "serve": "node server.js",
-        "start": "node server.js",
+        "serve": "ROLLUP_WATCH=true node server.js",
+        "start": "ROLLUP_WATCH=true node server.js",
         "check": "svelte-check --tsconfig ./tsconfig.json",
         "testserve": "node server.js --test",
         "version": "npm run build:release && git add dist/WKCM2.user.js"
