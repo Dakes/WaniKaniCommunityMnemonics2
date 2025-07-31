@@ -3,7 +3,7 @@
  */
 
 import { infoInjectorInit, initList } from ".";
-import { isItem, isList, setPageVars, win } from "./const";
+import { isItem, isList, isDashboard, setPageVars, win } from "./const";
 import { updateIframe } from "./html/iframe";
 import { getMedItemType } from "./utils";
 import { ItemData } from "./wkof_types";
@@ -34,10 +34,22 @@ export function getItem(): string {
  * */
 export function getItemType(): ItemType {
   let itemType: string;
-  if (isList)
+  
+  // If on dashboard, return null - no specific item type
+  if (isDashboard) {
+    return null;
+  }
+  
+  if (isList) {
     itemType = window.location.pathname.slice(1);
-  else
-    itemType = win.wkItemInfo.currentState.type
+  } else {
+    // Check if wkItemInfo and currentState exist before accessing properties
+    if (!win.wkItemInfo || !win.wkItemInfo.currentState) {
+      console.error("WKCM2: getItemType, wkItemInfo or currentState is null");
+      return null;
+    }
+    itemType = win.wkItemInfo.currentState.type;
+  }
 
   if (itemType == null) {
     console.error("WKCM2: getItemType, itemType null");

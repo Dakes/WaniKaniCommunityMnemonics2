@@ -1,4 +1,3 @@
-
 import babel from '@rollup/plugin-babel';
 import commonjs from '@rollup/plugin-commonjs';
 import nodeResolve from '@rollup/plugin-node-resolve';
@@ -35,7 +34,9 @@ export default {
         globals: {
             // react: 'React',
             // 'react-dom': 'ReactDOM'
-        }
+        },
+        // Needed for dynamic imports
+        inlineDynamicImports: true
     },
     plugins: [
         // Metablock for userscript metadata - IMPORTANT: Needs to be FIRST to ensure headers come before code
@@ -51,7 +52,15 @@ export default {
             }
         }),
         
-        // Svelte plugin
+        // Replace environment variables BEFORE Svelte processing
+        replace({
+            'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
+            'process.env.SSR': 'false', // Explicitly disable SSR
+            ENVIRONMENT: JSON.stringify(production ? 'production' : 'development'),
+            preventAssignment: true
+        }),
+
+        // Svelte plugin - Updated for client-side only
         svelte({
             extensions: ['.svelte'],
             preprocess: [
@@ -65,8 +74,13 @@ export default {
                     },
                 }),
             ],
+            emitCss: true,
             compilerOptions: {
                 dev: !production,
+                // Force client-side rendering
+                generate: 'dom',
+                hydratable: false,
+                css: 'injected',
             },
         }),
 
@@ -80,9 +94,6 @@ export default {
             name: 'rollup-plugin-tampermonkey-css',
             renderChunk(code, renderedChunk, outputOptions) {
                 let magicString = new MagicString(code);
-                // Simple GM_addStyle call - the metablock plugin should have already added the necessary @grant permissions
-                // Note: We'll handle this in the post-processing script
-                // magicString.prepend(`GM_addStyle(GM_getResourceText('css'));\n`);
                 const result = { code: magicString.toString() };
                 if (outputOptions.sourceMap !== false) {
                     result.map = magicString.generateMap({ hires: true });
@@ -91,21 +102,18 @@ export default {
             },
         }))(),
 
-        // SASS plugin for global styles (optional if you handle styles within Svelte)
         sass({
-            output: 'dist/global.css', // Renamed to avoid conflict with Svelte's bundle.css
+            output: 'dist/global.css',
             insert: true,
         }),
 
-        // Replace environment variables
-        replace({
-            'process.env.NODE_ENV': JSON.stringify('production'),
-            ENVIRONMENT: JSON.stringify('production'),
-            preventAssignment: true
+        // Resolve node modules - Updated to handle Svelte correctly
+        nodeResolve({ 
+            extensions: ['.js', '.ts', '.tsx', '.svelte'],
+            browser: true,
+            preferBuiltins: false,
+            exportConditions: ['svelte']
         }),
-
-        // Resolve node modules
-        nodeResolve({ extensions: ['.js', '.ts', '.tsx', '.svelte'] }), // Include .svelte
         commonjs(),
 
         // TypeScript plugin
@@ -113,12 +121,15 @@ export default {
             typescript,
             sourceMap: !production,
             inlineSources: !production,
+            // Exclude .svelte files from TypeScript processing
+            exclude: ['**/*.svelte'],
         }),
 
         // Babel plugin (if needed for further transpilation)
         babel({
             babelHelpers: 'bundled',
-            extensions: ['.js', '.jsx', '.ts', '.tsx', '.svelte'], // Ensure Babel processes Svelte files if needed
+            extensions: ['.js', '.jsx', '.ts', '.tsx'],
+            exclude: ['**/*.svelte'],
         }),
 
         // Disabled minification for userscript compatibility
@@ -127,5 +138,5 @@ export default {
     watch: {
         clearScreen: false,
     },
-    external: id => /^react(-dom)?$/.test(id) // Externalize React dependencies
+    external: id => /^react(-dom)?$/.test(id)
 }

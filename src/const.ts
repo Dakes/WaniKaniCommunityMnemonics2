@@ -31,12 +31,17 @@ export const DEVEL = true;
 
 export let isList = false;
 export let isItem = false;
+export let isDashboard = false;
 
 // @ts-ignore;  A wrapper for the window, because unsafeWindow doesn't work in Firefox
 // @ts-ignore;  and window does not have access to wkof in some browsers?? (How even? idk, it worked before)
 export let win: Window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
 
 export function setPageVars() {
+  // Check for dashboard
+  isDashboard = window.location.pathname === "/dashboard" || 
+                window.location.pathname === "/";
+                
   isList = (
     // true if on a level page
     /level\/[0-9]{1,3}/gi.test(window.location.pathname.slice(window.location.pathname.indexOf("com/") + 2)) ||

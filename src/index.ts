@@ -1,5 +1,5 @@
 import { fillCacheIfExpired } from "./cache";
-import { isItem, isList, win } from "./const";
+import { isItem, isList, isDashboard, win } from "./const";
 import { getCMdivContent, getHeader } from "./html/mnem_div";
 import { initButtons, updateCM } from "./mnemonic";
 import { detectUrlChange, getItemType, waitForClass } from "./page";
@@ -10,7 +10,6 @@ import { getBadgeBaseClass, getBadgeClassAvail } from "./html/list";
 
 import { addBadgeToItems, initHeader } from "./list";
 
-
 import "./css/general.scss"
 import "./css/list.scss"
 import "./css/button.scss"
@@ -18,31 +17,49 @@ import "./css/formatButton.scss"
 import "./css/textarea.scss"
 import "./css/content.scss"
 import "./css/highlight.scss"
-// @ts-ignore
-import TestComponent from "./components/TestComponent.svelte";
 
 run();
 
-function initSvelteComponent() {
-  const targetElement = document.createElement('div');
-  document.body.appendChild(targetElement);
+// Store the component instance for cleanup
+let svelteComponentInstance: any = null;
 
-  new TestComponent({
-    target: targetElement,
-    props: {},
-  });
+async function initSvelteComponent() {
+  try {
+    // Ensure we don't try to initialize the component more than once
+    if (document.getElementById('wkcm2-svelte-container')) {
+      return;
+    }
+    
+    // Create target element
+    const targetElement = document.createElement('div');
+    targetElement.id = 'wkcm2-svelte-container';
+    document.body.appendChild(targetElement);
+    
+    // Dynamically import Svelte and the component to ensure client-side execution
+    const { mount } = await import('svelte');
+    const { default: TestComponent } = await import('./components/TestComponent.svelte');
+    
+    // Create the component using Svelte 5 syntax
+    svelteComponentInstance = mount(TestComponent, {
+      target: targetElement
+    });
+    
+    console.log("WKCM2: Svelte component initialized successfully");
+  } catch (error) {
+    console.error("WKCM2: Error initializing Svelte component:", error);
+    console.error(error);
+  }
 }
 
 // all code runs from here
 function run() {
-  initSvelteComponent();
-
-
   // Runs checks if elements exist before running init and waits for them. Then calls init.
   waitForWKOF().then(exists => {
     if (exists) {
       wkof.include('Apiv2').then(() => {
         wkof.ready('Apiv2').then(() => {
+          // Initialize Svelte component after WKOF is ready
+          initSvelteComponent();
           init();
         });
       });
@@ -57,7 +74,7 @@ function run() {
 // Init ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
 /**
- * Runs the right code depending if the current page is Lesson, Review or List
+ * Runs the right code depending if the current page is Lesson, Review, List or Dashboard
  * */
 function init() {
   // resets cache on new version of WKCM2
@@ -70,10 +87,17 @@ function init() {
   if (isInitialized())
     return;
 
+  // Handle dashboard specifically - initialize the Svelte component
+  if (isDashboard) {
+    // Add a delay to ensure the page is fully loaded
+    setTimeout(initSvelteComponent, 500);
+    return;
+  }
+  
   if (isList) {
     fillCacheIfExpired();
     initList();
-  } else {
+  } else if (isItem) {
     void infoInjectorInit("meaning");
     void infoInjectorInit("reading");
   }
@@ -137,19 +161,26 @@ export function initList() {
  * @returns
  */
 function isInitialized(mnemType: MnemType | null = null): Boolean {
+  // If on dashboard, check for our Svelte component container
+  if (isDashboard) {
+    return !!document.getElementById('wkcm2-svelte-container');
+  }
+  
   if (!isList) {
-    if (mnemType == null)
-      if (getItemType() == "radical")
-        return isInitialized("meaning")
+    if (mnemType == null) {
+      const itemType = getItemType();
+      if (!itemType) return false; // If we can't determine item type, we're not initialized
+      if (itemType == "radical")
+        return isInitialized("meaning");
       else
-        return isInitialized("reading") && isInitialized("meaning")
+        return isInitialized("reading") && isInitialized("meaning");
+    }
 
     if (document.querySelector("#wkcm2"))
       return true;
     if (document.querySelector(`#cm-${mnemType}`))
       return true;
-  } else  // For list
-  {
+  } else { // For list
     if (document.querySelector(".wkcm-list-badge-cm-request"))
       return true;
     if (document.querySelector(".wkcm-list-badge-cm-available"))
