@@ -58,8 +58,6 @@ function run() {
     if (exists) {
       wkof.include('Apiv2').then(() => {
         wkof.ready('Apiv2').then(() => {
-          // Initialize Svelte component after WKOF is ready
-          initSvelteComponent();
           init();
         });
       });
@@ -97,7 +95,7 @@ function init() {
   if (isList) {
     fillCacheIfExpired();
     initList();
-  } else if (isItem) {
+  } else {
     void infoInjectorInit("meaning");
     void infoInjectorInit("reading");
   }
